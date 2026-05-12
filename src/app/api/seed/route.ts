@@ -56,8 +56,10 @@ async function seedDatabase() {
   try {
     // Delete existing data in correct order (FK constraints)
     // Comments and Likes must be deleted before rides/routes/users
+    await db.achievement.deleteMany()
     await db.comment.deleteMany()
     await db.like.deleteMany()
+    await db.poi.deleteMany()
     await db.ride.deleteMany()
     await db.route.deleteMany()
     await db.user.deleteMany()
@@ -664,6 +666,53 @@ async function seedDatabase() {
       likesData.map((like) => db.like.create({ data: like }))
     )
 
+    // --- POIS ---
+    const poisData = [
+      // Ljubljana area
+      { name: 'Petrol Ljubljana Center', type: 'gas_station', lat: 46.0569, lng: 14.5058, description: 'Bencinska črpalka v središču Ljubljane. 24/7 odprto.', rating: 4.2 },
+      { name: 'Restavracija As', type: 'restaurant', lat: 46.0510, lng: 14.5060, description: 'Priljubljena restavracija z lokalno hrano v Ljubljani.', rating: 4.5 },
+      { name: 'Moto srečanje Rožnik', type: 'biker_spot', lat: 46.0580, lng: 14.4800, description: 'Priljubljeno srečanje motoristov ob nedeljah na Rožniku.', rating: 4.7 },
+      { name: 'Parkirišče BTC City', type: 'parking', lat: 46.0680, lng: 14.5400, description: 'Brezplačno parkirišče z varstvom pri BTC City.', rating: 3.8 },
+      { name: 'Hotel Park Ljubljana', type: 'hotel', lat: 46.0550, lng: 14.5100, description: 'Srednjevelik hotel v centru Ljubljane z garažo za moto.', rating: 4.1 },
+      { name: 'Moto servis Ljubljana', type: 'mechanic', lat: 46.0620, lng: 14.5200, description: 'Avtorizirani servis BMW in Yamaha motociklov.', rating: 4.6 },
+      // Bled area
+      { name: 'OMV Bled', type: 'gas_station', lat: 46.3625, lng: 14.0944, description: 'Bencinska črpalka ob cesti proti Bledu.', rating: 4.0 },
+      { name: 'Restavracija Blejski grad', type: 'restaurant', lat: 46.3690, lng: 14.0930, description: 'Restavracija z razgledom na Blejski jezero in grad.', rating: 4.8 },
+      { name: 'Moto srečanje Bled', type: 'biker_spot', lat: 46.3600, lng: 14.0850, description: 'Zbirno mesto motoristov ob Blejskem jezeru.', rating: 4.5 },
+      { name: 'Hotel Vila Bled', type: 'hotel', lat: 46.3570, lng: 14.0890, description: 'Luksuzni hotel ob Blejskem jezeru s čudovitim razgledom.', rating: 4.9 },
+      // Soča valley
+      { name: 'Petrol Bovec', type: 'gas_station', lat: 46.3317, lng: 13.5536, description: 'Edina bencinska črpalka v Bovcu. Pomembna postaja za Soško dolino.', rating: 3.9 },
+      { name: 'Restavracija Soča', type: 'restaurant', lat: 46.3350, lng: 13.5600, description: 'Domača hrana ob reki Soči. Soška postrvlj je specialiteta.', rating: 4.6 },
+      { name: 'Moto srečanje Bovec', type: 'biker_spot', lat: 46.3300, lng: 13.5500, description: 'Letno mednarodno moto srečanje v Bovcu. Avgust vsako leto.', rating: 4.9 },
+      { name: 'Parkirišče Trenta', type: 'parking', lat: 46.3740, lng: 13.7250, description: 'Parkirišče v Trenti, izhodišče za pohode v Triglavski narodni park.', rating: 4.0 },
+      // Coast
+      { name: 'OMV Koper', type: 'gas_station', lat: 45.5481, lng: 13.7300, description: 'Bencinska črpalka ob vhodu v Koper.', rating: 4.1 },
+      { name: 'Restavracija Piran', type: 'restaurant', lat: 45.5272, lng: 13.5681, description: 'Morska restavracija v Piranu s svežimi sadeži.', rating: 4.7 },
+      { name: 'Hotel Kempinski Palanga', type: 'hotel', lat: 45.5150, lng: 13.5900, description: 'Boutique hotel na slovenski obali z mediteranskim duhom.', rating: 4.4 },
+      // Other locations
+      { name: 'Moto servis Maribor', type: 'mechanic', lat: 46.5547, lng: 15.6459, description: 'Splošni moto servis v Mariboru. Hitra pomoč na cesti.', rating: 4.3 },
+      { name: 'Parkirišče Vršič', type: 'parking', lat: 46.4333, lng: 13.7333, description: 'Parkirišče na prelazu Vršič. Odlično izhodišče za okoliške ture.', rating: 4.2 },
+    ]
+
+    const pois = await Promise.all(
+      poisData.map((poi) => db.poi.create({ data: poi }))
+    )
+
+    // --- ACHIEVEMENTS ---
+    const achievementsData = [
+      { type: 'first_ride', title: 'Prva vožnja', description: 'Zaključili ste prvo vožnjo!', icon: '🏍️', userId: users[0].id },
+      { type: 'hiker', title: 'Pohodnik', description: 'Zaključili ste 10 voženj!', icon: '🥾', userId: users[0].id },
+      { type: 'long_distance', title: 'Dolge razdalje', description: 'Prevozili ste 500 km skupaj!', icon: '🛣️', userId: users[0].id },
+      { type: 'mountain_cossack', title: 'Gorski kozak', description: 'Prevozili ste 5000m višine skupaj!', icon: '⛰️', userId: users[1].id },
+      { type: 'first_ride', title: 'Prva vožnja', description: 'Zaključili ste prvo vožnjo!', icon: '🏍️', userId: users[1].id },
+      { type: 'speed_demon', title: 'Hitrostni demon', description: 'Dosegli ste hitrost nad 120 km/h!', icon: '⚡', userId: users[2].id },
+      { type: 'first_ride', title: 'Prva vožnja', description: 'Zaključili ste prvo vožnjo!', icon: '🏍️', userId: users[2].id },
+    ]
+
+    const achievements = await Promise.all(
+      achievementsData.map((a) => db.achievement.create({ data: a }))
+    )
+
     return NextResponse.json({
       success: true,
       message: 'Database seeded successfully',
@@ -673,12 +722,14 @@ async function seedDatabase() {
         routes: routes.length,
         comments: comments.length,
         likes: likes.length,
+        pois: pois.length,
+        achievements: achievements.length,
       },
     })
-  } catch (error) {
-    console.error('Seed error:', error)
+  } catch (error: any) {
+    console.error('Seed error:', error?.message || error, error?.stack || '')
     return NextResponse.json(
-      { success: false, error: 'Failed to seed database' },
+      { success: false, error: error?.message || 'Failed to seed database' },
       { status: 500 }
     )
   }

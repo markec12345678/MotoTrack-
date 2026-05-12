@@ -14,6 +14,7 @@ import { Separator } from '@/components/ui/separator'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import type { RideData, UserData } from '@/components/tabs/types'
 import { formatDuration, formatDate, categoryLabel, categoryColor } from '@/components/tabs/types'
+import AchievementsPanel from '@/components/tabs/achievements-panel'
 
 interface ProfileTabProps {
   user: UserData | null
@@ -82,6 +83,9 @@ export default function ProfileTab({ user, allUsers, rides, routes, loading, onS
           <Card className="overflow-hidden"><CardContent className="p-4 text-center relative"><div className="absolute top-0 left-0 right-0 h-0.5 bg-gradient-to-r from-primary/60 to-primary/20" /><TrendingUp className="size-5 text-primary mx-auto mb-1" /><p className="text-2xl font-bold">{user.stats.totalDistance}</p><p className="text-xs text-muted-foreground">km skupaj</p></CardContent></Card>
           <Card className="overflow-hidden"><CardContent className="p-4 text-center relative"><div className="absolute top-0 left-0 right-0 h-0.5 bg-gradient-to-r from-primary/60 to-primary/20" /><Mountain className="size-5 text-primary mx-auto mb-1" /><p className="text-2xl font-bold">{user.stats.totalElevation}</p><p className="text-xs text-muted-foreground">m višine</p></CardContent></Card>
         </div>
+
+        {/* Achievements */}
+        <AchievementsPanel userId={user.id} key={user.id} />
 
         {/* Performance */}
         <Card className="overflow-hidden border-primary/15">

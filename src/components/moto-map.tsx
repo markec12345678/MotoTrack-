@@ -3,6 +3,7 @@
 import { useEffect, useRef } from 'react'
 import L from 'leaflet'
 import 'leaflet/dist/leaflet.css'
+import { poiTypeEmoji, poiTypeColor, poiTypeLabel } from '@/components/tabs/types'
 
 interface MotoMapProps {
   center?: [number, number]
@@ -24,6 +25,15 @@ interface MotoMapProps {
     waypoints: string
     routeData: string | null
   }>
+  pois?: Array<{
+    id: string
+    name: string
+    type: string
+    lat: number
+    lng: number
+    description: string | null
+    rating: number
+  }>
   planWaypoints?: Array<{ lat: number; lng: number }>
   trackPoints?: Array<{ lat: number; lng: number }>
   showPlan?: boolean
@@ -32,6 +42,10 @@ interface MotoMapProps {
   filterRides?: boolean
   filterRoutes?: boolean
   filterCategory?: string
+  filterPoiTypes?: string[]
+  showTwistyRoads?: boolean
+  showWeatherRadar?: boolean
+  showHazards?: boolean
   className?: string
 }
 
@@ -84,11 +98,28 @@ function createRouteMarker(category: string, title: string, likes: number): L.Di
   })
 }
 
+// Custom POI marker
+function createPoiMarker(type: string, name: string): L.DivIcon {
+  const emoji = poiTypeEmoji(type)
+  const color = poiTypeColor(type)
+  return L.divIcon({
+    className: 'custom-marker',
+    html: `<div style="position:relative;display:flex;align-items:center;justify-content:center;width:28px;height:28px;">
+      <div style="position:absolute;inset:0;background:${color};border:2px solid #fff;border-radius:50%;box-shadow:0 2px 6px rgba(0,0,0,0.3);"></div>
+      <span style="position:relative;z-index:1;font-size:13px;line-height:1;">${emoji}</span>
+    </div>`,
+    iconSize: [28, 28],
+    iconAnchor: [14, 14],
+    popupAnchor: [0, -16],
+  })
+}
+
 export default function MotoMap({
   center = [46.15, 14.99],
   zoom = 8,
   rides = [],
   routes = [],
+  pois = [],
   planWaypoints = [],
   trackPoints = [],
   showPlan = false,
@@ -97,6 +128,10 @@ export default function MotoMap({
   filterRides = true,
   filterRoutes = true,
   filterCategory = 'all',
+  filterPoiTypes = [],
+  showTwistyRoads = false,
+  showWeatherRadar = false,
+  showHazards = false,
   className = '',
 }: MotoMapProps) {
   const mapRef = useRef<L.Map | null>(null)
@@ -106,7 +141,10 @@ export default function MotoMap({
     routes: L.LayerGroup
     plan: L.LayerGroup
     track: L.LayerGroup
+    pois: L.LayerGroup
+    overlays: L.LayerGroup
   } | null>(null)
+  const overlayLayersRef = useRef<{ twisty?: L.TileLayer; weather?: L.TileLayer }>({})
 
   // Initialize map
   useEffect(() => {
@@ -132,12 +170,16 @@ export default function MotoMap({
     const routesLayer = L.layerGroup().addTo(map)
     const planLayer = L.layerGroup().addTo(map)
     const trackLayer = L.layerGroup().addTo(map)
+    const poisLayer = L.layerGroup().addTo(map)
+    const overlaysLayer = L.layerGroup().addTo(map)
 
     layersRef.current = {
       rides: ridesLayer,
       routes: routesLayer,
       plan: planLayer,
       track: trackLayer,
+      pois: poisLayer,
+      overlays: overlaysLayer,
     }
 
     // Map click handler
@@ -253,6 +295,37 @@ export default function MotoMap({
     })
   }, [routes, filterRoutes, filterCategory])
 
+  // Update POI layer
+  useEffect(() => {
+    if (!layersRef.current) return
+    const layer = layersRef.current.pois
+    layer.clearLayers()
+
+    pois.forEach((poi) => {
+      // Check filter - if filterPoiTypes is empty, show none
+      if (!filterPoiTypes.includes(poi.type)) return
+
+      const marker = L.marker([poi.lat, poi.lng], {
+        icon: createPoiMarker(poi.type, poi.name),
+      }).addTo(layer)
+
+      const color = poiTypeColor(poi.type)
+      const emoji = poiTypeEmoji(poi.type)
+      const label = poiTypeLabel(poi.type)
+      const stars = '★'.repeat(Math.round(poi.rating)) + '☆'.repeat(5 - Math.round(poi.rating))
+
+      marker.bindPopup(`
+        <div style="min-width:180px">
+          <strong style="font-size:14px">${poi.name}</strong><br/>
+          <span style="background:${color}22;color:${color};padding:2px 8px;border-radius:4px;font-size:11px;display:inline-block;margin:4px 0">${emoji} ${label}</span><br/>
+          ${poi.description ? `<span style="color:#666;font-size:12px;display:block;margin:4px 0">${poi.description}</span>` : ''}
+          <span style="color:#f59e0b;font-size:12px">${stars}</span>
+          <span style="color:#888;font-size:11px;margin-left:4px">${poi.rating.toFixed(1)}</span>
+        </div>
+      `)
+    })
+  }, [pois, filterPoiTypes])
+
   // Update plan waypoints
   useEffect(() => {
     if (!layersRef.current || !showPlan) return
@@ -315,6 +388,151 @@ export default function MotoMap({
       }).addTo(layer)
     }
   }, [trackPoints, showTrack])
+
+  // Update twisty roads overlay
+  useEffect(() => {
+    if (!mapRef.current) return
+    const map = mapRef.current
+
+    // Remove existing twisty layer
+    if (overlayLayersRef.current.twisty) {
+      map.removeLayer(overlayLayersRef.current.twisty)
+      overlayLayersRef.current.twisty = undefined
+    }
+
+    if (showTwistyRoads) {
+      // Use OpenStreetMap cycle map to highlight curvy roads visually
+      // Also add a custom overlay that shows route difficulty by color
+      const twistyLayer = L.tileLayer('https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png', {
+        attribution: '© OpenTopoMap',
+        maxZoom: 17,
+        opacity: 0.6,
+      })
+      twistyLayer.addTo(map)
+      overlayLayersRef.current.twisty = twistyLayer
+
+      // Add twisty road indicators for known Slovenian passes
+      if (layersRef.current) {
+        const overlayLayer = layersRef.current.overlays
+        // Clear old overlays
+        overlayLayer.clearLayers()
+
+        // Known twisty roads in Slovenia with difficulty ratings
+        const twistyRoads = [
+          { name: 'Prelaz Vršič', desc: '50 klancev - ZELO ZAHTEVNO', lat: 46.4333, lng: 13.7333, difficulty: 'hard', color: '#ef4444' },
+          { name: 'Prelaz Predel', desc: 'Strme serpentine', lat: 46.3833, lng: 13.5667, difficulty: 'hard', color: '#ef4444' },
+          { name: 'Prelaz Mangart', desc: 'Najvišji cestni prelaz v SLO', lat: 46.4500, lng: 13.6333, difficulty: 'extreme', color: '#dc2626' },
+          { name: 'Jezersko - Preval', desc: 'Zavite gorske ceste', lat: 46.4000, lng: 14.8500, difficulty: 'medium', color: '#f59e0b' },
+          { name: 'Gorjanci', desc: 'Krasne vijugaste ceste', lat: 45.8000, lng: 15.1667, difficulty: 'medium', color: '#f59e0b' },
+          { name: 'Pohorje', desc: 'Gozdne klance', lat: 46.5000, lng: 15.5500, difficulty: 'medium', color: '#f59e0b' },
+          { name: 'Col - Predmeja', desc: 'Vijugaste ceste Notranjske', lat: 45.7500, lng: 14.2500, difficulty: 'easy', color: '#22c55e' },
+          { name: 'Cerkno - Škofja Loka', desc: 'Slikovite vijugaste ceste', lat: 46.1167, lng: 14.0500, difficulty: 'easy', color: '#22c55e' },
+        ]
+
+        twistyRoads.forEach(road => {
+          const marker = L.circleMarker([road.lat, road.lng], {
+            radius: 10,
+            fillColor: road.color,
+            color: '#fff',
+            weight: 2,
+            opacity: 1,
+            fillOpacity: 0.85,
+          }).addTo(overlayLayer)
+
+          const diffLabel = road.difficulty === 'extreme' ? 'Ekstremno' : road.difficulty === 'hard' ? 'Zahtevno' : road.difficulty === 'medium' ? 'Srednje' : 'Lahko'
+          marker.bindPopup(`
+            <div style="min-width:180px">
+              <strong style="font-size:14px">🔄 ${road.name}</strong><br/>
+              <span style="color:#666;font-size:12px;display:block;margin:4px 0">${road.desc}</span>
+              <span style="background:${road.color}22;color:${road.color};padding:2px 8px;border-radius:4px;font-size:11px;display:inline-block">Vijugasto: ${diffLabel}</span>
+            </div>
+          `)
+        })
+      }
+    } else {
+      // Clear overlays when twisty roads hidden
+      if (layersRef.current) {
+        layersRef.current.overlays.clearLayers()
+      }
+    }
+  }, [showTwistyRoads])
+
+  // Update weather radar overlay
+  useEffect(() => {
+    if (!mapRef.current) return
+    const map = mapRef.current
+
+    // Remove existing weather layer
+    if (overlayLayersRef.current.weather) {
+      map.removeLayer(overlayLayersRef.current.weather)
+      overlayLayersRef.current.weather = undefined
+    }
+
+    if (showWeatherRadar) {
+      // RainViewer radar overlay (free, no API key needed)
+      const weatherLayer = L.tileLayer('https://tilecache.rainviewer.com/v2/radar/latest/256/{z}/{x}/{y}/6/1_1.png', {
+        attribution: '© RainViewer',
+        maxZoom: 19,
+        opacity: 0.5,
+      })
+      weatherLayer.addTo(map)
+      overlayLayersRef.current.weather = weatherLayer
+    }
+  }, [showWeatherRadar])
+
+  // Update hazards overlay
+  useEffect(() => {
+    if (!layersRef.current) return
+    // We reuse the overlays layer for hazards when twisty roads are off
+    // Only add hazards if twisty roads aren't using the overlay layer
+    if (!showTwistyRoads) {
+      const layer = layersRef.current.overlays
+      layer.clearLayers()
+
+      if (showHazards) {
+        // Known hazard locations in Slovenia
+        const hazards = [
+          { name: 'Hitrostna past Ljubljana', desc: 'Hitrostna kamera na Ljubljanski obvoznici', lat: 46.0750, lng: 14.5300, type: 'speed_camera', icon: '📸' },
+          { name: 'Hitrostna past Maribor', desc: 'Hitrostna kamera na Mariborski obvoznici', lat: 46.5400, lng: 15.6200, type: 'speed_camera', icon: '📸' },
+          { name: 'Plazovito območje Vršič', desc: 'Nevarnost padanja kamenja spomladi', lat: 46.4400, lng: 13.7200, type: 'rockfall', icon: '🪨' },
+          { name: 'Zdrsna cesta Predel', desc: 'Nevarnost zdrsa pri mrazu', lat: 46.3850, lng: 13.5600, type: 'slippery', icon: '⚠️' },
+          { name: 'Divjad Soška dolina', desc: 'Pogost prehod divjadi čez cesto', lat: 46.3200, lng: 13.6000, type: 'wildlife', icon: '🦌' },
+          { name: 'Zdrsna cesta Mangart', desc: 'Izjemno drsna cesta pri mokri podlagi', lat: 46.4550, lng: 13.6400, type: 'slippery', icon: '⚠️' },
+          { name: 'Delnice na Gorenjski', desc: 'Cesta v popravilu - zavozljivo', lat: 46.2000, lng: 14.2000, type: 'construction', icon: '🚧' },
+          { name: 'Omejitev 30 Ljubljana center', desc: 'Omejitev hitrosti 30 km/h', lat: 46.0500, lng: 14.5050, type: 'speed_limit', icon: '🔢' },
+        ]
+
+        const hazardColors: Record<string, string> = {
+          speed_camera: '#ef4444',
+          rockfall: '#f97316',
+          slippery: '#eab308',
+          wildlife: '#8b5cf6',
+          construction: '#f59e0b',
+          speed_limit: '#3b82f6',
+        }
+
+        hazards.forEach(hazard => {
+          const color = hazardColors[hazard.type] || '#6b7280'
+          const marker = L.circleMarker([hazard.lat, hazard.lng], {
+            radius: 9,
+            fillColor: color,
+            color: '#fff',
+            weight: 2,
+            opacity: 1,
+            fillOpacity: 0.85,
+          }).addTo(layer)
+
+          marker.bindPopup(`
+            <div style="min-width:180px">
+              <strong style="font-size:14px">${hazard.icon} ${hazard.name}</strong><br/>
+              <span style="color:#666;font-size:12px;display:block;margin:4px 0">${hazard.desc}</span>
+              <span style="background:${color}22;color:${color};padding:2px 8px;border-radius:4px;font-size:11px;display:inline-block">Opozorilo</span>
+            </div>
+          `)
+        })
+      }
+    }
+  }, [showHazards, showTwistyRoads])
 
   return (
     <div

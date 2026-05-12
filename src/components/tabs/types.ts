@@ -96,6 +96,27 @@ export interface LeaderboardUser {
   totalElevation: number
 }
 
+export interface PoiData {
+  id: string
+  name: string
+  type: string // gas_station, restaurant, biker_spot, parking, hotel, mechanic
+  lat: number
+  lng: number
+  description: string | null
+  rating: number
+  createdAt: string
+}
+
+export interface AchievementData {
+  id: string | null
+  type: string
+  title: string
+  description: string
+  icon: string
+  earned: boolean
+  earnedAt: string | null
+}
+
 export type TabId = 'map' | 'plan' | 'track' | 'explore' | 'profile'
 
 export function haversine(lat1: number, lon1: number, lat2: number, lon2: number): number {
@@ -138,4 +159,40 @@ export function categoryColor(cat: string): string {
 export function difficultyLabel(d: string): string {
   const map: Record<string, string> = { easy: 'Lahko', medium: 'Srednje', hard: 'Težko' }
   return map[d] || d
+}
+
+export function poiTypeLabel(type: string): string {
+  const map: Record<string, string> = {
+    gas_station: 'Bencinska črpalka',
+    restaurant: 'Restavracija',
+    biker_spot: 'Moto srečanje',
+    parking: 'Parkirišče',
+    hotel: 'Hotel/Namestitev',
+    mechanic: 'Servis',
+  }
+  return map[type] || type
+}
+
+export function poiTypeEmoji(type: string): string {
+  const map: Record<string, string> = {
+    gas_station: '⛽',
+    restaurant: '🍽️',
+    biker_spot: '🏍️',
+    parking: '🅿️',
+    hotel: '🏨',
+    mechanic: '🔧',
+  }
+  return map[type] || '📍'
+}
+
+export function poiTypeColor(type: string): string {
+  const map: Record<string, string> = {
+    gas_station: '#22c55e',
+    restaurant: '#f59e0b',
+    biker_spot: '#ef4444',
+    parking: '#3b82f6',
+    hotel: '#8b5cf6',
+    mechanic: '#f97316',
+  }
+  return map[type] || '#6b7280'
 }

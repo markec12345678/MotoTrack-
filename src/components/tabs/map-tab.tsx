@@ -1,17 +1,26 @@
 'use client'
 
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 import dynamic from 'next/dynamic'
-import { Search, X, ChevronUp, ChevronDown, LocateFixed, Bike, Route as RouteIcon, Filter } from 'lucide-react'
+import { Search, X, ChevronUp, ChevronDown, LocateFixed, Bike, Route as RouteIcon, Filter, MapPin, GitBranch, CloudRain, AlertTriangle } from 'lucide-react'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { toast } from 'sonner'
-import type { RideData, RouteData } from '@/components/tabs/types'
-import { categoryLabel, categoryColor } from '@/components/tabs/types'
+import type { RideData, RouteData, PoiData } from '@/components/tabs/types'
+import { categoryLabel, categoryColor, poiTypeLabel, poiTypeEmoji } from '@/components/tabs/types'
 
 const MotoMap = dynamic(() => import('@/components/moto-map'), { ssr: false })
+
+const POI_TYPES = [
+  { key: 'gas_station', label: 'Bencinske črpalke', emoji: '⛽' },
+  { key: 'restaurant', label: 'Restavracije', emoji: '🍽️' },
+  { key: 'biker_spot', label: 'Moto srečanja', emoji: '🏍️' },
+  { key: 'parking', label: 'Parkirišča', emoji: '🅿️' },
+  { key: 'hotel', label: 'Hoteli', emoji: '🏨' },
+  { key: 'mechanic', label: 'Servisi', emoji: '🔧' },
+]
 
 interface MapTabProps {
   rides: RideData[]
@@ -27,6 +36,24 @@ export default function MapTab({ rides, routes, onOpenDetail }: MapTabProps) {
   const [filterRoutes, setFilterRoutes] = useState(true)
   const [filterCategory, setFilterCategory] = useState('all')
   const [showFilters, setShowFilters] = useState(false)
+
+  // POI state
+  const [pois, setPois] = useState<PoiData[]>([])
+  const [activePoiTypes, setActivePoiTypes] = useState<string[]>([])
+  const [showPoiPanel, setShowPoiPanel] = useState(false)
+
+  // Map overlays state
+  const [showTwistyRoads, setShowTwistyRoads] = useState(false)
+  const [showWeatherRadar, setShowWeatherRadar] = useState(false)
+  const [showHazards, setShowHazards] = useState(false)
+
+  // Fetch POIs
+  useEffect(() => {
+    fetch('/api/pois')
+      .then(r => r.json())
+      .then(j => setPois(j.data || []))
+      .catch(() => {})
+  }, [])
 
   const totalCount = rides.length + routes.length
 
@@ -56,6 +83,14 @@ export default function MapTab({ rides, routes, onOpenDetail }: MapTabProps) {
     )
   }
 
+  const togglePoiType = (type: string) => {
+    setActivePoiTypes(prev =>
+      prev.includes(type) ? prev.filter(t => t !== type) : [...prev, type]
+    )
+  }
+
+  const activePoiCount = activePoiTypes.length
+
   return (
     <div className="relative w-full h-[calc(100vh-64px)]">
       {/* Map */}
@@ -64,9 +99,14 @@ export default function MapTab({ rides, routes, onOpenDetail }: MapTabProps) {
         zoom={8}
         rides={rides}
         routes={routes}
+        pois={pois}
         filterRides={filterRides}
         filterRoutes={filterRoutes}
         filterCategory={filterCategory}
+        filterPoiTypes={activePoiTypes}
+        showTwistyRoads={showTwistyRoads}
+        showWeatherRadar={showWeatherRadar}
+        showHazards={showHazards}
         className="absolute inset-0"
       />
 
@@ -173,6 +213,44 @@ export default function MapTab({ rides, routes, onOpenDetail }: MapTabProps) {
         >
           <Filter className="h-4 w-4" />
         </Button>
+        <Button
+          size="icon"
+          variant="secondary"
+          className={`h-9 w-9 rounded-full shadow-lg backdrop-blur-md border border-border relative ${activePoiCount > 0 ? 'bg-primary text-primary-foreground' : 'bg-background/90 hover:bg-muted'}`}
+          onClick={() => setShowPoiPanel(!showPoiPanel)}
+        >
+          <MapPin className="h-4 w-4" />
+          {activePoiCount > 0 && (
+            <span className="absolute -top-1 -right-1 bg-red-500 text-white text-[9px] font-bold rounded-full size-4 flex items-center justify-center">{activePoiCount}</span>
+          )}
+        </Button>
+        <Button
+          size="icon"
+          variant="secondary"
+          className={`h-9 w-9 rounded-full shadow-lg backdrop-blur-md border border-border ${showTwistyRoads ? 'bg-amber-500 text-white' : 'bg-background/90 hover:bg-muted'}`}
+          onClick={() => setShowTwistyRoads(!showTwistyRoads)}
+          title="Vijugaste ceste"
+        >
+          <GitBranch className="h-4 w-4" />
+        </Button>
+        <Button
+          size="icon"
+          variant="secondary"
+          className={`h-9 w-9 rounded-full shadow-lg backdrop-blur-md border border-border ${showWeatherRadar ? 'bg-sky-500 text-white' : 'bg-background/90 hover:bg-muted'}`}
+          onClick={() => setShowWeatherRadar(!showWeatherRadar)}
+          title="Vremenski radar"
+        >
+          <CloudRain className="h-4 w-4" />
+        </Button>
+        <Button
+          size="icon"
+          variant="secondary"
+          className={`h-9 w-9 rounded-full shadow-lg backdrop-blur-md border border-border ${showHazards ? 'bg-red-500 text-white' : 'bg-background/90 hover:bg-muted'}`}
+          onClick={() => setShowHazards(!showHazards)}
+          title="Opozorila na nevarnosti"
+        >
+          <AlertTriangle className="h-4 w-4" />
+        </Button>
       </div>
 
       {/* Filter panel */}
@@ -220,6 +298,40 @@ export default function MapTab({ rides, routes, onOpenDetail }: MapTabProps) {
         </div>
       )}
 
+      {/* POI toggle panel */}
+      {showPoiPanel && (
+        <div className="absolute top-28 right-4 z-[1000] bg-background/95 backdrop-blur-md border border-border rounded-xl shadow-lg p-3 w-52">
+          <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-2">Zanimive točke</p>
+          <div className="space-y-1.5">
+            {POI_TYPES.map(pt => (
+              <button
+                key={pt.key}
+                onClick={() => togglePoiType(pt.key)}
+                className={`w-full flex items-center gap-2 px-2.5 py-2 rounded-lg text-xs font-medium transition-colors ${
+                  activePoiTypes.includes(pt.key)
+                    ? 'bg-primary/15 text-primary border border-primary/30'
+                    : 'bg-secondary text-muted-foreground border border-border hover:bg-muted'
+                }`}
+              >
+                <span className="text-sm">{pt.emoji}</span>
+                <span className="flex-1 text-left">{pt.label}</span>
+                <span className="text-[10px] text-muted-foreground">
+                  {pois.filter(p => p.type === pt.key).length}
+                </span>
+              </button>
+            ))}
+          </div>
+          {activePoiCount > 0 && (
+            <button
+              onClick={() => setActivePoiTypes([])}
+              className="w-full mt-2 text-xs text-muted-foreground hover:text-foreground transition-colors py-1"
+            >
+              Skrij vse
+            </button>
+          )}
+        </div>
+      )}
+
       {/* Locate button */}
       <div className="absolute bottom-28 right-4 z-[1000]">
         <Button
@@ -245,7 +357,7 @@ export default function MapTab({ rides, routes, onOpenDetail }: MapTabProps) {
             className="w-full flex items-center justify-between px-4 h-14 text-sm font-medium text-foreground hover:bg-muted/30 transition-colors rounded-t-2xl"
           >
             <span>
-              {totalCount} voženj in poti
+              {totalCount} voženj in poti{activePoiCount > 0 ? ` · ${pois.filter(p => activePoiTypes.includes(p.type)).length} POI` : ''}
             </span>
             {nearbyExpanded ? (
               <ChevronDown className="h-4 w-4 text-muted-foreground" />

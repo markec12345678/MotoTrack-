@@ -337,6 +337,7 @@ export default function Home() {
               category={planCategory} setCategory={setPlanCategory}
               avoidHighways={planAvoidHighways} setAvoidHighways={setPlanAvoidHighways}
               distance={planDistance} onMapClick={handleMapClick} onSave={saveRoute}
+              userId={user?.id || ''} onRefresh={fetchData}
             />
           )}
           {activeTab === 'track' && (

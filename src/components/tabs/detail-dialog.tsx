@@ -5,7 +5,7 @@ import {
   X, Heart, MessageCircle, Clock, MapPin, Mountain,
   Wind, Thermometer, Droplets, Bike, Route, Gauge,
   Cloud, Sun, CloudRain, CloudSnow, CloudFog, CloudLightning,
-  Send, Calendar,
+  Send, Calendar, Download,
 } from 'lucide-react'
 import { Dialog, DialogContent, DialogTitle } from '@/components/ui/dialog'
 import { Badge } from '@/components/ui/badge'
@@ -132,6 +132,18 @@ export default function DetailDialog({
               <Calendar className="size-3" />
               <span className="text-xs">{formatDate(item.createdAt)}</span>
             </span>
+            <Button
+              variant="ghost"
+              size="sm"
+              className="h-7 gap-1 text-xs text-muted-foreground hover:text-foreground"
+              onClick={() => {
+                const param = isRide ? 'rideId' : 'routeId'
+                window.open('/api/gpx/export?' + param + '=' + item.id)
+              }}
+            >
+              <Download className="size-3" />
+              Izvozi GPX
+            </Button>
           </div>
 
           {/* Like button for routes */}

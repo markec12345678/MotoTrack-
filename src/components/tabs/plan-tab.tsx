@@ -1,13 +1,14 @@
 'use client'
 
-import React from 'react'
+import React, { useRef } from 'react'
 import dynamic from 'next/dynamic'
-import { Route, Trash2, Save, MapPin, X } from 'lucide-react'
+import { Route, Trash2, Save, MapPin, X, Upload } from 'lucide-react'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
 import { Switch } from '@/components/ui/switch'
 import { Separator } from '@/components/ui/separator'
 import { ScrollArea } from '@/components/ui/scroll-area'
+import { toast } from 'sonner'
 import { categoryLabel } from '@/components/tabs/types'
 
 const MotoMap = dynamic(() => import('@/components/moto-map'), { ssr: false })
@@ -24,13 +25,45 @@ interface PlanTabProps {
   distance: number
   onMapClick: (lat: number, lng: number) => void
   onSave: () => void
+  userId: string
+  onRefresh: () => void
 }
 
 export default function PlanTab({
   waypoints, setWaypoints, title, setTitle,
   category, setCategory, avoidHighways, setAvoidHighways,
-  distance, onMapClick, onSave,
+  distance, onMapClick, onSave, userId, onRefresh,
 }: PlanTabProps) {
+  const fileInputRef = useRef<HTMLInputElement>(null)
+
+  const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+
+    if (!file.name.toLowerCase().endsWith('.gpx')) {
+      toast.error('Izberite datoteko formata .gpx')
+      return
+    }
+
+    try {
+      const formData = new FormData()
+      formData.append('file', file)
+      formData.append('userId', userId)
+      const res = await fetch('/api/gpx/import', { method: 'POST', body: formData })
+      if (res.ok) {
+        toast.success('GPX uspešno uvožen!')
+        onRefresh()
+      } else {
+        toast.error('Napaka pri uvozu GPX')
+      }
+    } catch {
+      toast.error('Napaka pri uvozu GPX')
+    }
+
+    // Reset file input
+    if (fileInputRef.current) fileInputRef.current.value = ''
+  }
+
   return (
     <div className="relative w-full h-[calc(100vh-104px)] flex flex-col lg:flex-row">
       <div className="flex-1 relative">
@@ -99,6 +132,25 @@ export default function PlanTab({
           <Button className="w-full" onClick={onSave} disabled={waypoints.length < 2}>
             <Save className="size-4 mr-2" />Shrani pot
           </Button>
+
+          {/* GPX Import */}
+          <Separator />
+          <div>
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept=".gpx"
+              className="hidden"
+              onChange={handleFileSelect}
+            />
+            <Button
+              variant="outline"
+              className="w-full"
+              onClick={() => fileInputRef.current?.click()}
+            >
+              <Upload className="size-4 mr-2" />Uvozi GPX
+            </Button>
+          </div>
         </div>
       </div>
     </div>

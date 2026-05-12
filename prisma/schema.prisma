@@ -16,10 +16,12 @@ model User {
   bio       String?
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
-  rides     Ride[]
-  routes    Route[]
-  comments  Comment[]
-  likes     Like[]
+  rides        Ride[]
+  routes       Route[]
+  comments     Comment[]
+  likes        Like[]
+  pois         Poi[]
+  achievements Achievement[]
 }
 
 model Ride {
@@ -86,4 +88,30 @@ model Like {
   createdAt DateTime @default(now())
 
   @@unique([userId, routeId])
+}
+
+model Poi {
+  id          String   @id @default(cuid())
+  name        String
+  type        String   // gas_station, restaurant, biker_spot, parking, hotel, mechanic
+  lat         Float
+  lng         Float
+  description String?
+  rating      Float    @default(0)
+  userId      String?
+  user        User?    @relation(fields: [userId], references: [id])
+  createdAt   DateTime @default(now())
+}
+
+model Achievement {
+  id          String   @id @default(cuid())
+  type        String   // achievement type key
+  title       String
+  description String
+  icon        String   // emoji
+  earnedAt    DateTime @default(now())
+  userId      String
+  user        User     @relation(fields: [userId], references: [id])
+
+  @@unique([userId, type])
 }
