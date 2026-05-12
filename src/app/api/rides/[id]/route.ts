@@ -48,3 +48,54 @@ export async function GET(
     )
   }
 }
+
+// PUT /api/rides/[id] - Update ride
+export async function PUT(
+  request: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  try {
+    const { id } = await params
+    const body = await request.json()
+    const { title, description, isPublic } = body
+
+    const ride = await db.ride.update({
+      where: { id },
+      data: {
+        ...(title !== undefined && { title }),
+        ...(description !== undefined && { description }),
+        ...(isPublic !== undefined && { isPublic }),
+      },
+    })
+
+    return NextResponse.json({ success: true, data: ride })
+  } catch (error) {
+    console.error('Update ride error:', error)
+    return NextResponse.json(
+      { success: false, error: 'Failed to update ride' },
+      { status: 500 }
+    )
+  }
+}
+
+// DELETE /api/rides/[id] - Delete ride
+export async function DELETE(
+  _request: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  try {
+    const { id } = await params
+
+    // Delete related comments first
+    await db.comment.deleteMany({ where: { rideId: id } })
+    await db.ride.delete({ where: { id } })
+
+    return NextResponse.json({ success: true })
+  } catch (error) {
+    console.error('Delete ride error:', error)
+    return NextResponse.json(
+      { success: false, error: 'Failed to delete ride' },
+      { status: 500 }
+    )
+  }
+}

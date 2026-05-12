@@ -163,7 +163,7 @@ export default function Home() {
     try {
       const trackData = JSON.stringify(trackPoints.map(p => [p.lat, p.lng, p.alt, p.timestamp]))
       const res = await fetch('/api/rides', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ title: `Vožnja ${new Date().toLocaleDateString('sl-SI')}`, distance: trackDistance, duration: trackDuration, avgSpeed: trackDuration > 0 ? Math.round((trackDistance / (trackDuration / 3600)) * 10) / 10 : 0, maxSpeed: trackMaxSpeed, elevation: Math.round(trackElevation), trackData, startLat: trackPoints[0].lat, startLng: trackPoints[0].lng, endLat: trackPoints[trackPoints.length - 1].lat, endLng: trackPoints[trackPoints.length - 1].lng, isPublic: true }) })
-      if (res.ok) { toast.success('Vožnja shranjena!'); setTrackPoints([]); setTrackDuration(0); setTrackDistance(0); setTrackMaxSpeed(0); setTrackElevation(0); fetchData() }
+      if (res.ok) { toast.success('Vožnja shranjena!'); setTrackPoints([]); setTrackDuration(0); setTrackDistance(0); setTrackMaxSpeed(0); setTrackElevation(0); fetchData(); if (user?.id) fetch('/api/achievements', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ userId: user.id }) }).then(r => r.json()).then(j => { if (j.data?.newlyEarned?.length > 0) j.data.newlyEarned.forEach((a: { title: string; icon: string }) => toast.success(`🏆 Nov dosežek: ${a.icon} ${a.title}!`)) }).catch(() => {}) }
       else toast.error('Napaka pri shranjevanju')
     } catch { toast.error('Napaka pri shranjevanju') }
   }, [trackPoints, trackDistance, trackDuration, trackMaxSpeed, trackElevation, fetchData])
@@ -173,7 +173,7 @@ export default function Home() {
     try {
       const routeData = JSON.stringify(planWaypoints.map(w => [w.lat, w.lng]))
       const res = await fetch('/api/routes', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ title: planTitle || `Pot ${new Date().toLocaleDateString('sl-SI')}`, description: '', distance: planDistance, waypoints: JSON.stringify(planWaypoints), routeData, category: planCategory, difficulty: 'medium', isPublic: true }) })
-      if (res.ok) { toast.success('Pot shranjena!'); setPlanWaypoints([]); setPlanTitle(''); setPlanDistance(0); fetchData() }
+      if (res.ok) { toast.success('Pot shranjena!'); setPlanWaypoints([]); setPlanTitle(''); setPlanDistance(0); fetchData(); if (user?.id) fetch('/api/achievements', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ userId: user.id }) }).then(r => r.json()).then(j => { if (j.data?.newlyEarned?.length > 0) j.data.newlyEarned.forEach((a: { title: string; icon: string }) => toast.success(`🏆 Nov dosežek: ${a.icon} ${a.title}!`)) }).catch(() => {}) }
       else toast.error('Napaka pri shranjevanju')
     } catch { toast.error('Napaka pri shranjevanju') }
   }, [planWaypoints, planTitle, planDistance, planCategory, fetchData])
@@ -328,7 +328,7 @@ export default function Home() {
       <main className="flex-1 relative" style={{ paddingTop: activeTab === 'map' ? '0' : '40px', paddingBottom: '64px' }}>
         <div key={activeTab} className="tab-transition">
           {activeTab === 'map' && (
-            <MapTab rides={rides} routes={routes} onOpenDetail={openDetail} />
+            <MapTab rides={rides} routes={routes} onOpenDetail={openDetail} userId={user?.id} />
           )}
           {activeTab === 'plan' && (
             <PlanTab
@@ -355,6 +355,7 @@ export default function Home() {
             <ExploreTab
               rides={rides} routes={routes} leaderboard={leaderboard}
               onOpenDetail={openDetail} onSwitchUser={switchUser}
+              userId={user?.id}
             />
           )}
           {activeTab === 'profile' && (

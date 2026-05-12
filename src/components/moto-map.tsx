@@ -4,6 +4,7 @@ import { useEffect, useRef } from 'react'
 import L from 'leaflet'
 import 'leaflet/dist/leaflet.css'
 import { poiTypeEmoji, poiTypeColor, poiTypeLabel } from '@/components/tabs/types'
+import type { LiveRider, HazardData } from '@/components/tabs/types'
 
 interface MotoMapProps {
   center?: [number, number]
@@ -36,6 +37,8 @@ interface MotoMapProps {
   }>
   planWaypoints?: Array<{ lat: number; lng: number }>
   trackPoints?: Array<{ lat: number; lng: number }>
+  liveRiders?: LiveRider[]
+  dbHazards?: HazardData[]
   showPlan?: boolean
   showTrack?: boolean
   onMapClick?: (lat: number, lng: number) => void
@@ -122,6 +125,8 @@ export default function MotoMap({
   pois = [],
   planWaypoints = [],
   trackPoints = [],
+  liveRiders = [],
+  dbHazards = [],
   showPlan = false,
   showTrack = false,
   onMapClick,
@@ -143,6 +148,7 @@ export default function MotoMap({
     track: L.LayerGroup
     pois: L.LayerGroup
     overlays: L.LayerGroup
+    live: L.LayerGroup
   } | null>(null)
   const overlayLayersRef = useRef<{ twisty?: L.TileLayer; weather?: L.TileLayer }>({})
 
@@ -183,6 +189,7 @@ export default function MotoMap({
     const trackLayer = L.layerGroup().addTo(map)
     const poisLayer = L.layerGroup().addTo(map)
     const overlaysLayer = L.layerGroup().addTo(map)
+    const liveLayer = L.layerGroup().addTo(map)
 
     layersRef.current = {
       rides: ridesLayer,
@@ -191,6 +198,7 @@ export default function MotoMap({
       track: trackLayer,
       pois: poisLayer,
       overlays: overlaysLayer,
+      live: liveLayer,
     }
 
     // Map click handler
@@ -498,28 +506,14 @@ export default function MotoMap({
     }
   }, [showWeatherRadar])
 
-  // Update hazards overlay
+  // Update hazards overlay - use DB hazards when available
   useEffect(() => {
     if (!layersRef.current) return
-    // We reuse the overlays layer for hazards when twisty roads are off
-    // Only add hazards if twisty roads aren't using the overlay layer
     if (!showTwistyRoads) {
       const layer = layersRef.current.overlays
       layer.clearLayers()
 
       if (showHazards) {
-        // Known hazard locations in Slovenia
-        const hazards = [
-          { name: 'Hitrostna past Ljubljana', desc: 'Hitrostna kamera na Ljubljanski obvoznici', lat: 46.0750, lng: 14.5300, type: 'speed_camera', icon: '📸' },
-          { name: 'Hitrostna past Maribor', desc: 'Hitrostna kamera na Mariborski obvoznici', lat: 46.5400, lng: 15.6200, type: 'speed_camera', icon: '📸' },
-          { name: 'Plazovito območje Vršič', desc: 'Nevarnost padanja kamenja spomladi', lat: 46.4400, lng: 13.7200, type: 'rockfall', icon: '🪨' },
-          { name: 'Zdrsna cesta Predel', desc: 'Nevarnost zdrsa pri mrazu', lat: 46.3850, lng: 13.5600, type: 'slippery', icon: '⚠️' },
-          { name: 'Divjad Soška dolina', desc: 'Pogost prehod divjadi čez cesto', lat: 46.3200, lng: 13.6000, type: 'wildlife', icon: '🦌' },
-          { name: 'Zdrsna cesta Mangart', desc: 'Izjemno drsna cesta pri mokri podlagi', lat: 46.4550, lng: 13.6400, type: 'slippery', icon: '⚠️' },
-          { name: 'Delnice na Gorenjski', desc: 'Cesta v popravilu - zavozljivo', lat: 46.2000, lng: 14.2000, type: 'construction', icon: '🚧' },
-          { name: 'Omejitev 30 Ljubljana center', desc: 'Omejitev hitrosti 30 km/h', lat: 46.0500, lng: 14.5050, type: 'speed_limit', icon: '🔢' },
-        ]
-
         const hazardColors: Record<string, string> = {
           speed_camera: '#ef4444',
           rockfall: '#f97316',
@@ -527,7 +521,32 @@ export default function MotoMap({
           wildlife: '#8b5cf6',
           construction: '#f59e0b',
           speed_limit: '#3b82f6',
+          accident: '#dc2626',
         }
+
+        const hazardIcons: Record<string, string> = {
+          speed_camera: '📸',
+          rockfall: '🪨',
+          slippery: '⚠️',
+          wildlife: '🦌',
+          construction: '🚧',
+          speed_limit: '🔢',
+          accident: '🆘',
+        }
+
+        // Use DB hazards if available, otherwise fallback to hardcoded
+        const hazards = dbHazards.length > 0
+          ? dbHazards.map(h => ({ name: h.name, desc: h.description || '', lat: h.lat, lng: h.lng, type: h.type, icon: hazardIcons[h.type] || '⚠️' }))
+          : [
+              { name: 'Hitrostna past Ljubljana', desc: 'Hitrostna kamera na Ljubljanski obvoznici', lat: 46.0750, lng: 14.5300, type: 'speed_camera', icon: '📸' },
+              { name: 'Hitrostna past Maribor', desc: 'Hitrostna kamera na Mariborski obvoznici', lat: 46.5400, lng: 15.6200, type: 'speed_camera', icon: '📸' },
+              { name: 'Plazovito območje Vršič', desc: 'Nevarnost padanja kamenja spomladi', lat: 46.4400, lng: 13.7200, type: 'rockfall', icon: '🪨' },
+              { name: 'Zdrsna cesta Predel', desc: 'Nevarnost zdrsa pri mrazu', lat: 46.3850, lng: 13.5600, type: 'slippery', icon: '⚠️' },
+              { name: 'Divjad Soška dolina', desc: 'Pogost prehod divjadi čez cesto', lat: 46.3200, lng: 13.6000, type: 'wildlife', icon: '🦌' },
+              { name: 'Zdrsna cesta Mangart', desc: 'Izjemno drsna cesta pri mokri podlagi', lat: 46.4550, lng: 13.6400, type: 'slippery', icon: '⚠️' },
+              { name: 'Delnice na Gorenjski', desc: 'Cesta v popravilu - zavozljivo', lat: 46.2000, lng: 14.2000, type: 'construction', icon: '🚧' },
+              { name: 'Omejitev 30 Ljubljana center', desc: 'Omejitev hitrosti 30 km/h', lat: 46.0500, lng: 14.5050, type: 'speed_limit', icon: '🔢' },
+            ]
 
         hazards.forEach(hazard => {
           const color = hazardColors[hazard.type] || '#6b7280'
@@ -550,7 +569,45 @@ export default function MotoMap({
         })
       }
     }
-  }, [showHazards, showTwistyRoads])
+  }, [showHazards, showTwistyRoads, dbHazards])
+
+  // Update live riders layer
+  useEffect(() => {
+    if (!layersRef.current) return
+    const layer = layersRef.current.live
+    layer.clearLayers()
+
+    liveRiders.forEach((rider) => {
+      if (rider.lat === 0 && rider.lng === 0) return
+
+      // Pulsing green marker for live riders
+      const icon = L.divIcon({
+        className: 'custom-marker',
+        html: `<div style="position:relative;display:flex;align-items:center;justify-content:center;width:32px;height:32px;">
+          <div style="position:absolute;inset:-4px;background:#22c55e40;border-radius:50%;animation:pulse 2s infinite;"></div>
+          <div style="position:absolute;inset:0;background:#22c55e;border:3px solid #fff;border-radius:50%;box-shadow:0 0 12px #22c55e80;z-index:1;"></div>
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.5" style="position:relative;z-index:2;">
+            <circle cx="5" cy="18" r="3"/><circle cx="19" cy="18" r="3"/>
+            <path d="M5 18h3l2-6h4l2 6h3"/>
+          </svg>
+        </div>
+        <style>@keyframes pulse{0%{transform:scale(1);opacity:0.6}100%{transform:scale(2);opacity:0}}</style>`,
+        iconSize: [32, 32],
+        iconAnchor: [16, 16],
+        popupAnchor: [0, -18],
+      })
+
+      const marker = L.marker([rider.lat, rider.lng], { icon }).addTo(layer)
+
+      marker.bindPopup(`
+        <div style="min-width:160px">
+          <strong style="color:#22c55e">🟢 ${rider.userName}</strong><br/>
+          <span style="color:#888;font-size:12px">V živo</span><br/>
+          ${rider.speed > 0 ? `<span style="font-size:12px">🚀 ${rider.speed} km/h</span>` : ''}
+        </div>
+      `)
+    })
+  }, [liveRiders])
 
   return (
     <div

@@ -60,8 +60,11 @@ async function seedDatabase() {
     await db.comment.deleteMany()
     await db.like.deleteMany()
     await db.poi.deleteMany()
+    await db.hazard.deleteMany()
+    await db.communityMember.deleteMany()
     await db.ride.deleteMany()
     await db.route.deleteMany()
+    await db.community.deleteMany()
     await db.user.deleteMany()
 
     // Create demo users
@@ -713,6 +716,60 @@ async function seedDatabase() {
       achievementsData.map((a) => db.achievement.create({ data: a }))
     )
 
+    // --- COMMUNITIES ---
+    const communitiesData = [
+      { name: 'Alpski motoristi', description: 'Skupnost motoristov, ki obožujejo gorske prelaze in alpske ceste. Skupna vožnja vsako soboto!', avatar: '🏔️', isPublic: true },
+      { name: 'Soški jezdecí', description: 'Motoristi Soške doline. Organiziramo skupne ture po Julijskih Alpah in ob reki Soči.', avatar: '🌊', isPublic: true },
+      { name: 'Obalni rajderji', description: 'Primorski motoristi - obala, mediteranski duh in sproščene vožnje po slovenski rivieri.', avatar: '🏖️', isPublic: true },
+      { name: 'Enduro Slovenija', description: 'Skupina za enduro in off-road navdušence. Makadamske ceste in gozdne poti so naše igrišče.', avatar: '🏍️', isPublic: true },
+      { name: 'Nočni jezdecí Ljubljana', description: 'Za tiste, ki raje vozijo, ko se mesti umirijo. Nočne vožnje in kavarna ob polnoči.', avatar: '🌙', isPublic: true },
+    ]
+
+    const communities = await Promise.all(
+      communitiesData.map((c) => db.community.create({ data: c }))
+    )
+
+    // Add users as community members
+    const communityMembersData = [
+      // Alpski motoristi
+      { userId: users[0].id, communityId: communities[0].id, role: 'admin' },
+      { userId: users[1].id, communityId: communities[0].id, role: 'member' },
+      { userId: users[2].id, communityId: communities[0].id, role: 'member' },
+      // Soški jezdecí
+      { userId: users[1].id, communityId: communities[1].id, role: 'admin' },
+      { userId: users[0].id, communityId: communities[1].id, role: 'member' },
+      // Obalni rajderji
+      { userId: users[2].id, communityId: communities[2].id, role: 'admin' },
+      { userId: users[0].id, communityId: communities[2].id, role: 'moderator' },
+      { userId: users[1].id, communityId: communities[2].id, role: 'member' },
+      // Enduro Slovenija
+      { userId: users[1].id, communityId: communities[3].id, role: 'admin' },
+      { userId: users[0].id, communityId: communities[3].id, role: 'member' },
+      // Nočni jezdecí
+      { userId: users[0].id, communityId: communities[4].id, role: 'admin' },
+      { userId: users[2].id, communityId: communities[4].id, role: 'member' },
+    ]
+
+    const communityMembers = await Promise.all(
+      communityMembersData.map((m) => db.communityMember.create({ data: m }))
+    )
+
+    // --- HAZARDS (from DB) ---
+    const hazardsData = [
+      { type: 'speed_camera', name: 'Hitrostna past Ljubljana', description: 'Hitrostna kamera na Ljubljanski obvoznici', lat: 46.0750, lng: 14.5300, userId: users[0].id },
+      { type: 'speed_camera', name: 'Hitrostna past Maribor', description: 'Hitrostna kamera na Mariborski obvoznici', lat: 46.5400, lng: 15.6200, userId: users[1].id },
+      { type: 'rockfall', name: 'Plazovito območje Vršič', description: 'Nevarnost padanja kamenja spomladi', lat: 46.4400, lng: 13.7200 },
+      { type: 'slippery', name: 'Zdrsna cesta Predel', description: 'Nevarnost zdrsa pri mrazu', lat: 46.3850, lng: 13.5600 },
+      { type: 'wildlife', name: 'Divjad Soška dolina', description: 'Pogost prehod divjadi čez cesto', lat: 46.3200, lng: 13.6000 },
+      { type: 'slippery', name: 'Zdrsna cesta Mangart', description: 'Izjemno drsna cesta pri mokri podlagi', lat: 46.4550, lng: 13.6400 },
+      { type: 'construction', name: 'Delnice na Gorenjski', description: 'Cesta v popravilu - zavozljivo', lat: 46.2000, lng: 14.2000 },
+      { type: 'speed_limit', name: 'Omejitev 30 Ljubljana center', description: 'Omejitev hitrosti 30 km/h', lat: 46.0500, lng: 14.5050 },
+    ]
+
+    const hazards = await Promise.all(
+      hazardsData.map((h) => db.hazard.create({ data: h }))
+    )
+
     return NextResponse.json({
       success: true,
       message: 'Database seeded successfully',
@@ -724,6 +781,9 @@ async function seedDatabase() {
         likes: likes.length,
         pois: pois.length,
         achievements: achievements.length,
+        communities: communities.length,
+        communityMembers: communityMembers.length,
+        hazards: hazards.length,
       },
     })
   } catch (error: any) {

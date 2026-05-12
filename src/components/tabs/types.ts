@@ -117,6 +117,42 @@ export interface AchievementData {
   earnedAt: string | null
 }
 
+export interface CommunityData {
+  id: string
+  name: string
+  description: string | null
+  avatar: string | null
+  isPublic: boolean
+  createdAt: string
+  memberCount: number
+  rideCount: number
+  isMember: boolean
+  userRole: string | null
+  recentMembers: Array<{ id: string; name: string; avatar: string | null; bike: string | null }>
+}
+
+export interface HazardData {
+  id: string
+  type: string
+  name: string
+  description: string | null
+  lat: number
+  lng: number
+  createdAt: string
+  user?: { id: string; name: string } | null
+}
+
+export interface LiveRider {
+  userId: string
+  userName: string
+  rideId: string | null
+  lat: number
+  lng: number
+  speed: number
+  heading: number
+  lastUpdate: number
+}
+
 export type TabId = 'map' | 'plan' | 'track' | 'explore' | 'profile'
 
 export function haversine(lat1: number, lon1: number, lat2: number, lon2: number): number {

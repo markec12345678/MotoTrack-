@@ -49,3 +49,57 @@ export async function GET(
     )
   }
 }
+
+// PUT /api/routes/[id] - Update route
+export async function PUT(
+  request: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  try {
+    const { id } = await params
+    const body = await request.json()
+    const { title, description, category, difficulty, isPublic } = body
+
+    const route = await db.route.update({
+      where: { id },
+      data: {
+        ...(title !== undefined && { title }),
+        ...(description !== undefined && { description }),
+        ...(category !== undefined && { category }),
+        ...(difficulty !== undefined && { difficulty }),
+        ...(isPublic !== undefined && { isPublic }),
+      },
+    })
+
+    return NextResponse.json({ success: true, data: route })
+  } catch (error) {
+    console.error('Update route error:', error)
+    return NextResponse.json(
+      { success: false, error: 'Failed to update route' },
+      { status: 500 }
+    )
+  }
+}
+
+// DELETE /api/routes/[id] - Delete route
+export async function DELETE(
+  _request: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  try {
+    const { id } = await params
+
+    // Delete related data first
+    await db.comment.deleteMany({ where: { routeId: id } })
+    await db.like.deleteMany({ where: { routeId: id } })
+    await db.route.delete({ where: { id } })
+
+    return NextResponse.json({ success: true })
+  } catch (error) {
+    console.error('Delete route error:', error)
+    return NextResponse.json(
+      { success: false, error: 'Failed to delete route' },
+      { status: 500 }
+    )
+  }
+}

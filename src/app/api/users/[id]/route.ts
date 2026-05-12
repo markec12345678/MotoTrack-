@@ -92,3 +92,41 @@ export async function GET(
     )
   }
 }
+
+// PUT /api/users/[id] - Update user profile
+export async function PUT(
+  request: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  try {
+    const { id } = await params
+    const body = await request.json()
+    const { name, bike, bio, avatar } = body
+
+    const user = await db.user.update({
+      where: { id },
+      data: {
+        ...(name !== undefined && { name }),
+        ...(bike !== undefined && { bike }),
+        ...(bio !== undefined && { bio }),
+        ...(avatar !== undefined && { avatar }),
+      },
+      select: {
+        id: true,
+        name: true,
+        email: true,
+        avatar: true,
+        bike: true,
+        bio: true,
+      },
+    })
+
+    return NextResponse.json({ success: true, data: user })
+  } catch (error) {
+    console.error('Update user error:', error)
+    return NextResponse.json(
+      { success: false, error: 'Failed to update user' },
+      { status: 500 }
+    )
+  }
+}

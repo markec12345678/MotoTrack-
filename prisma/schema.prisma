@@ -22,6 +22,8 @@ model User {
   likes        Like[]
   pois         Poi[]
   achievements Achievement[]
+  communities CommunityMember[]
+  hazards     Hazard[]
 }
 
 model Ride {
@@ -45,6 +47,8 @@ model Ride {
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
   comments    Comment[]
+  communityId String?
+  community   Community? @relation(fields: [communityId], references: [id])
 }
 
 model Route {
@@ -114,4 +118,41 @@ model Achievement {
   user        User     @relation(fields: [userId], references: [id])
 
   @@unique([userId, type])
+}
+
+model Community {
+  id          String   @id @default(cuid())
+  name        String
+  description String?
+  avatar      String?    // emoji or icon
+  isPublic    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  members     CommunityMember[]
+  rides       Ride[]
+}
+
+model CommunityMember {
+  id          String   @id @default(cuid())
+  role        String   @default("member")  // admin, moderator, member
+  joinedAt    DateTime @default(now())
+  userId      String
+  user        User     @relation(fields: [userId], references: [id])
+  communityId String
+  community   Community @relation(fields: [communityId], references: [id])
+
+  @@unique([userId, communityId])
+}
+
+model Hazard {
+  id          String   @id @default(cuid())
+  type        String   // speed_camera, rockfall, slippery, wildlife, construction, speed_limit, accident
+  name        String
+  description String?
+  lat         Float
+  lng         Float
+  expiresAt   DateTime?  // when the hazard is no longer valid
+  userId      String?
+  user        User?    @relation(fields: [userId], references: [id])
+  createdAt   DateTime @default(now())
 }
