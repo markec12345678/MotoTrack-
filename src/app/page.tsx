@@ -56,9 +56,8 @@ import { Input } from '@/components/ui/input'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { Avatar, AvatarFallback } from '@/components/ui/avatar'
 import { Progress } from '@/components/ui/progress'
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
+
 import { toast } from 'sonner'
-import { AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts'
 
 const MotoMap = dynamic(() => import('@/components/moto-map'), { ssr: false })
 
@@ -782,16 +781,29 @@ export default function Home() {
               {selectedType === 'ride' && elevationData.length > 2 && (
                 <div className="mb-4">
                   <h4 className="text-xs font-medium text-muted-foreground mb-2">Višinski profil</h4>
-                  <div className="h-32 bg-secondary/30 rounded-lg p-2">
-                    <ResponsiveContainer width="100%" height="100%">
-                      <AreaChart data={elevationData} margin={{ top: 2, right: 2, bottom: 2, left: 2 }}>
-                        <defs><linearGradient id="elevGrad" x1="0" y1="0" x2="0" y2="1"><stop offset="5%" stopColor="hsl(30, 90%, 55%)" stopOpacity={0.4} /><stop offset="95%" stopColor="hsl(30, 90%, 55%)" stopOpacity={0.05} /></linearGradient></defs>
-                        <XAxis dataKey="km" tick={{ fontSize: 9, fill: 'hsl(30, 5%, 55%)' }} tickFormatter={v => `${v}`} axisLine={false} tickLine={false} />
-                        <YAxis tick={{ fontSize: 9, fill: 'hsl(30, 5%, 55%)' }} tickFormatter={v => `${v}m`} axisLine={false} tickLine={false} width={36} />
-                        <Tooltip contentStyle={{ fontSize: 11, borderRadius: 8, background: 'hsl(30, 15%, 12%)', border: '1px solid hsl(30, 10%, 20%)' }} formatter={(v: number) => [`${v}m`, 'Višina']} labelFormatter={v => `${v} km`} />
-                        <Area type="monotone" dataKey="višina" stroke="hsl(30, 90%, 55%)" fill="url(#elevGrad)" strokeWidth={2} />
-                      </AreaChart>
-                    </ResponsiveContainer>
+                  <div className="h-32 bg-secondary/30 rounded-lg p-2 relative">
+                    <svg viewBox={`0 0 ${elevationData.length * 10} 100`} className="w-full h-full" preserveAspectRatio="none">
+                      <defs>
+                        <linearGradient id="elevGrad" x1="0" y1="0" x2="0" y2="1">
+                          <stop offset="5%" stopColor="hsl(30, 90%, 55%)" stopOpacity={0.4} />
+                          <stop offset="95%" stopColor="hsl(30, 90%, 55%)" stopOpacity={0.05} />
+                        </linearGradient>
+                      </defs>
+                      {(() => {
+                        const maxAlt = Math.max(...elevationData.map(d => d.višina), 1)
+                        const minAlt = Math.min(...elevationData.map(d => d.višina))
+                        const range = maxAlt - minAlt || 1
+                        const points = elevationData.map((d, i) => `${i * 10},${100 - ((d.višina - minAlt) / range) * 80 - 10}`).join(' ')
+                        const areaPoints = `0,100 ${points} ${(elevationData.length - 1) * 10},100`
+                        return <>
+                          <polygon points={areaPoints} fill="url(#elevGrad)" />
+                          <polyline points={points} fill="none" stroke="hsl(30, 90%, 55%)" strokeWidth={2} />
+                        </>
+                      })()}
+                    </svg>
+                    <div className="absolute bottom-1 left-1 text-[8px] text-muted-foreground">{elevationData[0]?.km}km</div>
+                    <div className="absolute bottom-1 right-1 text-[8px] text-muted-foreground">{elevationData[elevationData.length - 1]?.km}km</div>
+                    <div className="absolute top-1 left-1 text-[8px] text-muted-foreground">{Math.max(...elevationData.map(d => d.višina))}m</div>
                   </div>
                 </div>
               )}
