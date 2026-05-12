@@ -1,0 +1,613 @@
+import { db } from '@/lib/db'
+import { NextResponse } from 'next/server'
+
+function interpolatePoints(
+  start: [number, number, number],
+  end: [number, number, number],
+  numPoints: number,
+  startTime: number,
+  durationMs: number
+): [number, number, number, number][] {
+  const points: [number, number, number, number][] = []
+  for (let i = 0; i <= numPoints; i++) {
+    const t = i / numPoints
+    const lat = start[0] + (end[0] - start[0]) * t
+    const lng = start[1] + (end[1] - start[1]) * t
+    const alt = start[2] + (end[2] - start[2]) * t + Math.sin(t * Math.PI * 4) * 30
+    const ts = startTime + Math.floor(durationMs * t)
+    points.push([Math.round(lat * 100000) / 100000, Math.round(lng * 100000) / 100000, Math.round(alt), ts])
+  }
+  return points
+}
+
+function generateTrackData(
+  waypoints: [number, number, number][],
+  totalDurationSec: number,
+  pointsPerSegment: number = 30
+): string {
+  const startTime = Date.now() - totalDurationSec * 1000
+  const segmentDuration = (totalDurationSec * 1000) / (waypoints.length - 1)
+  const allPoints: [number, number, number, number][] = []
+
+  for (let i = 0; i < waypoints.length - 1; i++) {
+    const segPoints = interpolatePoints(
+      waypoints[i],
+      waypoints[i + 1],
+      pointsPerSegment,
+      startTime + i * segmentDuration,
+      segmentDuration
+    )
+    if (i > 0) segPoints.shift()
+    allPoints.push(...segPoints)
+  }
+
+  return JSON.stringify(allPoints)
+}
+
+export async function POST() {
+  return seedDatabase()
+}
+
+export async function GET() {
+  return seedDatabase()
+}
+
+async function seedDatabase() {
+  try {
+    // Delete existing data in correct order (rides/routes first due to FK)
+    await db.ride.deleteMany()
+    await db.route.deleteMany()
+    await db.user.deleteMany()
+
+    // Create demo users
+    const users = await Promise.all([
+      db.user.create({
+        data: {
+          name: 'Miran M.',
+          email: 'miran@rever.si',
+          avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Miran',
+          bike: 'BMW R1250GS',
+          bio: 'Adventurni motociklist z ljubeznijo do slovenskih gora. Raziskujem阿尔卑ские prelaze in doline že 15 let.',
+        },
+      }),
+      db.user.create({
+        data: {
+          name: 'Luka K.',
+          email: 'luka@rever.si',
+          avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Luka',
+          bike: 'Yamaha Ténéré 700',
+          bio: 'Enduro navdušenec. Vikend izleti po Sloveniji in sosednjih državah so moja strast.',
+        },
+      }),
+      db.user.create({
+        data: {
+          name: 'Ana S.',
+          email: 'ana@rever.si',
+          avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Ana',
+          bike: 'Honda CB500X',
+          bio: 'Motorkulinatičarka in popotnica. Z motorjem raziskujem okuse in poti po Primorski in Istri.',
+        },
+      }),
+    ])
+
+    // --- RIDES ---
+    // Ride 1: Ljubljana → Bled → Bohinj
+    const ride1Track = generateTrackData(
+      [
+        [46.0569, 14.5058, 295],
+        [46.0833, 14.4333, 320],
+        [46.1200, 14.3500, 380],
+        [46.1667, 14.2667, 450],
+        [46.2167, 14.1833, 480],
+        [46.2833, 14.1500, 500],
+        [46.3625, 14.0944, 475],
+        [46.3450, 14.0500, 510],
+        [46.3167, 13.9833, 545],
+        [46.2833, 13.9167, 525],
+      ],
+      5400
+    )
+
+    // Ride 2: Bled → Vršič Pass → Soča Valley
+    const ride2Track = generateTrackData(
+      [
+        [46.3625, 14.0944, 475],
+        [46.4000, 14.0500, 600],
+        [46.4333, 13.9833, 800],
+        [46.4500, 13.9000, 1050],
+        [46.4333, 13.8000, 1200],
+        [46.4167, 13.7500, 1100],
+        [46.4000, 13.7000, 900],
+        [46.3833, 13.6500, 750],
+        [46.3500, 13.6000, 500],
+        [46.3317, 13.5536, 440],
+      ],
+      7200
+    )
+
+    // Ride 3: Ljubljana → Postojna → Piran (coastal ride)
+    const ride3Track = generateTrackData(
+      [
+        [46.0569, 14.5058, 295],
+        [46.0167, 14.4167, 310],
+        [45.9500, 14.3500, 340],
+        [45.8833, 14.3000, 380],
+        [45.8167, 14.2500, 420],
+        [45.7833, 14.2167, 510],
+        [45.7500, 14.1000, 350],
+        [45.6833, 13.9333, 180],
+        [45.6000, 13.8000, 60],
+        [45.5272, 13.5681, 5],
+      ],
+      9000
+    )
+
+    // Ride 4: Ljubljana → Maribor (via Štajerska)
+    const ride4Track = generateTrackData(
+      [
+        [46.0569, 14.5058, 295],
+        [46.1000, 14.6000, 280],
+        [46.1500, 14.7500, 260],
+        [46.2000, 14.9000, 290],
+        [46.2500, 15.0500, 310],
+        [46.3000, 15.2000, 275],
+        [46.3500, 15.3500, 300],
+        [46.4000, 15.4500, 320],
+        [46.4667, 15.5500, 270],
+        [46.5547, 15.6459, 275],
+      ],
+      7800
+    )
+
+    // Ride 5: Soča Valley loop (Bovec → Kobarid → Tolmin → Bovec)
+    const ride5Track = generateTrackData(
+      [
+        [46.3317, 13.5536, 440],
+        [46.3000, 13.6000, 380],
+        [46.2667, 13.6333, 300],
+        [46.2333, 13.6500, 250],
+        [46.2050, 13.7167, 190],
+        [46.1833, 13.7833, 180],
+        [46.2000, 13.8500, 250],
+        [46.2333, 13.9000, 350],
+        [46.2833, 13.9500, 400],
+        [46.3317, 13.5536, 440],
+      ],
+      5400
+    )
+
+    // Ride 6: Kranjska Gora → Vršič → Trenta
+    const ride6Track = generateTrackData(
+      [
+        [46.4833, 13.7833, 810],
+        [46.4667, 13.7667, 900],
+        [46.4500, 13.7500, 1000],
+        [46.4333, 13.7333, 1200],
+        [46.4167, 13.7000, 1400],
+        [46.4000, 13.6667, 1250],
+        [46.3833, 13.6333, 900],
+        [46.3667, 13.6000, 600],
+        [46.3500, 13.5667, 500],
+        [46.3333, 13.5333, 460],
+      ],
+      4800
+    )
+
+    // Ride 7: Novo Mesto → Gorjanci → Krka valley
+    const ride7Track = generateTrackData(
+      [
+        [45.8000, 15.1667, 220],
+        [45.7833, 15.1000, 280],
+        [45.7500, 15.0333, 380],
+        [45.7167, 14.9833, 450],
+        [45.7000, 14.9333, 400],
+        [45.7167, 14.8667, 300],
+        [45.7500, 14.8333, 220],
+        [45.7833, 14.9000, 200],
+        [45.8000, 15.0000, 210],
+        [45.8000, 15.1667, 220],
+      ],
+      5400
+    )
+
+    // Ride 8: Ljubljana weekend ride (short city escape)
+    const ride8Track = generateTrackData(
+      [
+        [46.0569, 14.5058, 295],
+        [46.0667, 14.4333, 320],
+        [46.0833, 14.3667, 400],
+        [46.1000, 14.3000, 450],
+        [46.1167, 14.2333, 380],
+        [46.1000, 14.1667, 310],
+        [46.0833, 14.2500, 290],
+        [46.0667, 14.3500, 280],
+        [46.0569, 14.5058, 295],
+      ],
+      3600
+    )
+
+    // Ride 9: Celje → Slovenske Konjice → Ptuj
+    const ride9Track = generateTrackData(
+      [
+        [46.2387, 15.2686, 245],
+        [46.2667, 15.2000, 310],
+        [46.2833, 15.1167, 340],
+        [46.3000, 15.0500, 290],
+        [46.3167, 14.9833, 270],
+        [46.3333, 14.9167, 250],
+        [46.3500, 14.8500, 230],
+        [46.3667, 14.7833, 225],
+        [46.3833, 14.7167, 220],
+        [46.4167, 14.6500, 228],
+      ],
+      4200
+    )
+
+    // Ride 10: Triglav area adventure (Mojstrana → Vrata valley)
+    const ride10Track = generateTrackData(
+      [
+        [46.4333, 13.9000, 630],
+        [46.4500, 13.8833, 700],
+        [46.4667, 13.8500, 780],
+        [46.4833, 13.8167, 880],
+        [46.4667, 13.7833, 970],
+        [46.4500, 13.7500, 1050],
+        [46.4333, 13.7333, 950],
+        [46.4167, 13.7667, 820],
+        [46.4333, 13.8333, 700],
+        [46.4333, 13.9000, 630],
+      ],
+      3600
+    )
+
+    const ridesData = [
+      {
+        title: 'Ljubljana do Bohinja',
+        description: 'Čudovita vožnja iz Ljubljane čez Gorenjsko do Blejskega jezera in naprej do Bohinja. Cesta vodi skozi zasnežene Alpe s čudovitimi razgledi.',
+        distance: 65.4,
+        duration: 5400,
+        avgSpeed: 43.6,
+        maxSpeed: 89.2,
+        elevation: 680,
+        isPublic: true,
+        isLive: false,
+        trackData: ride1Track,
+        startLat: 46.0569,
+        startLng: 14.5058,
+        endLat: 46.2833,
+        endLng: 13.9167,
+        userId: users[0].id,
+      },
+      {
+        title: 'Bled do Soške doline',
+        description: 'Episká vožnja od Blejskega jezera čez Vršič do Bovca v Soški dolini. Prelaz Vršič nudi 50 klancev in osupljive razglede na Julijske Alpe.',
+        distance: 78.2,
+        duration: 7200,
+        avgSpeed: 39.1,
+        maxSpeed: 76.5,
+        elevation: 1450,
+        isPublic: true,
+        isLive: false,
+        trackData: ride2Track,
+        startLat: 46.3625,
+        startLng: 14.0944,
+        endLat: 46.3317,
+        endLng: 13.5536,
+        userId: users[1].id,
+      },
+      {
+        title: 'Obala - Ljubljana do Pirana',
+        description: 'Slovenska obala v vsem sijaju! Iz Ljubljane čez Postojnsko jamo do Pirana. Cesta se spušča od planote do modrega Jadrana.',
+        distance: 128.5,
+        duration: 9000,
+        avgSpeed: 51.4,
+        maxSpeed: 102.3,
+        elevation: 520,
+        isPublic: true,
+        isLive: false,
+        trackData: ride3Track,
+        startLat: 46.0569,
+        startLng: 14.5058,
+        endLat: 45.5272,
+        endLng: 13.5681,
+        userId: users[2].id,
+      },
+      {
+        title: 'Štajerska avtocesta do Maribora',
+        description: 'Hitra vožnja po Štajerski od Ljubljane do Maribora. Ravninska cesta skozi vinorodne griče in polja.',
+        distance: 112.3,
+        duration: 7800,
+        avgSpeed: 51.8,
+        maxSpeed: 118.7,
+        elevation: 180,
+        isPublic: true,
+        isLive: false,
+        trackData: ride4Track,
+        startLat: 46.0569,
+        startLng: 14.5058,
+        endLat: 46.5547,
+        endLng: 15.6459,
+        userId: users[0].id,
+      },
+      {
+        title: 'Soška zanka - Bovec Kobarid Tolmin',
+        description: 'Krožna vožnja po Soški dolini. Kristalno čista reka Soča vas spremlja ves čas. Idealna za vroče poletne dni.',
+        distance: 52.7,
+        duration: 5400,
+        avgSpeed: 35.1,
+        maxSpeed: 72.4,
+        elevation: 460,
+        isPublic: true,
+        isLive: false,
+        trackData: ride5Track,
+        startLat: 46.3317,
+        startLng: 13.5536,
+        endLat: 46.3317,
+        endLng: 13.5536,
+        userId: users[1].id,
+      },
+      {
+        title: 'Vršič - Kranjska Gora do Trente',
+        description: 'Legendarni prelaz Vršič s 50 serpentinskimi klanci. Ena najzahtevnejših in najlepših cest v Sloveniji.',
+        distance: 38.5,
+        duration: 4800,
+        avgSpeed: 28.9,
+        maxSpeed: 65.1,
+        elevation: 1680,
+        isPublic: true,
+        isLive: false,
+        trackData: ride6Track,
+        startLat: 46.4833,
+        startLng: 13.7833,
+        endLat: 46.3333,
+        endLng: 13.5333,
+        userId: users[0].id,
+      },
+      {
+        title: 'Gorjanci in Krška dolina',
+        description: 'Zavita vožnja po Gorjancih in dolini reke Krke. Vinske ceste in termalna mesta so ob poti.',
+        distance: 68.9,
+        duration: 5400,
+        avgSpeed: 45.9,
+        maxSpeed: 84.3,
+        elevation: 540,
+        isPublic: true,
+        isLive: false,
+        trackData: ride7Track,
+        startLat: 45.8000,
+        startLng: 15.1667,
+        endLat: 45.8000,
+        endLng: 15.1667,
+        userId: users[2].id,
+      },
+      {
+        title: 'Ljubljanski vikend izlet',
+        description: 'Kratek in sladek izlet iz Ljubljane po okoliških gričih. Idealno za sprostitev po napornem tednu.',
+        distance: 32.1,
+        duration: 3600,
+        avgSpeed: 32.1,
+        maxSpeed: 68.9,
+        elevation: 320,
+        isPublic: true,
+        isLive: false,
+        trackData: ride8Track,
+        startLat: 46.0569,
+        startLng: 14.5058,
+        endLat: 46.0569,
+        endLng: 14.5058,
+        userId: users[0].id,
+      },
+      {
+        title: 'Celje do Ptuja po vinorodni poti',
+        description: 'Vožnja skozi Štajersko vinorodno pokrajino od Celja do Ptuja. Vinogradi in termalna mesta ob cesti.',
+        distance: 48.6,
+        duration: 4200,
+        avgSpeed: 41.6,
+        maxSpeed: 78.5,
+        elevation: 280,
+        isPublic: true,
+        isLive: false,
+        trackData: ride9Track,
+        startLat: 46.2387,
+        startLng: 15.2686,
+        endLat: 46.4167,
+        endLng: 14.6500,
+        userId: users[1].id,
+      },
+      {
+        title: 'Triglavska avantura - Vrata',
+        description: 'Zahtevna enduro vožnja v Triglavskem narodnem parku. Dostop do doline Vrata s čudovitim pogledom na Triglav.',
+        distance: 28.3,
+        duration: 3600,
+        avgSpeed: 28.3,
+        maxSpeed: 55.2,
+        elevation: 980,
+        isPublic: true,
+        isLive: false,
+        trackData: ride10Track,
+        startLat: 46.4333,
+        startLng: 13.9000,
+        endLat: 46.4333,
+        endLng: 13.9000,
+        userId: users[1].id,
+      },
+    ]
+
+    const rides = await Promise.all(
+      ridesData.map((ride) => db.ride.create({ data: ride }))
+    )
+
+    // --- ROUTES ---
+    const routesData = [
+      {
+        title: 'Julijske Alpe - Velika gorska zanka',
+        description: 'Najlepša gorska pot v Sloveniji. Od Kranjske Gore čez Vršič, dol po Soški dolini in nazaj čez Predel do Trbiža. Več kot 2000m višinske razlike.',
+        distance: 156.8,
+        waypoints: JSON.stringify([
+          { lat: 46.4833, lng: 13.7833 },
+          { lat: 46.4333, lng: 13.7333 },
+          { lat: 46.3833, lng: 13.6333 },
+          { lat: 46.3317, lng: 13.5536 },
+          { lat: 46.2333, lng: 13.5667 },
+          { lat: 46.2000, lng: 13.5833 },
+          { lat: 46.2333, lng: 13.7333 },
+          { lat: 46.3500, lng: 13.7500 },
+          { lat: 46.4333, lng: 13.8000 },
+          { lat: 46.4833, lng: 13.7833 },
+        ]),
+        routeData: JSON.stringify([
+          [46.4833, 13.7833], [46.4667, 13.7667], [46.4500, 13.7500],
+          [46.4333, 13.7333], [46.4167, 13.7000], [46.4000, 13.6667],
+          [46.3833, 13.6333], [46.3667, 13.6000], [46.3500, 13.5667],
+          [46.3317, 13.5536], [46.3000, 13.5667], [46.2667, 13.5833],
+          [46.2333, 13.5667], [46.2000, 13.5833], [46.2167, 13.6500],
+          [46.2333, 13.7333], [46.2833, 13.7500], [46.3500, 13.7500],
+          [46.4000, 13.7833], [46.4333, 13.8000], [46.4667, 13.7833],
+          [46.4833, 13.7833],
+        ]),
+        category: 'scenic',
+        difficulty: 'hard',
+        isPublic: true,
+        likes: 42,
+        userId: users[0].id,
+      },
+      {
+        title: 'Slovenska obala - Koprsko primorje',
+        description: 'Obalna vožnja od Kopra do Pirana in nazaj. Mediteranski duh, oljčni nasadi in sprošujoči poobedni kavč ob morju.',
+        distance: 45.2,
+        waypoints: JSON.stringify([
+          { lat: 45.5481, lng: 13.7300 },
+          { lat: 45.5500, lng: 13.6500 },
+          { lat: 45.5400, lng: 13.6000 },
+          { lat: 45.5272, lng: 13.5681 },
+          { lat: 45.5100, lng: 13.5500 },
+          { lat: 45.5272, lng: 13.5681 },
+          { lat: 45.5481, lng: 13.7300 },
+        ]),
+        routeData: JSON.stringify([
+          [45.5481, 13.7300], [45.5500, 13.7000], [45.5500, 13.6500],
+          [45.5400, 13.6000], [45.5272, 13.5681], [45.5100, 13.5500],
+          [45.5272, 13.5681], [45.5400, 13.6000], [45.5500, 13.6500],
+          [45.5481, 13.7300],
+        ]),
+        category: 'scenic',
+        difficulty: 'easy',
+        isPublic: true,
+        likes: 35,
+        userId: users[2].id,
+      },
+      {
+        title: 'Zavite ceste Pohorja',
+        description: 'Zavite gozdne ceste na Pohorju nad Mariborom. Idealno za tiste, ki iščejo klance in krivulje brez prometa.',
+        distance: 62.4,
+        waypoints: JSON.stringify([
+          { lat: 46.5547, lng: 15.6459 },
+          { lat: 46.5333, lng: 15.6000 },
+          { lat: 46.5000, lng: 15.5500 },
+          { lat: 46.4667, lng: 15.5000 },
+          { lat: 46.4500, lng: 15.5333 },
+          { lat: 46.4667, lng: 15.6000 },
+          { lat: 46.5547, lng: 15.6459 },
+        ]),
+        routeData: JSON.stringify([
+          [46.5547, 15.6459], [46.5333, 15.6000], [46.5000, 15.5500],
+          [46.4667, 15.5000], [46.4500, 15.5333], [46.4667, 15.6000],
+          [46.5167, 15.6333], [46.5547, 15.6459],
+        ]),
+        category: 'twisty',
+        difficulty: 'medium',
+        isPublic: true,
+        likes: 28,
+        userId: users[1].id,
+      },
+      {
+        title: 'Off-road Logarska dolina',
+        description: 'Enduro pot do Logarske doline. Makadamske ceste skozi gozdove in pašnike z osupljivim pogledom na Savinjske Alpe.',
+        distance: 41.7,
+        waypoints: JSON.stringify([
+          { lat: 46.4333, lng: 14.6333 },
+          { lat: 46.4333, lng: 14.5500 },
+          { lat: 46.4167, lng: 14.4833 },
+          { lat: 46.4000, lng: 14.4167 },
+          { lat: 46.3833, lng: 14.3667 },
+        ]),
+        routeData: JSON.stringify([
+          [46.4333, 14.6333], [46.4333, 14.5833], [46.4333, 14.5500],
+          [46.4167, 14.4833], [46.4000, 14.4167], [46.3833, 14.3667],
+        ]),
+        category: 'offroad',
+        difficulty: 'hard',
+        isPublic: true,
+        likes: 19,
+        userId: users[1].id,
+      },
+      {
+        title: 'Ljubljanski barjanski obhod',
+        description: 'Sprošujoča vožnja po Ljubljanskem barju. Ravna in mirna cesta, primerna za začetnike in tiste, ki želijo uživati v naravi.',
+        distance: 35.8,
+        waypoints: JSON.stringify([
+          { lat: 46.0569, lng: 14.5058 },
+          { lat: 46.0333, lng: 14.4667 },
+          { lat: 46.0167, lng: 14.4167 },
+          { lat: 46.0000, lng: 14.3667 },
+          { lat: 46.0167, lng: 14.3167 },
+          { lat: 46.0333, lng: 14.3667 },
+          { lat: 46.0500, lng: 14.4333 },
+          { lat: 46.0569, lng: 14.5058 },
+        ]),
+        routeData: JSON.stringify([
+          [46.0569, 14.5058], [46.0333, 14.4667], [46.0167, 14.4167],
+          [46.0000, 14.3667], [46.0167, 14.3167], [46.0333, 14.3667],
+          [46.0500, 14.4333], [46.0569, 14.5058],
+        ]),
+        category: 'city',
+        difficulty: 'easy',
+        isPublic: true,
+        likes: 12,
+        userId: users[2].id,
+      },
+      {
+        title: 'Panonska ravnina - Murska Sobota',
+        description: 'Ravna in hitra cesta čez Pomurje od Maribora do Murske Sobote. Odprta polja in termalna letovišča.',
+        distance: 88.3,
+        waypoints: JSON.stringify([
+          { lat: 46.5547, lng: 15.6459 },
+          { lat: 46.6000, lng: 15.7500 },
+          { lat: 46.6333, lng: 15.8500 },
+          { lat: 46.6500, lng: 15.9500 },
+          { lat: 46.6500, lng: 16.0500 },
+          { lat: 46.6583, lng: 16.1667 },
+        ]),
+        routeData: JSON.stringify([
+          [46.5547, 15.6459], [46.6000, 15.7500], [46.6333, 15.8500],
+          [46.6500, 15.9500], [46.6500, 16.0500], [46.6583, 16.1667],
+        ]),
+        category: 'scenic',
+        difficulty: 'easy',
+        isPublic: true,
+        likes: 8,
+        userId: users[0].id,
+      },
+    ]
+
+    const routes = await Promise.all(
+      routesData.map((route) => db.route.create({ data: route }))
+    )
+
+    return NextResponse.json({
+      success: true,
+      message: 'Database seeded successfully',
+      data: {
+        users: users.length,
+        rides: rides.length,
+        routes: routes.length,
+      },
+    })
+  } catch (error) {
+    console.error('Seed error:', error)
+    return NextResponse.json(
+      { success: false, error: 'Failed to seed database' },
+      { status: 500 }
+    )
+  }
+}
