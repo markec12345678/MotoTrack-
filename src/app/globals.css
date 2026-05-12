@@ -156,3 +156,81 @@ html {
 .orange-glow {
   box-shadow: 0 0 20px oklch(0.7 0.18 55 / 0.15), 0 0 40px oklch(0.7 0.18 55 / 0.05);
 }
+
+/* Tab transition animations */
+@keyframes tabFadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.tab-transition {
+  animation: tabFadeIn 0.25s ease-out;
+}
+
+/* Bottom nav indicator animation */
+@keyframes indicatorSlide {
+  from {
+    transform: translateX(-50%) scaleX(0.4);
+    opacity: 0;
+  }
+  to {
+    transform: translateX(-50%) scaleX(1);
+    opacity: 1;
+  }
+}
+
+.nav-indicator {
+  animation: indicatorSlide 0.25s ease-out;
+}
+
+/* Nav icon bounce */
+@keyframes iconPop {
+  0% { transform: scale(1); }
+  50% { transform: scale(1.2); }
+  100% { transform: scale(1); }
+}
+
+.nav-icon-active {
+  animation: iconPop 0.3s ease-out;
+}
+
+/* Loading shimmer */
+@keyframes shimmer {
+  0% { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+
+.shimmer {
+  background: linear-gradient(
+    90deg,
+    oklch(0.25 0.02 30) 25%,
+    oklch(0.3 0.04 35) 50%,
+    oklch(0.25 0.02 30) 75%
+  );
+  background-size: 200% 100%;
+  animation: shimmer 1.5s ease-in-out infinite;
+}
+
+/* Progress bar glow */
+.progress-glow {
+  box-shadow: 0 0 8px oklch(0.7 0.18 55 / 0.3);
+}
+
+/* Header gradient line */
+.header-gradient-line {
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    oklch(0.7 0.18 55 / 0.6) 30%,
+    oklch(0.7 0.18 55 / 0.8) 50%,
+    oklch(0.7 0.18 55 / 0.6) 70%,
+    transparent 100%
+  );
+  height: 1px;
+}

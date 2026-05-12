@@ -53,7 +53,7 @@ export default function MapTab({ rides, routes, onOpenDetail }: MapTabProps) {
   }
 
   return (
-    <div className="relative w-full h-full">
+    <div className="relative w-full h-[calc(100vh-64px)]">
       {/* Map */}
       <MotoMap
         center={[46.15, 14.99]}
@@ -187,9 +187,9 @@ export default function MapTab({ rides, routes, onOpenDetail }: MapTabProps) {
       </div>
 
       {/* Nearby panel */}
-      <div className="absolute bottom-0 left-0 right-0 z-[1000]">
+      <div className="absolute bottom-4 left-4 right-4 z-[1000]">
         <div
-          className={`bg-background/95 backdrop-blur-md border-t border-border rounded-t-2xl shadow-lg transition-all duration-300 ${
+          className={`bg-background/95 backdrop-blur-md border border-border rounded-2xl shadow-lg transition-all duration-300 ${
             nearbyExpanded ? 'max-h-[60vh]' : 'max-h-14'
           }`}
         >

@@ -58,13 +58,17 @@ export default function ExploreTab({ rides, routes, leaderboard, onOpenDetail, o
         {routes.length > 0 && (() => {
           const featured = [...routes].sort((a, b) => b.likes - a.likes)[0]
           return (
-            <Card className="mb-6 overflow-hidden border-primary/20 bg-gradient-to-br from-primary/10 via-card to-card hover:border-primary/30 transition-all cursor-pointer hover:-translate-y-0.5" onClick={() => onOpenDetail(featured, 'route')}>
-              <div className="p-4">
+            <Card className="mb-6 overflow-hidden border-primary/20 cursor-pointer group hover:border-primary/30 transition-all duration-300 hover:-translate-y-0.5 hover:shadow-lg hover:shadow-primary/5" onClick={() => onOpenDetail(featured, 'route')}>
+              {/* Top gradient accent */}
+              <div className="h-1 bg-gradient-to-r from-primary/80 via-accent/70 to-primary/50" />
+              <div className="bg-gradient-to-br from-primary/8 via-card to-card p-4">
                 <div className="flex items-center gap-2 mb-2">
-                  <Star className="size-4 text-amber-400 fill-amber-400" />
-                  <span className="text-xs font-medium text-amber-400 uppercase tracking-wider">Izpostavljena pot</span>
+                  <div className="flex items-center justify-center size-6 rounded-full bg-amber-400/15">
+                    <Star className="size-3.5 text-amber-400 fill-amber-400" />
+                  </div>
+                  <span className="text-xs font-semibold text-amber-400 uppercase tracking-wider">Izpostavljena pot</span>
                 </div>
-                <h3 className="font-bold text-lg">{featured.title}</h3>
+                <h3 className="font-bold text-lg group-hover:text-primary transition-colors">{featured.title}</h3>
                 {featured.description && <p className="text-sm text-muted-foreground mt-1 line-clamp-2">{featured.description}</p>}
                 <div className="flex items-center gap-4 mt-3">
                   <Badge variant="outline" className={categoryColor(featured.category)}>{categoryLabel(featured.category)}</Badge>
@@ -78,10 +82,10 @@ export default function ExploreTab({ rides, routes, leaderboard, onOpenDetail, o
         })()}
 
         {/* Stats */}
-        <div className="grid grid-cols-3 gap-4 mb-6">
-          <Card className="text-center"><CardContent className="p-4"><Bike className="size-5 text-primary mx-auto mb-1" /><p className="text-2xl font-bold">{exploreStats.totalRides}</p><p className="text-xs text-muted-foreground">Voženj</p></CardContent></Card>
-          <Card className="text-center"><CardContent className="p-4"><Route className="size-5 text-primary mx-auto mb-1" /><p className="text-2xl font-bold">{exploreStats.totalRoutes}</p><p className="text-xs text-muted-foreground">Poti</p></CardContent></Card>
-          <Card className="text-center"><CardContent className="p-4"><TrendingUp className="size-5 text-primary mx-auto mb-1" /><p className="text-2xl font-bold">{exploreStats.totalDistance}</p><p className="text-xs text-muted-foreground">km skupaj</p></CardContent></Card>
+        <div className="grid grid-cols-3 gap-3 mb-6">
+          <Card className="text-center overflow-hidden group hover:border-primary/20 transition-colors"><div className="h-0.5 bg-gradient-to-r from-primary/50 to-primary/20" /><CardContent className="p-4"><Bike className="size-5 text-primary mx-auto mb-1.5" /><p className="text-2xl font-bold">{exploreStats.totalRides}</p><p className="text-xs text-muted-foreground">Voženj</p></CardContent></Card>
+          <Card className="text-center overflow-hidden group hover:border-primary/20 transition-colors"><div className="h-0.5 bg-gradient-to-r from-primary/50 to-primary/20" /><CardContent className="p-4"><Route className="size-5 text-primary mx-auto mb-1.5" /><p className="text-2xl font-bold">{exploreStats.totalRoutes}</p><p className="text-xs text-muted-foreground">Poti</p></CardContent></Card>
+          <Card className="text-center overflow-hidden group hover:border-primary/20 transition-colors"><div className="h-0.5 bg-gradient-to-r from-primary/50 to-primary/20" /><CardContent className="p-4"><TrendingUp className="size-5 text-primary mx-auto mb-1.5" /><p className="text-2xl font-bold">{exploreStats.totalDistance}</p><p className="text-xs text-muted-foreground">km skupaj</p></CardContent></Card>
         </div>
 
         {/* Search + Filters */}

@@ -2,7 +2,7 @@
 
 import React from 'react'
 import {
-  User, Bike, Route, TrendingUp, Mountain, Users,
+  User, Bike, Route, TrendingUp, Mountain, Users, Gauge, Award, Flame,
 } from 'lucide-react'
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
@@ -10,6 +10,7 @@ import { Button } from '@/components/ui/button'
 import { Avatar, AvatarFallback } from '@/components/ui/avatar'
 import { Progress } from '@/components/ui/progress'
 import { ScrollArea } from '@/components/ui/scroll-area'
+import { Separator } from '@/components/ui/separator'
 import type { RideData, UserData } from '@/components/tabs/types'
 import { formatDuration, formatDate } from '@/components/tabs/types'
 
@@ -73,19 +74,64 @@ export default function ProfileTab({ user, allUsers, rides, loading, onSwitchUse
         </Card>
 
         {/* Stats */}
-        <div className="grid grid-cols-2 gap-4">
-          <Card><CardContent className="p-4 text-center"><Bike className="size-5 text-primary mx-auto mb-1" /><p className="text-2xl font-bold">{user.stats.totalRides}</p><p className="text-xs text-muted-foreground">Voženj</p></CardContent></Card>
-          <Card><CardContent className="p-4 text-center"><Route className="size-5 text-primary mx-auto mb-1" /><p className="text-2xl font-bold">{user.stats.totalRoutes}</p><p className="text-xs text-muted-foreground">Poti</p></CardContent></Card>
-          <Card><CardContent className="p-4 text-center"><TrendingUp className="size-5 text-primary mx-auto mb-1" /><p className="text-2xl font-bold">{user.stats.totalDistance}</p><p className="text-xs text-muted-foreground">km skupaj</p></CardContent></Card>
-          <Card><CardContent className="p-4 text-center"><Mountain className="size-5 text-primary mx-auto mb-1" /><p className="text-2xl font-bold">{user.stats.totalElevation}</p><p className="text-xs text-muted-foreground">m višine</p></CardContent></Card>
+        <div className="grid grid-cols-2 gap-3">
+          <Card className="overflow-hidden"><CardContent className="p-4 text-center relative"><div className="absolute top-0 left-0 right-0 h-0.5 bg-gradient-to-r from-primary/60 to-primary/20" /><Bike className="size-5 text-primary mx-auto mb-1" /><p className="text-2xl font-bold">{user.stats.totalRides}</p><p className="text-xs text-muted-foreground">Voženj</p></CardContent></Card>
+          <Card className="overflow-hidden"><CardContent className="p-4 text-center relative"><div className="absolute top-0 left-0 right-0 h-0.5 bg-gradient-to-r from-primary/60 to-primary/20" /><Route className="size-5 text-primary mx-auto mb-1" /><p className="text-2xl font-bold">{user.stats.totalRoutes}</p><p className="text-xs text-muted-foreground">Poti</p></CardContent></Card>
+          <Card className="overflow-hidden"><CardContent className="p-4 text-center relative"><div className="absolute top-0 left-0 right-0 h-0.5 bg-gradient-to-r from-primary/60 to-primary/20" /><TrendingUp className="size-5 text-primary mx-auto mb-1" /><p className="text-2xl font-bold">{user.stats.totalDistance}</p><p className="text-xs text-muted-foreground">km skupaj</p></CardContent></Card>
+          <Card className="overflow-hidden"><CardContent className="p-4 text-center relative"><div className="absolute top-0 left-0 right-0 h-0.5 bg-gradient-to-r from-primary/60 to-primary/20" /><Mountain className="size-5 text-primary mx-auto mb-1" /><p className="text-2xl font-bold">{user.stats.totalElevation}</p><p className="text-xs text-muted-foreground">m višine</p></CardContent></Card>
         </div>
 
         {/* Performance */}
-        <Card>
-          <CardHeader className="p-4 pb-2"><CardTitle className="text-sm">Uspešnost</CardTitle></CardHeader>
-          <CardContent className="p-4 pt-0 space-y-3">
-            <div className="space-y-1"><div className="flex justify-between text-xs"><span>Povprečna hitrost</span><span className="text-primary font-medium">{user.stats.avgSpeed} km/h</span></div><Progress value={Math.min((user.stats.avgSpeed / 80) * 100, 100)} className="h-2" /></div>
-            <div className="space-y-1"><div className="flex justify-between text-xs"><span>Vslednost voženj</span><span className="text-primary font-medium">{user.stats.totalRides > 5 ? 'Odlična' : 'Dobra'}</span></div><Progress value={Math.min(user.stats.totalRides * 10, 100)} className="h-2" /></div>
+        <Card className="overflow-hidden border-primary/15">
+          <div className="h-0.5 bg-gradient-to-r from-primary/80 via-accent/60 to-primary/40" />
+          <CardHeader className="p-4 pb-2">
+            <div className="flex items-center gap-2">
+              <div className="flex items-center justify-center size-7 rounded-lg bg-primary/15">
+                <Award className="size-4 text-primary" />
+              </div>
+              <CardTitle className="text-sm">Uspešnost</CardTitle>
+            </div>
+          </CardHeader>
+          <CardContent className="p-4 pt-0 space-y-4">
+            {/* Avg speed */}
+            <div className="space-y-2">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <Gauge className="size-3.5 text-muted-foreground" />
+                  <span className="text-xs font-medium">Povprečna hitrost</span>
+                </div>
+                <span className="text-xs font-bold text-primary">{user.stats.avgSpeed} km/h</span>
+              </div>
+              <div className="relative">
+                <Progress value={Math.min((user.stats.avgSpeed / 80) * 100, 100)} className="h-2 progress-glow" />
+                <div className="flex justify-between mt-1">
+                  <span className="text-[9px] text-muted-foreground/50">0</span>
+                  <span className="text-[9px] text-muted-foreground/50">80 km/h</span>
+                </div>
+              </div>
+            </div>
+
+            <Separator className="opacity-30" />
+
+            {/* Ride consistency */}
+            <div className="space-y-2">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <Flame className="size-3.5 text-muted-foreground" />
+                  <span className="text-xs font-medium">Vzdržljivost voženj</span>
+                </div>
+                <Badge variant="outline" className={`text-[10px] px-1.5 py-0 ${user.stats.totalRides > 5 ? 'bg-primary/15 text-primary border-primary/30' : 'bg-secondary text-muted-foreground border-border'}`}>
+                  {user.stats.totalRides > 5 ? 'Odlična' : 'Dobra'}
+                </Badge>
+              </div>
+              <div className="relative">
+                <Progress value={Math.min(user.stats.totalRides * 10, 100)} className="h-2 progress-glow" />
+                <div className="flex justify-between mt-1">
+                  <span className="text-[9px] text-muted-foreground/50">0</span>
+                  <span className="text-[9px] text-muted-foreground/50">10 voženj</span>
+                </div>
+              </div>
+            </div>
           </CardContent>
         </Card>
 

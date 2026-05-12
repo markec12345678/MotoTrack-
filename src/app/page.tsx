@@ -11,6 +11,7 @@ import {
   Bike,
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
+import { Skeleton } from '@/components/ui/skeleton'
 import { toast } from 'sonner'
 
 import type { TabId, RideData, RouteData, UserData, CommentData, WeatherData, LeaderboardUser, TrackPoint } from '@/components/tabs/types'
@@ -221,63 +222,130 @@ export default function Home() {
     try {
       const res = await fetch(`/api/users/${userId}`)
       if (res.ok) {
-        const u = await res.json(); setUser(u.data || u); toast.success(`Preklopljen na ${u.name || u.data?.name}`)
+        const j = await res.json()
+        const userData = j.data || j
+        setUser(userData)
+        toast.success(`Preklopljen na ${userData.name || 'uporabnika'}`)
       }
     } catch { toast.error('Napaka pri preklopu') }
   }, [])
 
+  // Loading skeleton for initial data fetch
+  if (loading) {
+    return (
+      <div className="min-h-screen flex flex-col bg-background">
+        {/* Header skeleton */}
+        <header className="fixed top-0 left-0 right-0 z-[1400] h-10 flex items-center px-4 bg-background/95 backdrop-blur-md">
+          <div className="flex items-center gap-2">
+            <Bike className="size-4 text-primary" />
+            <span className="font-bold text-sm tracking-tight">MotoTrack</span>
+            <span className="text-[10px] text-muted-foreground hidden sm:inline">GPS Sledenje</span>
+          </div>
+        </header>
+        <div className="header-gradient-line fixed top-10 left-0 right-0 z-[1400]" />
+
+        <main className="flex-1 pt-10 pb-16 px-4 max-w-lg mx-auto w-full">
+          <div className="py-6 space-y-6">
+            {/* Map placeholder skeleton */}
+            <Skeleton className="w-full h-48 rounded-xl" />
+            {/* Stats row */}
+            <div className="grid grid-cols-3 gap-4">
+              <div className="space-y-2">
+                <Skeleton className="size-8 rounded-full mx-auto" />
+                <Skeleton className="h-5 w-12 mx-auto" />
+                <Skeleton className="h-3 w-16 mx-auto" />
+              </div>
+              <div className="space-y-2">
+                <Skeleton className="size-8 rounded-full mx-auto" />
+                <Skeleton className="h-5 w-12 mx-auto" />
+                <Skeleton className="h-3 w-16 mx-auto" />
+              </div>
+              <div className="space-y-2">
+                <Skeleton className="size-8 rounded-full mx-auto" />
+                <Skeleton className="h-5 w-12 mx-auto" />
+                <Skeleton className="h-3 w-16 mx-auto" />
+              </div>
+            </div>
+            {/* Card skeletons */}
+            <Skeleton className="h-24 rounded-xl" />
+            <Skeleton className="h-24 rounded-xl" />
+            <Skeleton className="h-20 rounded-xl" />
+          </div>
+        </main>
+
+        {/* Bottom nav skeleton */}
+        <nav className="fixed bottom-0 left-0 right-0 z-[1500] bg-background/95 backdrop-blur-md border-t border-border/50 safe-area-bottom">
+          <div className="flex items-center justify-around max-w-lg mx-auto h-16">
+            {[1,2,3,4,5].map(i => (
+              <div key={i} className="flex flex-col items-center gap-1 px-3 py-2">
+                <Skeleton className="size-5 rounded" />
+                <Skeleton className="h-2.5 w-8" />
+              </div>
+            ))}
+          </div>
+        </nav>
+      </div>
+    )
+  }
+
   return (
     <div className="min-h-screen flex flex-col bg-background">
       {/* Header */}
-      <header className={`fixed top-0 left-0 right-0 z-[1400] h-10 flex items-center px-4 border-b transition-all duration-300 ${
+      <header className={`fixed top-0 left-0 right-0 z-[1400] h-10 flex items-center px-4 transition-all duration-300 ${
         activeTab === 'map'
-          ? 'bg-background/40 backdrop-blur-sm border-transparent'
-          : 'bg-background/95 backdrop-blur-md border-border/50'
+          ? 'bg-background/40 backdrop-blur-sm'
+          : 'bg-background/95 backdrop-blur-md'
       }`}>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 flex-1">
           <Bike className="size-4 text-primary" />
-          <span className="font-bold text-sm tracking-tight">MotoTrack</span>
+          <span className="font-bold text-sm tracking-tight bg-gradient-to-r from-foreground to-foreground/70 bg-clip-text text-transparent">MotoTrack</span>
           <span className="text-[10px] text-muted-foreground hidden sm:inline">GPS Sledenje</span>
         </div>
       </header>
+      {/* Header gradient accent line */}
+      <div className={`header-gradient-line fixed top-10 left-0 right-0 z-[1400] transition-opacity duration-300 ${
+        activeTab === 'map' ? 'opacity-40' : 'opacity-100'
+      }`} />
 
       <main className="flex-1 relative" style={{ paddingTop: activeTab === 'map' ? '0' : '40px', paddingBottom: '64px' }}>
-        {activeTab === 'map' && (
-          <MapTab rides={rides} routes={routes} onOpenDetail={openDetail} />
-        )}
-        {activeTab === 'plan' && (
-          <PlanTab
-            waypoints={planWaypoints} setWaypoints={setPlanWaypoints}
-            title={planTitle} setTitle={setPlanTitle}
-            category={planCategory} setCategory={setPlanCategory}
-            avoidHighways={planAvoidHighways} setAvoidHighways={setPlanAvoidHighways}
-            distance={planDistance} onMapClick={handleMapClick} onSave={saveRoute}
-          />
-        )}
-        {activeTab === 'track' && (
-          <TrackTab
-            isTracking={isTracking} isPaused={isPaused}
-            trackPoints={trackPoints} duration={trackDuration}
-            distance={trackDistance} maxSpeed={trackMaxSpeed}
-            currentSpeed={trackCurrentSpeed} elevation={trackElevation}
-            onStart={startTracking} onPause={pauseTracking}
-            onResume={resumeTracking} onStop={stopTracking}
-            onSave={saveRide}
-          />
-        )}
-        {activeTab === 'explore' && (
-          <ExploreTab
-            rides={rides} routes={routes} leaderboard={leaderboard}
-            onOpenDetail={openDetail} onSwitchUser={switchUser}
-          />
-        )}
-        {activeTab === 'profile' && (
-          <ProfileTab
-            user={user} allUsers={allUsers} rides={rides}
-            loading={loading} onSwitchUser={switchUser}
-            onOpenDetail={openDetail} onRefresh={fetchData}
-          />
-        )}
+        <div key={activeTab} className="tab-transition">
+          {activeTab === 'map' && (
+            <MapTab rides={rides} routes={routes} onOpenDetail={openDetail} />
+          )}
+          {activeTab === 'plan' && (
+            <PlanTab
+              waypoints={planWaypoints} setWaypoints={setPlanWaypoints}
+              title={planTitle} setTitle={setPlanTitle}
+              category={planCategory} setCategory={setPlanCategory}
+              avoidHighways={planAvoidHighways} setAvoidHighways={setPlanAvoidHighways}
+              distance={planDistance} onMapClick={handleMapClick} onSave={saveRoute}
+            />
+          )}
+          {activeTab === 'track' && (
+            <TrackTab
+              isTracking={isTracking} isPaused={isPaused}
+              trackPoints={trackPoints} duration={trackDuration}
+              distance={trackDistance} maxSpeed={trackMaxSpeed}
+              currentSpeed={trackCurrentSpeed} elevation={trackElevation}
+              onStart={startTracking} onPause={pauseTracking}
+              onResume={resumeTracking} onStop={stopTracking}
+              onSave={saveRide}
+            />
+          )}
+          {activeTab === 'explore' && (
+            <ExploreTab
+              rides={rides} routes={routes} leaderboard={leaderboard}
+              onOpenDetail={openDetail} onSwitchUser={switchUser}
+            />
+          )}
+          {activeTab === 'profile' && (
+            <ProfileTab
+              user={user} allUsers={allUsers} rides={rides}
+              loading={loading} onSwitchUser={switchUser}
+              onOpenDetail={openDetail} onRefresh={fetchData}
+            />
+          )}
+        </div>
       </main>
 
       {/* Detail Dialog */}
@@ -303,10 +371,12 @@ export default function Home() {
           {tabs.map(tab => {
             const isActive = activeTab === tab.id
             return (
-              <button key={tab.id} onClick={() => setActiveTab(tab.id)} className={`relative flex flex-col items-center justify-center gap-1 px-3 py-2 rounded-lg transition-colors ${isActive ? 'text-primary' : 'text-muted-foreground hover:text-foreground'}`}>
-                <tab.icon className={`size-5 ${isActive ? 'text-primary' : ''}`} />
-                <span className="text-[10px] font-medium">{tab.label}</span>
-                {isActive && <span className="absolute -bottom-0.5 left-1/2 -translate-x-1/2 w-5 h-0.5 rounded-full bg-primary" />}
+              <button key={tab.id} onClick={() => setActiveTab(tab.id)} className={`relative flex flex-col items-center justify-center gap-1 px-3 py-2 rounded-lg transition-all duration-200 ${isActive ? 'text-primary' : 'text-muted-foreground hover:text-foreground'}`}>
+                <div className={isActive ? 'nav-icon-active' : ''}>
+                  <tab.icon className={`size-5 transition-transform duration-200 ${isActive ? 'text-primary scale-110' : 'scale-100'}`} />
+                </div>
+                <span className={`text-[10px] font-medium transition-all duration-200 ${isActive ? 'text-primary' : ''}`}>{tab.label}</span>
+                {isActive && <span className="nav-indicator absolute -bottom-0.5 left-1/2 -translate-x-1/2 w-5 h-0.5 rounded-full bg-primary" />}
               </button>
             )
           })}
