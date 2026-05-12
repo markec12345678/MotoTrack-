@@ -40,6 +40,7 @@ import {
   Flame,
   Crown,
   Medal,
+  Star,
 } from 'lucide-react'
 import {
   Card,
@@ -268,6 +269,10 @@ export default function Home() {
   const [exploreCategory, setExploreCategory] = useState<string>('all')
   const [searchQuery, setSearchQuery] = useState('')
 
+  // Map search state
+  const [mapSearchQuery, setMapSearchQuery] = useState('')
+  const [mapSearchFocused, setMapSearchFocused] = useState(false)
+
   // Detail dialog
   const [selectedItem, setSelectedItem] = useState<RideData | RouteData | null>(null)
   const [selectedType, setSelectedType] = useState<'ride' | 'route'>('ride')
@@ -485,14 +490,66 @@ export default function Home() {
 
   return (
     <div className="min-h-screen flex flex-col bg-background">
-      <main className="flex-1 relative" style={{ paddingBottom: '64px' }}>
+      {/* ============ BRANDED HEADER BAR ============ */}
+      <header className={`fixed top-0 left-0 right-0 z-[1400] h-10 flex items-center px-4 border-b transition-all duration-300 ${
+        activeTab === 'map'
+          ? 'bg-background/40 backdrop-blur-sm border-transparent'
+          : 'bg-background/95 backdrop-blur-md border-border/50'
+      }`}>
+        <div className="flex items-center gap-2">
+          <Bike className="size-4 text-primary" />
+          <span className="font-bold text-sm tracking-tight">MotoTrack</span>
+          <span className="text-[10px] text-muted-foreground hidden sm:inline">GPS Sledenje</span>
+        </div>
+      </header>
+
+      <main className="flex-1 relative" style={{ paddingTop: activeTab === 'map' ? '0' : '40px', paddingBottom: '64px' }}>
 
         {/* ============ ZEMLJEVID VIEW ============ */}
         {activeTab === 'map' && (
           <div className="relative w-full h-[calc(100vh-64px)]">
             <MotoMap center={[46.15, 14.99]} zoom={8} rides={rides} routes={routes} className="z-0" />
+            {/* Floating search bar */}
+            <div className="absolute top-12 left-4 right-4 z-[1001]">
+              <div className="relative max-w-md mx-auto">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground" />
+                <Input
+                  placeholder="Išči vožnje in poti..."
+                  value={mapSearchQuery}
+                  onChange={e => setMapSearchQuery(e.target.value)}
+                  onFocus={() => setMapSearchFocused(true)}
+                  onBlur={() => setTimeout(() => setMapSearchFocused(false), 200)}
+                  className="pl-9 bg-background/90 backdrop-blur-sm border-border/50 shadow-lg"
+                />
+                {mapSearchQuery && (
+                  <Button variant="ghost" size="sm" className="absolute right-1 top-1/2 -translate-y-1/2 h-7 w-7 p-0" onClick={() => setMapSearchQuery('')}>
+                    <X className="size-3" />
+                  </Button>
+                )}
+                {mapSearchFocused && mapSearchQuery && (
+                  <div className="absolute top-full mt-1 w-full bg-background/95 backdrop-blur-md rounded-lg border border-border/50 shadow-xl max-h-60 overflow-y-auto">
+                    {[...rides.map(r => ({ ...r, _type: 'ride' as const })), ...routes.map(r => ({ ...r, _type: 'route' as const }))]
+                      .filter(item => item.title.toLowerCase().includes(mapSearchQuery.toLowerCase()))
+                      .map(item => (
+                        <div key={item.id + item._type} className="p-2.5 hover:bg-secondary/50 cursor-pointer transition-colors" onClick={() => { openDetail(item, item._type); setMapSearchQuery('') }}>
+                          <div className="flex items-center justify-between">
+                            <span className="font-medium text-sm">{item.title}</span>
+                            <Badge variant="outline" className={`text-[10px] ${item._type === 'ride' ? 'bg-amber-500/20 text-amber-400 border-amber-500/30' : 'bg-emerald-500/20 text-emerald-400 border-emerald-500/30'}`}>
+                              {item._type === 'ride' ? 'Vožnja' : 'Pot'}
+                            </Badge>
+                          </div>
+                          <div className="flex items-center gap-3 text-xs text-muted-foreground mt-0.5"><span>{item.distance} km</span></div>
+                        </div>
+                      ))}
+                    {[...rides, ...routes].filter(item => item.title.toLowerCase().includes(mapSearchQuery.toLowerCase())).length === 0 && (
+                      <div className="p-3 text-center text-xs text-muted-foreground">Ni zadetkov</div>
+                    )}
+                  </div>
+                )}
+              </div>
+            </div>
             {/* Legend */}
-            <div className="absolute top-4 right-4 z-[1000] bg-background/90 backdrop-blur-sm rounded-lg p-3 border border-border/50">
+            <div className="absolute top-12 right-4 z-[1000] bg-background/90 backdrop-blur-sm rounded-lg p-3 border border-border/50">
               <div className="flex items-center gap-2 text-xs mb-1"><span className="w-3 h-3 rounded-full bg-amber-500 inline-block" /><span>Vožnje ({rides.length})</span></div>
               <div className="flex items-center gap-2 text-xs"><span className="w-3 h-3 rounded-full bg-emerald-500 inline-block" /><span>Poti ({routes.length})</span></div>
             </div>
@@ -528,7 +585,7 @@ export default function Home() {
 
         {/* ============ NAČRTUJ VIEW ============ */}
         {activeTab === 'plan' && (
-          <div className="relative w-full h-[calc(100vh-64px)] flex flex-col lg:flex-row">
+          <div className="relative w-full h-[calc(100vh-104px)] flex flex-col lg:flex-row">
             <div className="flex-1 relative">
               <MotoMap center={[46.15, 14.99]} zoom={8} rides={[]} routes={[]} planWaypoints={planWaypoints} showPlan={true} onMapClick={handleMapClick} />
             </div>
@@ -556,7 +613,7 @@ export default function Home() {
 
         {/* ============ SLEDI VIEW ============ */}
         {activeTab === 'track' && (
-          <div className="relative w-full h-[calc(100vh-64px)] flex flex-col">
+          <div className="relative w-full h-[calc(100vh-104px)] flex flex-col">
             <div className="flex-1 relative"><MotoMap center={[46.15, 14.99]} zoom={12} rides={[]} routes={[]} trackPoints={trackPoints} showTrack={true} /></div>
             <div className="absolute bottom-0 left-0 right-0 z-[1000] bg-background/95 backdrop-blur-md border-t border-border/50">
               <div className="text-center py-2"><span className="text-3xl font-mono font-bold text-primary">{formatDuration(trackDuration)}</span></div>
@@ -581,8 +638,30 @@ export default function Home() {
 
         {/* ============ RAZISKUJ VIEW ============ */}
         {activeTab === 'explore' && (
-          <div className="w-full h-[calc(100vh-64px)] overflow-y-auto custom-scrollbar">
+          <div className="w-full h-[calc(100vh-104px)] overflow-y-auto custom-scrollbar">
             <div className="mx-auto max-w-4xl px-4 py-6">
+              {/* Featured route hero card */}
+              {routes.length > 0 && (() => {
+                const featured = [...routes].sort((a, b) => b.likes - a.likes)[0]
+                return (
+                  <Card className="mb-6 overflow-hidden border-primary/20 bg-gradient-to-br from-primary/10 via-card to-card hover:border-primary/30 transition-all cursor-pointer hover:-translate-y-0.5" onClick={() => openDetail(featured, 'route')}>
+                    <div className="p-4">
+                      <div className="flex items-center gap-2 mb-2">
+                        <Star className="size-4 text-amber-400 fill-amber-400" />
+                        <span className="text-xs font-medium text-amber-400 uppercase tracking-wider">Izpostavljena pot</span>
+                      </div>
+                      <h3 className="font-bold text-lg">{featured.title}</h3>
+                      {featured.description && <p className="text-sm text-muted-foreground mt-1 line-clamp-2">{featured.description}</p>}
+                      <div className="flex items-center gap-4 mt-3">
+                        <Badge variant="outline" className={categoryColor(featured.category)}>{categoryLabel(featured.category)}</Badge>
+                        <span className="flex items-center gap-1 text-xs text-muted-foreground"><Route className="size-3" />{featured.distance} km</span>
+                        <span className="flex items-center gap-1 text-xs text-muted-foreground"><Heart className="size-3" />{featured.likes}</span>
+                        <span className="flex items-center gap-1 text-xs text-muted-foreground"><User className="size-3" />{featured.user?.name || 'Neznan'}</span>
+                      </div>
+                    </div>
+                  </Card>
+                )
+              })()}
               {/* Stats bar */}
               <div className="grid grid-cols-3 gap-4 mb-6">
                 <Card className="text-center"><CardContent className="p-4"><Bike className="size-5 text-primary mx-auto mb-1" /><p className="text-2xl font-bold">{exploreStats.totalRides}</p><p className="text-xs text-muted-foreground">Voženj</p></CardContent></Card>
@@ -666,7 +745,7 @@ export default function Home() {
 
         {/* ============ PROFIL VIEW ============ */}
         {activeTab === 'profile' && (
-          <div className="w-full h-[calc(100vh-64px)] overflow-y-auto custom-scrollbar">
+          <div className="w-full h-[calc(100vh-104px)] overflow-y-auto custom-scrollbar">
             <div className="mx-auto max-w-lg px-4 py-6">
               {loading ? (
                 <div className="text-center py-12"><User className="size-12 text-muted-foreground mx-auto mb-4 animate-pulse" /><p className="text-muted-foreground">Nalaganje...</p></div>
@@ -741,9 +820,9 @@ export default function Home() {
 
       {/* ============ DETAIL DIALOG ============ */}
       {detailOpen && selectedItem && (
-        <div className="fixed inset-0 z-[2000] flex items-end sm:items-center justify-center">
-          <div className="absolute inset-0 bg-black/60" onClick={() => setDetailOpen(false)} />
-          <div className="relative z-10 w-full max-w-lg max-h-[85vh] overflow-y-auto bg-card rounded-t-2xl sm:rounded-2xl border border-border/50 shadow-2xl custom-scrollbar">
+        <div className="fixed inset-0 z-[2000] flex items-end sm:items-center justify-center animate-in fade-in duration-200">
+          <div className="absolute inset-0 bg-black/60 animate-in fade-in duration-200" onClick={() => setDetailOpen(false)} />
+          <div className="relative z-10 w-full max-w-lg max-h-[85vh] overflow-y-auto bg-card rounded-t-2xl sm:rounded-2xl border border-border/50 shadow-2xl custom-scrollbar animate-in slide-in-from-bottom-4 duration-300">
             <div className="p-4">
               {/* Header */}
               <div className="flex items-start justify-between mb-3">
@@ -885,9 +964,10 @@ export default function Home() {
           {tabs.map(tab => {
             const isActive = activeTab === tab.id
             return (
-              <button key={tab.id} onClick={() => setActiveTab(tab.id)} className={`flex flex-col items-center justify-center gap-1 px-3 py-2 rounded-lg transition-colors ${isActive ? 'text-primary' : 'text-muted-foreground hover:text-foreground'}`}>
+              <button key={tab.id} onClick={() => setActiveTab(tab.id)} className={`relative flex flex-col items-center justify-center gap-1 px-3 py-2 rounded-lg transition-colors ${isActive ? 'text-primary' : 'text-muted-foreground hover:text-foreground'}`}>
                 <tab.icon className={`size-5 ${isActive ? 'text-primary' : ''}`} />
                 <span className="text-[10px] font-medium">{tab.label}</span>
+                {isActive && <span className="absolute -bottom-0.5 left-1/2 -translate-x-1/2 w-5 h-0.5 rounded-full bg-primary" />}
               </button>
             )
           })}

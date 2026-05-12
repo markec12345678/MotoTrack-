@@ -14,6 +14,72 @@ Odgovarjaš v slovenščini. Pomagaš z:
 Bodi prijazen, strokoven in jedrnaten. Uporabljaj emoji-je 🏍️ pri naslovu.
 Če te vprašajo o čem, kar ni povezano z motorji ali potovanji, vljudno preusmeri pogovor nazaj na motociklizem.`
 
+const OPENROUTER_API_KEY = process.env.OPENROUTER_API_KEY
+const OPENROUTER_URL = 'https://openrouter.ai/api/v1/chat/completions'
+const OPENROUTER_MODEL = 'google/gemma-4-31b-it:free'
+
+/**
+ * Try OpenRouter API first (free model)
+ */
+async function callOpenRouter(messages: Array<{ role: string; content: string }>): Promise<string | null> {
+  if (!OPENROUTER_API_KEY) {
+    console.log('OpenRouter: No API key configured, skipping')
+    return null
+  }
+
+  try {
+    const response = await fetch(OPENROUTER_URL, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${OPENROUTER_API_KEY}`,
+        'Content-Type': 'application/json',
+        'HTTP-Referer': 'https://mototrack.app',
+        'X-Title': 'MotoTrack AI',
+      },
+      body: JSON.stringify({
+        model: OPENROUTER_MODEL,
+        messages,
+        max_tokens: 1024,
+        temperature: 0.7,
+      }),
+    })
+
+    if (!response.ok) {
+      const errText = await response.text()
+      console.error(`OpenRouter error (${response.status}):`, errText)
+      return null
+    }
+
+    const data = await response.json()
+    const content = data.choices?.[0]?.message?.content
+    if (!content) {
+      console.error('OpenRouter: Empty response')
+      return null
+    }
+
+    console.log('OpenRouter: Success with model', OPENROUTER_MODEL)
+    return content
+  } catch (error: any) {
+    console.error('OpenRouter fetch error:', error?.message || error)
+    return null
+  }
+}
+
+/**
+ * Fallback to z-ai-web-dev-sdk
+ */
+async function callZAI(messages: Array<{ role: string; content: string }>): Promise<string> {
+  const ZAI = (await import('z-ai-web-dev-sdk')).default
+  const zai = await ZAI.create()
+
+  const completion = await zai.chat.completions.create({
+    messages: messages.map(m => ({ role: m.role as 'assistant' | 'user', content: m.content })),
+    thinking: { type: 'disabled' },
+  })
+
+  return completion.choices?.[0]?.message?.content || 'Oprostite, nisem mogel odgovoriti. Poskusite znova.'
+}
+
 export async function POST(request: NextRequest) {
   try {
     const { message, sessionId } = await request.json()
@@ -36,7 +102,7 @@ export async function POST(request: NextRequest) {
 
     // Get or create conversation history
     let history = conversations.get(sid) || [
-      { role: 'assistant', content: SYSTEM_PROMPT }
+      { role: 'system', content: SYSTEM_PROMPT }
     ]
 
     // Add user message
@@ -47,16 +113,18 @@ export async function POST(request: NextRequest) {
       history = [history[0], ...history.slice(-21)]
     }
 
-    // Use z-ai-web-dev-sdk
-    const ZAI = (await import('z-ai-web-dev-sdk')).default
-    const zai = await ZAI.create()
+    // Build messages array for API calls
+    const apiMessages = history.map(m => ({ role: m.role, content: m.content }))
 
-    const completion = await zai.chat.completions.create({
-      messages: history.map(m => ({ role: m.role as 'assistant' | 'user', content: m.content })),
-      thinking: { type: 'disabled' },
-    })
+    // Try OpenRouter first, fall back to z-ai-web-dev-sdk
+    let aiResponse = await callOpenRouter(apiMessages)
+    let provider = 'openrouter'
 
-    const aiResponse = completion.choices?.[0]?.message?.content || 'Oprostite, nisem mogel odgovoriti. Poskusite znova.'
+    if (!aiResponse) {
+      console.log('OpenRouter failed, falling back to z-ai-web-dev-sdk')
+      aiResponse = await callZAI(apiMessages)
+      provider = 'z-ai'
+    }
 
     // Add AI response to history
     history.push({ role: 'assistant', content: aiResponse })
@@ -74,6 +142,7 @@ export async function POST(request: NextRequest) {
       success: true,
       response: aiResponse,
       messageCount: history.length - 1,
+      provider,
     })
   } catch (error: any) {
     console.error('Chat API error:', error?.message || error)
