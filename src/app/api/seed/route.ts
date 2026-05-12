@@ -54,7 +54,10 @@ export async function GET() {
 
 async function seedDatabase() {
   try {
-    // Delete existing data in correct order (rides/routes first due to FK)
+    // Delete existing data in correct order (FK constraints)
+    // Comments and Likes must be deleted before rides/routes/users
+    await db.comment.deleteMany()
+    await db.like.deleteMany()
     await db.ride.deleteMany()
     await db.route.deleteMany()
     await db.user.deleteMany()
@@ -91,7 +94,6 @@ async function seedDatabase() {
     ])
 
     // --- RIDES ---
-    // Ride 1: Ljubljana → Bled → Bohinj
     const ride1Track = generateTrackData(
       [
         [46.0569, 14.5058, 295],
@@ -108,7 +110,6 @@ async function seedDatabase() {
       5400
     )
 
-    // Ride 2: Bled → Vršič Pass → Soča Valley
     const ride2Track = generateTrackData(
       [
         [46.3625, 14.0944, 475],
@@ -125,7 +126,6 @@ async function seedDatabase() {
       7200
     )
 
-    // Ride 3: Ljubljana → Postojna → Piran (coastal ride)
     const ride3Track = generateTrackData(
       [
         [46.0569, 14.5058, 295],
@@ -142,7 +142,6 @@ async function seedDatabase() {
       9000
     )
 
-    // Ride 4: Ljubljana → Maribor (via Štajerska)
     const ride4Track = generateTrackData(
       [
         [46.0569, 14.5058, 295],
@@ -159,7 +158,6 @@ async function seedDatabase() {
       7800
     )
 
-    // Ride 5: Soča Valley loop (Bovec → Kobarid → Tolmin → Bovec)
     const ride5Track = generateTrackData(
       [
         [46.3317, 13.5536, 440],
@@ -176,7 +174,6 @@ async function seedDatabase() {
       5400
     )
 
-    // Ride 6: Kranjska Gora → Vršič → Trenta
     const ride6Track = generateTrackData(
       [
         [46.4833, 13.7833, 810],
@@ -193,7 +190,6 @@ async function seedDatabase() {
       4800
     )
 
-    // Ride 7: Novo Mesto → Gorjanci → Krka valley
     const ride7Track = generateTrackData(
       [
         [45.8000, 15.1667, 220],
@@ -210,7 +206,6 @@ async function seedDatabase() {
       5400
     )
 
-    // Ride 8: Ljubljana weekend ride (short city escape)
     const ride8Track = generateTrackData(
       [
         [46.0569, 14.5058, 295],
@@ -226,7 +221,6 @@ async function seedDatabase() {
       3600
     )
 
-    // Ride 9: Celje → Slovenske Konjice → Ptuj
     const ride9Track = generateTrackData(
       [
         [46.2387, 15.2686, 245],
@@ -243,7 +237,6 @@ async function seedDatabase() {
       4200
     )
 
-    // Ride 10: Triglav area adventure (Mojstrana → Vrata valley)
     const ride10Track = generateTrackData(
       [
         [46.4333, 13.9000, 630],
@@ -594,6 +587,83 @@ async function seedDatabase() {
       routesData.map((route) => db.route.create({ data: route }))
     )
 
+    // --- COMMENTS ---
+    const commentsData = [
+      {
+        text: 'Najlepša vožnja letos! Vršič je vedno poseben, ampak ta pot od Bleda je nekaj posebnega.',
+        userId: users[0].id,
+        rideId: rides[1].id,
+      },
+      {
+        text: 'Tale vožnja po obali je res sanje. Pri Piranu sem si vzel čas za morske sadeže 🦐',
+        userId: users[1].id,
+        rideId: rides[2].id,
+      },
+      {
+        text: 'Soča je kristalno čista, sem se ustavil za plavanje pri Bovcu!',
+        userId: users[2].id,
+        rideId: rides[4].id,
+      },
+      {
+        text: 'Ta gorska zanka je absolutni vrhunec! Priporočam vsem, ki imate izkušnje z gorskimi cestami.',
+        userId: users[2].id,
+        routeId: routes[0].id,
+      },
+      {
+        text: 'Obalna ruta je super za poletne večere. Zelo sproščujoča in mediteranska.',
+        userId: users[0].id,
+        routeId: routes[1].id,
+      },
+      {
+        text: 'Pohorje je zaklad zavitih cest. Malo prometa, veliko užitka!',
+        userId: users[0].id,
+        routeId: routes[2].id,
+      },
+      {
+        text: 'Logarska dolina off-road je zahtevna ampak čudovita. Potrebuješ enduro moto!',
+        userId: users[2].id,
+        routeId: routes[3].id,
+      },
+      {
+        text: 'Ljubljanski barjanski obhod je odličen za začetnike. Jaz ga vozim vsak vikend za sprostitev.',
+        userId: users[1].id,
+        routeId: routes[4].id,
+      },
+    ]
+
+    const comments = await Promise.all(
+      commentsData.map((comment) => db.comment.create({ data: comment }))
+    )
+
+    // --- LIKES ---
+    // 12 likes spread across routes from different users
+    const likesData = [
+      // Route 0 (Julijske Alpe) - liked by all 3 users
+      { userId: users[0].id, routeId: routes[0].id },
+      { userId: users[1].id, routeId: routes[0].id },
+      { userId: users[2].id, routeId: routes[0].id },
+      // Route 1 (Slovenska obala) - liked by 2 users
+      { userId: users[0].id, routeId: routes[1].id },
+      { userId: users[1].id, routeId: routes[1].id },
+      // Route 2 (Pohorje) - liked by all 3 users
+      { userId: users[0].id, routeId: routes[2].id },
+      { userId: users[1].id, routeId: routes[2].id },
+      { userId: users[2].id, routeId: routes[2].id },
+      // Route 3 (Logarska dolina) - liked by 2 users
+      { userId: users[1].id, routeId: routes[3].id },
+      { userId: users[2].id, routeId: routes[3].id },
+      // Route 4 (Ljubljanski barje) - liked by 1 user
+      { userId: users[2].id, routeId: routes[4].id },
+      // Route 5 (Panonska ravnina) - liked by 3 users
+      { userId: users[0].id, routeId: routes[5].id },
+      { userId: users[1].id, routeId: routes[5].id },
+      { userId: users[2].id, routeId: routes[5].id },
+    ]
+
+    const likes = await Promise.all(
+      likesData.map((like) => db.like.create({ data: like }))
+    )
+
     return NextResponse.json({
       success: true,
       message: 'Database seeded successfully',
@@ -601,6 +671,8 @@ async function seedDatabase() {
         users: users.length,
         rides: rides.length,
         routes: routes.length,
+        comments: comments.length,
+        likes: likes.length,
       },
     })
   } catch (error) {
