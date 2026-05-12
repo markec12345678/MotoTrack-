@@ -29,3 +29,24 @@ Stage Summary:
 - Twisty Roads: 8 Slovenian passes with difficulty ratings
 - Weather Radar: RainViewer real-time precipitation overlay
 - Hazards: 8 hazard warnings across Slovenia
+
+---
+Task ID: bugfix-1
+Agent: Main
+Task: Fix Leaflet map runtime TypeError: Cannot read properties of undefined (reading '_leaflet_pos')
+
+Work Log:
+- Identified root cause: React Strict Mode double-mounting causes map.invalidateSize() to fire after map has been removed
+- Fixed moto-map.tsx useEffect initialization:
+  1. Added cleanup of existing map instance before re-initialization (React Strict Mode)
+  2. Delete Leaflet's internal _leaflet_id from container element before creating new map
+  3. Guard setTimeout callback with check that mapRef.current still equals the map instance
+  4. Added try-catch around invalidateSize() call
+  5. Clear setTimeout in cleanup function to prevent stale callbacks
+  6. Reset layersRef.current and overlayLayersRef.current in cleanup
+- All lint checks pass
+- Page renders correctly, all APIs working (POI, achievements, rides, routes, seed)
+
+Stage Summary:
+- Fixed the critical Leaflet map crash that prevented the app from loading
+- The map now properly handles React Strict Mode's double-mount lifecycle

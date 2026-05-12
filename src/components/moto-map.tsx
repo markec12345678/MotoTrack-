@@ -148,9 +148,20 @@ export default function MotoMap({
 
   // Initialize map
   useEffect(() => {
-    if (!containerRef.current || mapRef.current) return
+    const container = containerRef.current
+    if (!container) return
 
-    const map = L.map(containerRef.current, {
+    // Clean up any previous Leaflet instance on this container (React Strict Mode)
+    const existingMap = mapRef.current
+    if (existingMap) {
+      existingMap.remove()
+      mapRef.current = null
+    }
+    // Clear Leaflet's internal container ID so a new map can be created
+    const containerEl = container as HTMLDivElement & { _leaflet_id?: number }
+    delete containerEl._leaflet_id
+
+    const map = L.map(container, {
       center,
       zoom,
       zoomControl: false,
@@ -191,12 +202,19 @@ export default function MotoMap({
 
     mapRef.current = map
 
-    // Fix size issue
-    setTimeout(() => map.invalidateSize(), 100)
+    // Fix size issue - guard against map being removed before timeout fires
+    const timerId = setTimeout(() => {
+      if (mapRef.current === map) {
+        try { map.invalidateSize() } catch { /* map already removed */ }
+      }
+    }, 100)
 
     return () => {
+      clearTimeout(timerId)
       map.remove()
       mapRef.current = null
+      layersRef.current = null
+      overlayLayersRef.current = {}
     }
   }, [])
 
