@@ -2,7 +2,7 @@
 
 import React, { useState } from 'react'
 import dynamic from 'next/dynamic'
-import { Search, X, ChevronUp, ChevronDown, LocateFixed } from 'lucide-react'
+import { Search, X, ChevronUp, ChevronDown, LocateFixed, Bike, Route as RouteIcon, Filter } from 'lucide-react'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
@@ -23,6 +23,10 @@ export default function MapTab({ rides, routes, onOpenDetail }: MapTabProps) {
   const [searchQuery, setSearchQuery] = useState('')
   const [showSearch, setShowSearch] = useState(false)
   const [nearbyExpanded, setNearbyExpanded] = useState(false)
+  const [filterRides, setFilterRides] = useState(true)
+  const [filterRoutes, setFilterRoutes] = useState(true)
+  const [filterCategory, setFilterCategory] = useState('all')
+  const [showFilters, setShowFilters] = useState(false)
 
   const totalCount = rides.length + routes.length
 
@@ -60,12 +64,15 @@ export default function MapTab({ rides, routes, onOpenDetail }: MapTabProps) {
         zoom={8}
         rides={rides}
         routes={routes}
+        filterRides={filterRides}
+        filterRoutes={filterRoutes}
+        filterCategory={filterCategory}
         className="absolute inset-0"
       />
 
       {/* Floating search bar */}
-      <div className="absolute top-4 left-4 right-4 z-[1000]">
-        <div className="relative max-w-md mx-auto">
+      <div className="absolute top-4 left-4 right-16 z-[1000]">
+        <div className="relative max-w-md">
           <div className="flex items-center gap-2 bg-background/90 backdrop-blur-md border border-border rounded-xl shadow-lg px-3 py-2">
             <Search className="h-4 w-4 text-muted-foreground shrink-0" />
             <Input
@@ -156,23 +163,62 @@ export default function MapTab({ rides, routes, onOpenDetail }: MapTabProps) {
         </div>
       </div>
 
-      {/* Legend */}
-      <div className="absolute top-4 right-4 z-[1000] bg-background/90 backdrop-blur-md border border-border rounded-xl shadow-lg px-3 py-2">
-        <div className="flex flex-col gap-1.5 text-xs">
-          <div className="flex items-center gap-2">
-            <span className="inline-block h-2.5 w-2.5 rounded-full bg-amber-500" />
-            <span className="text-muted-foreground">
-              Vožnje <span className="text-foreground font-medium">{rides.length}</span>
-            </span>
+      {/* Filter toggle button */}
+      <div className="absolute top-4 right-4 z-[1000] flex flex-col gap-2">
+        <Button
+          size="icon"
+          variant="secondary"
+          className={`h-9 w-9 rounded-full shadow-lg backdrop-blur-md border border-border ${showFilters ? 'bg-primary text-primary-foreground' : 'bg-background/90 hover:bg-muted'}`}
+          onClick={() => setShowFilters(!showFilters)}
+        >
+          <Filter className="h-4 w-4" />
+        </Button>
+      </div>
+
+      {/* Filter panel */}
+      {showFilters && (
+        <div className="absolute top-16 right-4 z-[1000] bg-background/95 backdrop-blur-md border border-border rounded-xl shadow-lg p-3 w-48">
+          <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-2">Prikaži</p>
+          <div className="flex gap-2 mb-3">
+            <button
+              onClick={() => setFilterRides(!filterRides)}
+              className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-medium transition-colors ${
+                filterRides
+                  ? 'bg-amber-500/20 text-amber-400 border border-amber-500/30'
+                  : 'bg-secondary text-muted-foreground border border-border'
+              }`}
+            >
+              <Bike className="size-3" /> Vožnje
+            </button>
+            <button
+              onClick={() => setFilterRoutes(!filterRoutes)}
+              className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-medium transition-colors ${
+                filterRoutes
+                  ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30'
+                  : 'bg-secondary text-muted-foreground border border-border'
+              }`}
+            >
+              <RouteIcon className="size-3" /> Poti
+            </button>
           </div>
-          <div className="flex items-center gap-2">
-            <span className="inline-block h-2.5 w-2.5 rounded-full bg-emerald-500" />
-            <span className="text-muted-foreground">
-              Poti <span className="text-foreground font-medium">{routes.length}</span>
-            </span>
+          <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-2">Kategorija</p>
+          <div className="flex flex-wrap gap-1">
+            {['all', 'scenic', 'twisty', 'offroad', 'city'].map(cat => (
+              <button
+                key={cat}
+                onClick={() => setFilterCategory(cat)}
+                className={`px-2 py-1 rounded-md text-[10px] font-medium transition-colors ${
+                  filterCategory === cat
+                    ? 'bg-primary text-primary-foreground'
+                    : 'bg-secondary text-muted-foreground hover:bg-muted'
+                }`}
+              >
+                {cat === 'all' ? 'Vse' : categoryLabel(cat)}
+              </button>
+            ))}
           </div>
         </div>
-      </div>
+      )}
 
       {/* Locate button */}
       <div className="absolute bottom-28 right-4 z-[1000]">

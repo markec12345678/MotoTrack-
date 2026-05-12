@@ -234,3 +234,21 @@ html {
   );
   height: 1px;
 }
+
+/* Custom Leaflet markers */
+.custom-marker {
+  background: none !important;
+  border: none !important;
+}
+
+/* Leaflet popup override */
+.leaflet-popup-content-wrapper {
+  border-radius: 12px !important;
+  box-shadow: 0 4px 16px rgba(0,0,0,0.15) !important;
+}
+
+.leaflet-popup-content {
+  margin: 10px 14px !important;
+  font-size: 13px !important;
+  line-height: 1.5 !important;
+}

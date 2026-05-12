@@ -11,13 +11,15 @@ import { Avatar, AvatarFallback } from '@/components/ui/avatar'
 import { Progress } from '@/components/ui/progress'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { Separator } from '@/components/ui/separator'
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import type { RideData, UserData } from '@/components/tabs/types'
-import { formatDuration, formatDate } from '@/components/tabs/types'
+import { formatDuration, formatDate, categoryLabel, categoryColor } from '@/components/tabs/types'
 
 interface ProfileTabProps {
   user: UserData | null
   allUsers: Array<{ id: string; name: string; email: string; avatar: string | null; bike: string | null; bio: string | null }>
   rides: RideData[]
+  routes: RouteData[]
   loading: boolean
   onSwitchUser: (userId: string) => void
   onOpenDetail: (item: RideData | RouteData, type: 'ride' | 'route') => void
@@ -26,7 +28,7 @@ interface ProfileTabProps {
 
 import type { RouteData } from '@/components/tabs/types'
 
-export default function ProfileTab({ user, allUsers, rides, loading, onSwitchUser, onOpenDetail, onRefresh }: ProfileTabProps) {
+export default function ProfileTab({ user, allUsers, rides, routes, loading, onSwitchUser, onOpenDetail, onRefresh }: ProfileTabProps) {
   if (loading) {
     return (
       <div className="w-full h-[calc(100vh-104px)] flex items-center justify-center">
@@ -135,20 +137,57 @@ export default function ProfileTab({ user, allUsers, rides, loading, onSwitchUse
           </CardContent>
         </Card>
 
-        {/* Recent rides */}
+        {/* Recent activity - tabs for rides & routes */}
         <Card>
-          <CardHeader className="p-4 pb-2"><CardTitle className="text-sm">Zadnje vožnje</CardTitle></CardHeader>
-          <CardContent className="p-4 pt-0">
-            <ScrollArea className="max-h-60">
-              {rides.filter(r => r.userId === user.id).slice(0, 5).map(ride => (
-                <div key={ride.id} className="flex items-center justify-between py-2 border-b border-border/30 last:border-0 cursor-pointer hover:bg-secondary/30 rounded px-2 -mx-2" onClick={() => onOpenDetail(ride, 'ride')}>
-                  <div><p className="text-sm font-medium">{ride.title}</p><p className="text-xs text-muted-foreground">{formatDate(ride.createdAt)}</p></div>
-                  <div className="text-right"><p className="text-sm font-bold text-primary">{ride.distance} km</p><p className="text-xs text-muted-foreground">{formatDuration(ride.duration)}</p></div>
-                </div>
-              ))}
-              {rides.filter(r => r.userId === user.id).length === 0 && <p className="text-sm text-muted-foreground text-center py-4">Ni voženj</p>}
-            </ScrollArea>
-          </CardContent>
+          <Tabs defaultValue="rides">
+            <CardHeader className="p-4 pb-0">
+              <div className="flex items-center justify-between">
+                <TabsList className="h-8">
+                  <TabsTrigger value="rides" className="text-xs gap-1.5 px-3">
+                    <Bike className="size-3" /> Vožnje ({rides.filter(r => r.userId === user.id).length})
+                  </TabsTrigger>
+                  <TabsTrigger value="routes" className="text-xs gap-1.5 px-3">
+                    <Route className="size-3" /> Poti ({routes.filter(r => r.userId === user.id).length})
+                  </TabsTrigger>
+                </TabsList>
+              </div>
+            </CardHeader>
+            <TabsContent value="rides" className="mt-0">
+              <CardContent className="p-4 pt-2">
+                <ScrollArea className="max-h-60">
+                  {rides.filter(r => r.userId === user.id).length === 0 ? (
+                    <p className="text-sm text-muted-foreground text-center py-4">Ni voženj</p>
+                  ) : (
+                    rides.filter(r => r.userId === user.id).slice(0, 10).map(ride => (
+                      <div key={ride.id} className="flex items-center justify-between py-2 border-b border-border/30 last:border-0 cursor-pointer hover:bg-secondary/30 rounded px-2 -mx-2" onClick={() => onOpenDetail(ride, 'ride')}>
+                        <div><p className="text-sm font-medium">{ride.title}</p><p className="text-xs text-muted-foreground">{formatDate(ride.createdAt)}</p></div>
+                        <div className="text-right"><p className="text-sm font-bold text-primary">{ride.distance} km</p><p className="text-xs text-muted-foreground">{formatDuration(ride.duration)}</p></div>
+                      </div>
+                    ))
+                  )}
+                </ScrollArea>
+              </CardContent>
+            </TabsContent>
+            <TabsContent value="routes" className="mt-0">
+              <CardContent className="p-4 pt-2">
+                <ScrollArea className="max-h-60">
+                  {routes.filter(r => r.userId === user.id).length === 0 ? (
+                    <p className="text-sm text-muted-foreground text-center py-4">Ni poti</p>
+                  ) : (
+                    routes.filter(r => r.userId === user.id).slice(0, 10).map(route => (
+                      <div key={route.id} className="flex items-center justify-between py-2 border-b border-border/30 last:border-0 cursor-pointer hover:bg-secondary/30 rounded px-2 -mx-2" onClick={() => onOpenDetail(route, 'route')}>
+                        <div className="flex items-center gap-2">
+                          <Badge variant="outline" className={`${categoryColor(route.category)} text-[10px] px-1.5 py-0`}>{categoryLabel(route.category)}</Badge>
+                          <div><p className="text-sm font-medium">{route.title}</p><p className="text-xs text-muted-foreground">{formatDate(route.createdAt)}</p></div>
+                        </div>
+                        <div className="text-right"><p className="text-sm font-bold text-primary">{route.distance} km</p><p className="text-xs text-muted-foreground">❤️ {route.likes}</p></div>
+                      </div>
+                    ))
+                  )}
+                </ScrollArea>
+              </CardContent>
+            </TabsContent>
+          </Tabs>
         </Card>
       </div>
     </div>

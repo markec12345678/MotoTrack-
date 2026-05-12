@@ -29,6 +29,9 @@ interface MotoMapProps {
   showPlan?: boolean
   showTrack?: boolean
   onMapClick?: (lat: number, lng: number) => void
+  filterRides?: boolean
+  filterRoutes?: boolean
+  filterCategory?: string
   className?: string
 }
 
@@ -37,6 +40,48 @@ const categoryColors: Record<string, string> = {
   twisty: '#f59e0b',
   offroad: '#f97316',
   city: '#3b82f6',
+}
+
+const catLabels: Record<string, string> = {
+  scenic: 'Slikovito',
+  twisty: 'Vijugasto',
+  offroad: 'Terensko',
+  city: 'Mesto',
+}
+
+// Custom SVG marker for rides (motorcycle icon)
+function createRideMarker(title: string, distance: number): L.DivIcon {
+  return L.divIcon({
+    className: 'custom-marker',
+    html: `<div style="position:relative;display:flex;align-items:center;justify-content:center;width:32px;height:32px;">
+      <div style="position:absolute;inset:0;background:#f59e0b;border:2px solid #fff;border-radius:50%;box-shadow:0 2px 8px rgba(0,0,0,0.3);"></div>
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="position:relative;z-index:1;">
+        <circle cx="5" cy="18" r="3"/><circle cx="19" cy="18" r="3"/>
+        <path d="M5 18h3l2-6h4l2 6h3"/>
+        <path d="M10 12l1-4h2"/>
+      </svg>
+    </div>`,
+    iconSize: [32, 32],
+    iconAnchor: [16, 16],
+    popupAnchor: [0, -18],
+  })
+}
+
+// Custom SVG marker for routes (route/flag icon)
+function createRouteMarker(category: string, title: string, likes: number): L.DivIcon {
+  const color = categoryColors[category] || '#3b82f6'
+  return L.divIcon({
+    className: 'custom-marker',
+    html: `<div style="position:relative;display:flex;align-items:center;justify-content:center;width:32px;height:32px;">
+      <div style="position:absolute;inset:0;background:${color};border:2px solid #fff;border-radius:50%;box-shadow:0 2px 8px rgba(0,0,0,0.3);"></div>
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="position:relative;z-index:1;">
+        <path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/>
+      </svg>
+    </div>`,
+    iconSize: [32, 32],
+    iconAnchor: [16, 16],
+    popupAnchor: [0, -18],
+  })
 }
 
 export default function MotoMap({
@@ -49,6 +94,9 @@ export default function MotoMap({
   showPlan = false,
   showTrack = false,
   onMapClick,
+  filterRides = true,
+  filterRoutes = true,
+  filterCategory = 'all',
   className = '',
 }: MotoMapProps) {
   const mapRef = useRef<L.Map | null>(null)
@@ -116,24 +164,21 @@ export default function MotoMap({
     const layer = layersRef.current.rides
     layer.clearLayers()
 
+    if (!filterRides) return
+
     rides.forEach((ride) => {
       if (!ride.startLat || !ride.startLng) return
 
-      // Start marker
-      const marker = L.circleMarker([ride.startLat, ride.startLng], {
-        radius: 7,
-        fillColor: '#f59e0b',
-        color: '#d97706',
-        weight: 2,
-        opacity: 1,
-        fillOpacity: 0.8,
+      // Custom marker
+      const marker = L.marker([ride.startLat, ride.startLng], {
+        icon: createRideMarker(ride.title, ride.distance),
       }).addTo(layer)
 
       marker.bindPopup(`
         <div style="min-width:160px">
           <strong>${ride.title}</strong><br/>
           <span style="color:#888">${ride.distance} km</span><br/>
-          <span style="background:#f59e0b22;color:#d97706;padding:2px 6px;border-radius:4px;font-size:11px">Vožnja</span>
+          <span style="background:#f59e0b22;color:#d97706;padding:2px 6px;border-radius:4px;font-size:11px">🏍️ Vožnja</span>
         </div>
       `)
 
@@ -154,7 +199,7 @@ export default function MotoMap({
         // ignore
       }
     })
-  }, [rides])
+  }, [rides, filterRides])
 
   // Update routes layer
   useEffect(() => {
@@ -162,28 +207,22 @@ export default function MotoMap({
     const layer = layersRef.current.routes
     layer.clearLayers()
 
+    if (!filterRoutes) return
+
     routes.forEach((route) => {
+      // Filter by category
+      if (filterCategory !== 'all' && route.category !== filterCategory) return
+
       try {
         const wp = JSON.parse(route.waypoints)
         if (!Array.isArray(wp) || wp.length === 0) return
 
-        // Start marker
         const color = categoryColors[route.category] || '#3b82f6'
-        const marker = L.circleMarker([wp[0].lat, wp[0].lng], {
-          radius: 7,
-          fillColor: color,
-          color: '#fff',
-          weight: 2,
-          opacity: 1,
-          fillOpacity: 0.8,
-        }).addTo(layer)
 
-        const catLabels: Record<string, string> = {
-          scenic: 'Slikovito',
-          twisty: 'Vijugasto',
-          offroad: 'Terensko',
-          city: 'Mesto',
-        }
+        // Custom route marker
+        const marker = L.marker([wp[0].lat, wp[0].lng], {
+          icon: createRouteMarker(route.category, route.title, route.likes),
+        }).addTo(layer)
 
         marker.bindPopup(`
           <div style="min-width:160px">
@@ -212,7 +251,7 @@ export default function MotoMap({
         // ignore
       }
     })
-  }, [routes])
+  }, [routes, filterRoutes, filterCategory])
 
   // Update plan waypoints
   useEffect(() => {

@@ -9,10 +9,13 @@ import {
   Compass,
   User,
   Bike,
+  Sun,
+  Moon,
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Skeleton } from '@/components/ui/skeleton'
 import { toast } from 'sonner'
+import { useTheme } from 'next-themes'
 
 import type { TabId, RideData, RouteData, UserData, CommentData, WeatherData, LeaderboardUser, TrackPoint } from '@/components/tabs/types'
 import { haversine, formatDuration, formatDate, categoryLabel, categoryColor } from '@/components/tabs/types'
@@ -35,6 +38,9 @@ const tabs: { id: TabId; label: string; icon: React.ElementType }[] = [
 ]
 
 export default function Home() {
+  const { theme, setTheme } = useTheme()
+  const [mounted, setMounted] = useState(false)
+  useEffect(() => setMounted(true), [])
   const [activeTab, setActiveTab] = useState<TabId>('map')
   const [rides, setRides] = useState<RideData[]>([])
   const [routes, setRoutes] = useState<RouteData[]>([])
@@ -63,6 +69,7 @@ export default function Home() {
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null)
   const startTimeRef = useRef<number>(0)
   const pausedDurationRef = useRef<number>(0)
+  const isPausedRef = useRef(false)
 
   // Detail dialog
   const [selectedItem, setSelectedItem] = useState<RideData | RouteData | null>(null)
@@ -121,10 +128,10 @@ export default function Home() {
   // GPS Tracking
   const startTracking = useCallback(() => {
     if (!navigator.geolocation) { toast.error('Geolokacija ni na voljo'); return }
-    setIsTracking(true); setIsPaused(false); setTrackPoints([]); setTrackDuration(0)
+    setIsTracking(true); setIsPaused(false); isPausedRef.current = false; setTrackPoints([]); setTrackDuration(0)
     setTrackDistance(0); setTrackMaxSpeed(0); setTrackCurrentSpeed(0); setTrackElevation(0)
     startTimeRef.current = Date.now(); pausedDurationRef.current = 0
-    timerRef.current = setInterval(() => { if (!isPaused) setTrackDuration(p => p + 1) }, 1000)
+    timerRef.current = setInterval(() => { if (!isPausedRef.current) setTrackDuration(p => p + 1) }, 1000)
     watchIdRef.current = navigator.geolocation.watchPosition(
       (pos) => {
         const point: TrackPoint = { lat: pos.coords.latitude, lng: pos.coords.longitude, alt: pos.coords.altitude, timestamp: Date.now() }
@@ -140,12 +147,12 @@ export default function Home() {
       () => toast.error('Napaka pri pridobivanju lokacije'),
       { enableHighAccuracy: true, maximumAge: 5000, timeout: 10000 }
     )
-  }, [isPaused])
+  }, [])
 
-  const pauseTracking = useCallback(() => { setIsPaused(true); pausedDurationRef.current = Date.now() }, [])
-  const resumeTracking = useCallback(() => { setIsPaused(false); if (pausedDurationRef.current) startTimeRef.current += Date.now() - pausedDurationRef.current }, [])
+  const pauseTracking = useCallback(() => { setIsPaused(true); isPausedRef.current = true; pausedDurationRef.current = Date.now() }, [])
+  const resumeTracking = useCallback(() => { setIsPaused(false); isPausedRef.current = false; if (pausedDurationRef.current) startTimeRef.current += Date.now() - pausedDurationRef.current }, [])
   const stopTracking = useCallback(() => {
-    setIsTracking(false); setIsPaused(false)
+    setIsTracking(false); setIsPaused(false); isPausedRef.current = false
     if (watchIdRef.current !== null) { navigator.geolocation.clearWatch(watchIdRef.current); watchIdRef.current = null }
     if (timerRef.current) { clearInterval(timerRef.current); timerRef.current = null }
     setTrackCurrentSpeed(0)
@@ -301,6 +308,17 @@ export default function Home() {
           <span className="font-bold text-sm tracking-tight bg-gradient-to-r from-foreground to-foreground/70 bg-clip-text text-transparent">MotoTrack</span>
           <span className="text-[10px] text-muted-foreground hidden sm:inline">GPS Sledenje</span>
         </div>
+        {mounted && (
+          <Button
+            variant="ghost"
+            size="icon"
+            className="size-7"
+            onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
+            title={theme === 'dark' ? 'Svetla tema' : 'Temna tema'}
+          >
+            {theme === 'dark' ? <Sun className="size-3.5" /> : <Moon className="size-3.5" />}
+          </Button>
+        )}
       </header>
       {/* Header gradient accent line */}
       <div className={`header-gradient-line fixed top-10 left-0 right-0 z-[1400] transition-opacity duration-300 ${
@@ -340,7 +358,7 @@ export default function Home() {
           )}
           {activeTab === 'profile' && (
             <ProfileTab
-              user={user} allUsers={allUsers} rides={rides}
+              user={user} allUsers={allUsers} rides={rides} routes={routes}
               loading={loading} onSwitchUser={switchUser}
               onOpenDetail={openDetail} onRefresh={fetchData}
             />

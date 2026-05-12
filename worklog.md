@@ -49,3 +49,28 @@ Stage Summary:
 - Bottom nav has icon pop and indicator animations
 - Profile and Explore tabs have polished card accents
 - All features verified working
+
+---
+Task ID: 3
+Agent: Main Agent
+Task: Fix bugs, add theme toggle, improve map and profile
+
+Work Log:
+- Fixed isPaused closure bug in tracking timer - added isPausedRef to track pause state correctly in setInterval callback
+- Added theme toggle button (Sun/Moon icons) in header using next-themes
+- Improved Profile tab - added Tabs with rides/routes tabs showing both user's rides and routes
+- Improved map markers - custom DivIcon markers with SVG motorcycle icon for rides and route icon for routes
+- Added map filter panel with toggle for rides/routes and category filter buttons
+- Added custom CSS for Leaflet markers and popups
+- Cleaned up page.tsx.bak file
+- All lint checks pass
+- Dev server running and returning HTTP 200
+
+Stage Summary:
+- isPaused tracking bug fixed with useRef pattern
+- Dark/light theme toggle available in header
+- Profile tab now shows both rides and routes with tabs
+- Map has custom SVG markers (motorcycle for rides, route for routes)
+- Map filter panel: toggle rides/routes visibility, filter by category
+- Leaflet popups styled with rounded corners
+- All features verified working
