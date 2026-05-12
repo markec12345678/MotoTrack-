@@ -14,22 +14,22 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "REVER - Analiza aplikacije za motoriste",
-  description: "Celovita analiza aplikacije REVER - največje GPS skupnosti za motocikliste, smučarje in terenske navdušence.",
-  keywords: ["REVER", "motoristi", "GPS", "navigacija", "analiza", "motocikel", "Butler Maps"],
-  authors: [{ name: "REVER Analiza" }],
+  title: "MotoTrack - GPS Sledenje za Motoriste",
+  description: "MotoTrack - Aplikacija za sledenje, načrtovanje in raziskovanje motociklističnih poti po Sloveniji.",
+  keywords: ["MotoTrack", "motoristi", "GPS", "navigacija", "motocikel", "sledenje", "poti"],
+  authors: [{ name: "MotoTrack" }],
   icons: {
     icon: "https://z-cdn.chatglm.cn/z-ai/static/logo.svg",
   },
   openGraph: {
-    title: "REVER - Analiza aplikacije za motoriste",
-    description: "Celovita analiza aplikacije REVER - največje GPS skupnosti za motocikliste",
+    title: "MotoTrack - GPS Sledenje za Motoriste",
+    description: "Aplikacija za sledenje, načrtovanje in raziskovanje motociklističnih poti",
     type: "website",
   },
   twitter: {
     card: "summary_large_image",
-    title: "REVER - Analiza aplikacije za motoriste",
-    description: "Celovita analiza aplikacije REVER - največje GPS skupnosti za motocikliste",
+    title: "MotoTrack - GPS Sledenje za Motoriste",
+    description: "Aplikacija za sledenje, načrtovanje in raziskovanje motociklističnih poti",
   },
 };
 

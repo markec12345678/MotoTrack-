@@ -60,6 +60,7 @@ import { Progress } from '@/components/ui/progress'
 import { toast } from 'sonner'
 
 const MotoMap = dynamic(() => import('@/components/moto-map'), { ssr: false })
+const MotoChat = dynamic(() => import('@/components/moto-chat'), { ssr: false })
 
 /* ------------------------------------------------------------------ */
 /*  TYPES                                                              */
@@ -874,6 +875,9 @@ export default function Home() {
           </div>
         </div>
       )}
+
+      {/* ============ AI CHAT ============ */}
+      <MotoChat />
 
       {/* ============ BOTTOM NAV ============ */}
       <nav className="fixed bottom-0 left-0 right-0 z-[1500] bg-background/95 backdrop-blur-md border-t border-border/50 safe-area-bottom">
