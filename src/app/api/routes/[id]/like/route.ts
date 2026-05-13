@@ -1,4 +1,5 @@
 import { db } from '@/lib/db'
+import { notifyLike } from '@/lib/notifications'
 import { NextRequest, NextResponse } from 'next/server'
 
 // POST /api/routes/[id]/like - Toggle like on a route
@@ -67,6 +68,8 @@ export async function POST(
         where: { id },
         data: { likes: { increment: 1 } },
       })
+      // Notify route owner
+      notifyLike(route.userId, userId, route.title, id).catch(() => {})
     }
 
     // Fetch updated route with current like status

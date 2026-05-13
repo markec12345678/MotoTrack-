@@ -142,6 +142,36 @@ export interface HazardData {
   user?: { id: string; name: string } | null
 }
 
+export interface FuelData {
+  fuelCapacity: number
+  fuelConsumption: number
+  currentFuel: number
+  range: number
+  lastRefuelAt: string | null
+}
+
+export interface ParkingData {
+  parkedLat: number | null
+  parkedLng: number | null
+  parkedAt: string | null
+  parkedNote: string | null
+}
+
+export interface FriendshipData {
+  id: string
+  status: 'pending' | 'accepted' | 'rejected' | 'blocked'
+  requesterId: string
+  addresseeId: string
+  friend: {
+    id: string
+    name: string
+    email: string
+    avatar: string | null
+    bike: string | null
+  }
+  createdAt: string
+}
+
 export interface LiveRider {
   userId: string
   userName: string
@@ -151,6 +181,118 @@ export interface LiveRider {
   speed: number
   heading: number
   lastUpdate: number
+}
+
+export interface NotificationData {
+  id: string
+  type: 'like' | 'comment' | 'achievement' | 'friend_request' | 'community_join' | 'hazard_nearby'
+  title: string
+  message: string
+  read: boolean
+  fromUserId: string | null
+  fromUser?: { id: string; name: string; avatar: string | null } | null
+  relatedId: string | null
+  createdAt: string
+}
+
+export interface PhotoData {
+  id: string
+  url: string
+  caption: string | null
+  rideId: string | null
+  routeId: string | null
+  userId: string
+  user?: { id: string; name: string; avatar: string | null }
+  createdAt: string
+}
+
+export interface SosAlertData {
+  id: string
+  userId: string
+  lat: number
+  lng: number
+  type: 'manual' | 'crash_detected' | 'no_movement'
+  status: 'active' | 'resolved' | 'false_alarm'
+  message: string | null
+  resolvedAt: string | null
+  createdAt: string
+}
+
+export interface EmergencyContactsData {
+  iceName1: string | null
+  icePhone1: string | null
+  iceName2: string | null
+  icePhone2: string | null
+  bloodType: string | null
+  allergies: string | null
+}
+
+export interface ComparisonData {
+  rides: Array<{
+    id: string
+    title: string
+    date: string
+    distance: number
+    duration: number
+    avgSpeed: number
+    maxSpeed: number
+    elevation: number
+  }>
+  best: {
+    distance: number
+    duration: number  // lowest is best
+    avgSpeed: number
+    maxSpeed: number
+    elevation: number
+  }
+}
+
+export interface RoadRatingData {
+  id: string
+  lat: number
+  lng: number
+  rating: number
+  surface: string
+  comment: string | null
+  userId: string
+  user?: { id: string; name: string; avatar: string | null }
+  createdAt: string
+}
+
+export interface TripDayData {
+  id: string
+  dayNumber: number
+  title: string
+  startLat: number
+  startLng: number
+  endLat: number
+  endLng: number
+  waypoints: string
+  distance: number
+  duration: number
+  notes: string | null
+  accommodation: string | null
+  fuelStop: boolean
+}
+
+export interface TripData {
+  id: string
+  title: string
+  description: string | null
+  startDate: string
+  endDate: string
+  days: number
+  totalDistance: number
+  isPublic: boolean
+  userId: string
+  tripDays: TripDayData[]
+  createdAt: string
+}
+
+export interface SpeedAlertSettings {
+  speedLimit: number
+  speedAlertEnabled: boolean
+  speedAlertSound: boolean
 }
 
 export type TabId = 'map' | 'plan' | 'track' | 'explore' | 'profile'

@@ -28,6 +28,8 @@ const ExploreTab = dynamic(() => import('@/components/tabs/explore-tab'), { ssr:
 const ProfileTab = dynamic(() => import('@/components/tabs/profile-tab'), { ssr: false })
 const MotoChat = dynamic(() => import('@/components/moto-chat'), { ssr: false })
 const DetailDialog = dynamic(() => import('@/components/tabs/detail-dialog'), { ssr: false })
+const NotificationBell = dynamic(() => import('@/components/notification-bell'), { ssr: false })
+const SosButton = dynamic(() => import('@/components/sos-button'), { ssr: false })
 
 const tabs: { id: TabId; label: string; icon: React.ElementType }[] = [
   { id: 'map', label: 'Zemljevid', icon: MapIcon },
@@ -309,15 +311,18 @@ export default function Home() {
           <span className="text-[10px] text-muted-foreground hidden sm:inline">GPS Sledenje</span>
         </div>
         {mounted && (
-          <Button
-            variant="ghost"
-            size="icon"
-            className="size-7"
-            onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
-            title={theme === 'dark' ? 'Svetla tema' : 'Temna tema'}
-          >
-            {theme === 'dark' ? <Sun className="size-3.5" /> : <Moon className="size-3.5" />}
-          </Button>
+          <div className="flex items-center gap-1">
+            <NotificationBell userId={user?.id} />
+            <Button
+              variant="ghost"
+              size="icon"
+              className="size-7"
+              onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
+              title={theme === 'dark' ? 'Svetla tema' : 'Temna tema'}
+            >
+              {theme === 'dark' ? <Sun className="size-3.5" /> : <Moon className="size-3.5" />}
+            </Button>
+          </div>
         )}
       </header>
       {/* Header gradient accent line */}
@@ -346,6 +351,7 @@ export default function Home() {
               trackPoints={trackPoints} duration={trackDuration}
               distance={trackDistance} maxSpeed={trackMaxSpeed}
               currentSpeed={trackCurrentSpeed} elevation={trackElevation}
+              userId={user?.id}
               onStart={startTracking} onPause={pauseTracking}
               onResume={resumeTracking} onStop={stopTracking}
               onSave={saveRide}
@@ -381,6 +387,9 @@ export default function Home() {
           onNewCommentChange={setNewComment}
         />
       )}
+
+      {/* SOS Button */}
+      <SosButton userId={user?.id} />
 
       {/* AI Chat */}
       <MotoChat />

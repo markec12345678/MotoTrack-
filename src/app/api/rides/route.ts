@@ -9,9 +9,15 @@ export async function GET(request: NextRequest) {
     const limit = parseInt(searchParams.get('limit') || '20')
     const offset = parseInt(searchParams.get('offset') || '0')
 
+    const friendIds = searchParams.get('friendIds')
     const where: Record<string, unknown> = { isPublic: true }
     if (userId) {
       where.userId = userId
+    } else if (friendIds) {
+      const ids = friendIds.split(',').filter(Boolean)
+      if (ids.length > 0) {
+        where.userId = { in: ids }
+      }
     }
 
     const rides = await db.ride.findMany({

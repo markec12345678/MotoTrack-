@@ -4,7 +4,39 @@ import { useEffect, useRef } from 'react'
 import L from 'leaflet'
 import 'leaflet/dist/leaflet.css'
 import { poiTypeEmoji, poiTypeColor, poiTypeLabel } from '@/components/tabs/types'
-import type { LiveRider, HazardData } from '@/components/tabs/types'
+import type { LiveRider, HazardData, RoadRatingData, TripDayData } from '@/components/tabs/types'
+
+interface FriendRideData {
+  id: string
+  title: string
+  distance: number
+  startLat?: number | null
+  startLng?: number | null
+  trackData: string
+  userName: string
+}
+
+const ratingColors: Record<number, string> = {
+  5: '#22c55e',
+  4: '#84cc16',
+  3: '#eab308',
+  2: '#f97316',
+  1: '#ef4444',
+}
+
+const surfaceIcons: Record<string, string> = {
+  asphalt: '🛣️',
+  gravel: '🪨',
+  dirt: '🌱',
+  mixed: '🔀',
+}
+
+const surfaceLabels: Record<string, string> = {
+  asphalt: 'Asfalt',
+  gravel: 'Makadam',
+  dirt: 'Zemlja',
+  mixed: 'Mešano',
+}
 
 interface MotoMapProps {
   center?: [number, number]
@@ -39,6 +71,14 @@ interface MotoMapProps {
   trackPoints?: Array<{ lat: number; lng: number }>
   liveRiders?: LiveRider[]
   dbHazards?: HazardData[]
+  friendRides?: FriendRideData[]
+  showFriendRides?: boolean
+  fuelRange?: number // range in km
+  fuelCenter?: { lat: number; lng: number }
+  parkedLocation?: { lat: number; lng: number; note?: string; parkedAt?: string }
+  flyToLocation?: { lat: number; lng: number; zoom?: number }
+  roadRatings?: RoadRatingData[]
+  tripDays?: TripDayData[]
   showPlan?: boolean
   showTrack?: boolean
   onMapClick?: (lat: number, lng: number) => void
@@ -101,6 +141,23 @@ function createRouteMarker(category: string, title: string, likes: number): L.Di
   })
 }
 
+// Custom friend ride marker (blue with user icon)
+function createFriendRideMarker(name: string, title: string): L.DivIcon {
+  return L.divIcon({
+    className: 'custom-marker',
+    html: `<div style="position:relative;display:flex;align-items:center;justify-content:center;width:32px;height:32px;">
+      <div style="position:absolute;inset:0;background:#3b82f6;border:2px solid #fff;border-radius:50%;box-shadow:0 2px 8px rgba(0,0,0,0.3);"></div>
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="position:relative;z-index:1;">
+        <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/>
+        <circle cx="12" cy="7" r="4"/>
+      </svg>
+    </div>`,
+    iconSize: [32, 32],
+    iconAnchor: [16, 16],
+    popupAnchor: [0, -18],
+  })
+}
+
 // Custom POI marker
 function createPoiMarker(type: string, name: string): L.DivIcon {
   const emoji = poiTypeEmoji(type)
@@ -127,6 +184,14 @@ export default function MotoMap({
   trackPoints = [],
   liveRiders = [],
   dbHazards = [],
+  friendRides = [],
+  showFriendRides = false,
+  fuelRange,
+  fuelCenter,
+  parkedLocation,
+  flyToLocation,
+  roadRatings = [],
+  tripDays = [],
   showPlan = false,
   showTrack = false,
   onMapClick,
@@ -149,8 +214,14 @@ export default function MotoMap({
     pois: L.LayerGroup
     overlays: L.LayerGroup
     live: L.LayerGroup
+    friends: L.LayerGroup
   } | null>(null)
   const overlayLayersRef = useRef<{ twisty?: L.TileLayer; weather?: L.TileLayer }>({})
+  const fuelCircleRef = useRef<L.Circle | null>(null)
+  const fuelLabelRef = useRef<L.Marker | null>(null)
+  const parkingMarkerRef = useRef<L.Marker | null>(null)
+  const roadRatingsLayerRef = useRef<L.LayerGroup | null>(null)
+  const tripLayerRef = useRef<L.LayerGroup | null>(null)
 
   // Initialize map
   useEffect(() => {
@@ -190,6 +261,11 @@ export default function MotoMap({
     const poisLayer = L.layerGroup().addTo(map)
     const overlaysLayer = L.layerGroup().addTo(map)
     const liveLayer = L.layerGroup().addTo(map)
+    const friendsLayer = L.layerGroup().addTo(map)
+    const roadRatingsLayer = L.layerGroup().addTo(map)
+    roadRatingsLayerRef.current = roadRatingsLayer
+    const tripLayer = L.layerGroup().addTo(map)
+    tripLayerRef.current = tripLayer
 
     layersRef.current = {
       rides: ridesLayer,
@@ -199,6 +275,7 @@ export default function MotoMap({
       pois: poisLayer,
       overlays: overlaysLayer,
       live: liveLayer,
+      friends: friendsLayer,
     }
 
     // Map click handler
@@ -223,8 +300,22 @@ export default function MotoMap({
       mapRef.current = null
       layersRef.current = null
       overlayLayersRef.current = {}
+      if (fuelCircleRef.current) { fuelCircleRef.current = null }
+      if (fuelLabelRef.current) { fuelLabelRef.current = null }
+      if (parkingMarkerRef.current) { parkingMarkerRef.current = null }
+      if (roadRatingsLayerRef.current) { roadRatingsLayerRef.current = null }
+      if (tripLayerRef.current) { tripLayerRef.current = null }
     }
   }, [])
+
+  // Fly to location
+  useEffect(() => {
+    if (!mapRef.current || !flyToLocation) return
+    const map = mapRef.current
+    map.flyTo([flyToLocation.lat, flyToLocation.lng], flyToLocation.zoom ?? 16, {
+      duration: 1.5,
+    })
+  }, [flyToLocation])
 
   // Update rides layer
   useEffect(() => {
@@ -571,6 +662,140 @@ export default function MotoMap({
     }
   }, [showHazards, showTwistyRoads, dbHazards])
 
+  // Update fuel range circle
+  useEffect(() => {
+    if (!mapRef.current) return
+    const map = mapRef.current
+
+    // Remove existing fuel circle and label
+    if (fuelCircleRef.current) {
+      map.removeLayer(fuelCircleRef.current)
+      fuelCircleRef.current = null
+    }
+    if (fuelLabelRef.current) {
+      map.removeLayer(fuelLabelRef.current)
+      fuelLabelRef.current = null
+    }
+
+    if (fuelRange && fuelRange > 0 && fuelCenter) {
+      const radius = fuelRange * 1000 // convert km to meters
+      const circle = L.circle([fuelCenter.lat, fuelCenter.lng], {
+        radius,
+        color: '#f97316',
+        fillColor: '#f97316',
+        fillOpacity: 0.08,
+        weight: 2,
+        opacity: 0.6,
+      }).addTo(map)
+      fuelCircleRef.current = circle
+
+      // Add label in the center
+      const labelIcon = L.divIcon({
+        className: 'fuel-range-label',
+        html: `<div style="background:rgba(249,115,22,0.9);color:#fff;padding:4px 10px;border-radius:20px;font-size:12px;font-weight:700;white-space:nowrap;box-shadow:0 2px 8px rgba(249,115,22,0.4);display:flex;align-items:center;gap:4px;">
+          <span style=\"font-size:14px\">⛽</span> ${Math.round(fuelRange)} km
+        </div>`,
+        iconSize: [0, 0],
+        iconAnchor: [0, 0],
+      })
+      const label = L.marker([fuelCenter.lat, fuelCenter.lng], {
+        icon: labelIcon,
+        interactive: false,
+      }).addTo(map)
+      fuelLabelRef.current = label
+    }
+  }, [fuelRange, fuelCenter])
+
+  // Update friend rides layer
+  useEffect(() => {
+    if (!layersRef.current) return
+    const layer = layersRef.current.friends
+    layer.clearLayers()
+
+    if (!showFriendRides) return
+
+    friendRides.forEach((ride) => {
+      if (!ride.startLat || !ride.startLng) return
+
+      const marker = L.marker([ride.startLat, ride.startLng], {
+        icon: createFriendRideMarker(ride.userName, ride.title),
+      }).addTo(layer)
+
+      marker.bindPopup(`
+        <div style="min-width:180px">
+          <strong style="color:#3b82f6">👤 ${ride.userName}</strong><br/>
+          <strong>${ride.title}</strong><br/>
+          <span style="color:#888">${ride.distance} km</span><br/>
+          <span style="background:#3b82f622;color:#3b82f6;padding:2px 6px;border-radius:4px;font-size:11px">🏍️ Prijateljeva vožnja</span>
+        </div>
+      `)
+
+      // Track polyline (blue)
+      try {
+        const track = JSON.parse(ride.trackData)
+        if (Array.isArray(track) && track.length > 1) {
+          const coords: L.LatLngExpression[] = track.map(
+            (p: number[]) => [p[0], p[1]] as L.LatLngExpression
+          )
+          L.polyline(coords, {
+            color: '#3b82f6',
+            weight: 3,
+            opacity: 0.5,
+            dashArray: '6 4',
+          }).addTo(layer)
+        }
+      } catch {
+        // ignore
+      }
+    })
+  }, [friendRides, showFriendRides])
+
+  // Update parking marker
+  useEffect(() => {
+    if (!mapRef.current) return
+    const map = mapRef.current
+
+    // Remove existing parking marker
+    if (parkingMarkerRef.current) {
+      map.removeLayer(parkingMarkerRef.current)
+      parkingMarkerRef.current = null
+    }
+
+    if (parkedLocation) {
+      const parkingIcon = L.divIcon({
+        className: 'custom-marker',
+        html: `<div style="position:relative;display:flex;align-items:center;justify-content:center;width:36px;height:36px;">
+          <div style="position:absolute;inset:-3px;background:#3b82f640;border-radius:50%;animation:parkingPulse 2s infinite;"></div>
+          <div style="position:absolute;inset:0;background:#3b82f6;border:3px solid #fff;border-radius:50%;box-shadow:0 2px 10px rgba(59,130,246,0.5);z-index:1;"></div>
+          <span style="position:relative;z-index:2;color:#fff;font-weight:900;font-size:16px;font-family:Arial,sans-serif;line-height:1;">P</span>
+        </div>
+        <style>@keyframes parkingPulse{0%{transform:scale(1);opacity:0.5}100%{transform:scale(1.8);opacity:0}}</style>`,
+        iconSize: [36, 36],
+        iconAnchor: [18, 18],
+        popupAnchor: [0, -20],
+      })
+
+      const marker = L.marker([parkedLocation.lat, parkedLocation.lng], {
+        icon: parkingIcon,
+      }).addTo(map)
+
+      const timeStr = parkedLocation.parkedAt
+        ? new Date(parkedLocation.parkedAt).toLocaleString('sl-SI', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })
+        : ''
+
+      marker.bindPopup(`
+        <div style="min-width:180px">
+          <strong style="color:#3b82f6;font-size:14px">🅿️ Parkirani motor</strong><br/>
+          ${parkedLocation.note ? `<span style="color:#666;font-size:12px;display:block;margin:4px 0">📝 ${parkedLocation.note}</span>` : ''}
+          ${timeStr ? `<span style="color:#888;font-size:11px;display:block;margin:2px 0">🕐 ${timeStr}</span>` : ''}
+          <span style="background:#3b82f622;color:#3b82f6;padding:2px 8px;border-radius:4px;font-size:11px;display:inline-block;margin-top:4px">Parkirišče</span>
+        </div>
+      `)
+
+      parkingMarkerRef.current = marker
+    }
+  }, [parkedLocation])
+
   // Update live riders layer
   useEffect(() => {
     if (!layersRef.current) return
@@ -608,6 +833,211 @@ export default function MotoMap({
       `)
     })
   }, [liveRiders])
+
+  // Update road ratings layer
+  useEffect(() => {
+    const layer = roadRatingsLayerRef.current
+    if (!layer) return
+    layer.clearLayers()
+
+    if (!roadRatings || roadRatings.length === 0) return
+
+    roadRatings.forEach((rr) => {
+      const color = ratingColors[rr.rating] || '#6b7280'
+      const surfaceIcon = surfaceIcons[rr.surface] || '🛤️'
+      const surfaceLabel = surfaceLabels[rr.surface] || rr.surface
+      const stars = '★'.repeat(rr.rating) + '☆'.repeat(5 - rr.rating)
+
+      const marker = L.circleMarker([rr.lat, rr.lng], {
+        radius: 9,
+        fillColor: color,
+        color: '#fff',
+        weight: 2,
+        opacity: 1,
+        fillOpacity: 0.85,
+      }).addTo(layer)
+
+      const userName = rr.user?.name || 'Uporabnik'
+      const commentHtml = rr.comment ? `<span style="color:#666;font-size:12px;display:block;margin:4px 0">💬 ${rr.comment}</span>` : ''
+
+      marker.bindPopup(`
+        <div style="min-width:180px">
+          <strong style="font-size:14px">${surfaceIcon} Kakovost ceste</strong><br/>
+          <span style="color:${color};font-size:14px;font-weight:bold">${stars}</span><br/>
+          <span style="background:${color}22;color:${color};padding:2px 8px;border-radius:4px;font-size:11px;display:inline-block;margin:4px 0">${surfaceIcon} ${surfaceLabel}</span><br/>
+          ${commentHtml}
+          <span style="color:#888;font-size:11px;display:block;margin-top:2px">👤 ${userName}</span>
+        </div>
+      `)
+    })
+  }, [roadRatings])
+
+  // Update trip days layer
+  useEffect(() => {
+    const layer = tripLayerRef.current
+    if (!layer) return
+    layer.clearLayers()
+
+    if (!tripDays || tripDays.length === 0) return
+
+    const dayColorList = ['#22c55e', '#f59e0b', '#3b82f6', '#a855f7', '#ef4444', '#06b6d4', '#ec4899', '#84cc16']
+    const dayColorLabels: Record<string, string> = {
+      '#22c55e': 'Zeleni',
+      '#f59e0b': 'Rumeni',
+      '#3b82f6': 'Modri',
+      '#a855f7': 'Vijolični',
+      '#ef4444': 'Rdeči',
+      '#06b6d4': 'Cian',
+      '#ec4899': 'Rožnati',
+      '#84cc16': 'Limeta',
+    }
+
+    tripDays.forEach((td) => {
+      const color = dayColorList[(td.dayNumber - 1) % dayColorList.length]
+      const colorLabel = dayColorLabels[color] || `Dan ${td.dayNumber}`
+
+      // Parse waypoints
+      let waypoints: Array<{ lat: number; lng: number }> = []
+      try {
+        waypoints = JSON.parse(td.waypoints)
+      } catch {
+        // ignore
+      }
+
+      // Build all points: start + waypoints + end
+      const allPoints: L.LatLngExpression[] = []
+      allPoints.push([td.startLat, td.startLng] as L.LatLngExpression)
+      waypoints.forEach(wp => {
+        allPoints.push([wp.lat, wp.lng] as L.LatLngExpression)
+      })
+      // Only add end point if it's different from last waypoint
+      if (waypoints.length === 0 || (waypoints[waypoints.length - 1].lat !== td.endLat || waypoints[waypoints.length - 1].lng !== td.endLng)) {
+        allPoints.push([td.endLat, td.endLng] as L.LatLngExpression)
+      }
+
+      // Draw polyline for the day
+      if (allPoints.length > 1) {
+        L.polyline(allPoints, {
+          color,
+          weight: 4,
+          opacity: 0.8,
+        }).addTo(layer)
+      }
+
+      // Start marker (circle with day number)
+      const startIcon = L.divIcon({
+        className: 'custom-marker',
+        html: `<div style="position:relative;display:flex;align-items:center;justify-content:center;width:28px;height:28px;">
+          <div style="position:absolute;inset:0;background:${color};border:2px solid #fff;border-radius:50%;box-shadow:0 2px 8px rgba(0,0,0,0.3);"></div>
+          <span style="position:relative;z-index:1;color:#fff;font-weight:700;font-size:11px;font-family:Arial,sans-serif;line-height:1;">${td.dayNumber}</span>
+        </div>`,
+        iconSize: [28, 28],
+        iconAnchor: [14, 14],
+        popupAnchor: [0, -16],
+      })
+      const startMarker = L.marker([td.startLat, td.startLng], { icon: startIcon }).addTo(layer)
+      startMarker.bindPopup(`
+        <div style="min-width:180px">
+          <strong style="font-size:14px;color:${color}">📅 ${td.title}</strong><br/>
+          <span style="color:#888;font-size:12px;display:block;margin:4px 0">📏 ${td.distance} km · ⏱️ ~${td.duration} min</span>
+          ${td.notes ? `<span style="color:#666;font-size:12px;display:block;margin:2px 0">📝 ${td.notes}</span>` : ''}
+          <span style="background:${color}22;color:${color};padding:2px 8px;border-radius:4px;font-size:11px;display:inline-block;margin-top:4px">${colorLabel} dan - START</span>
+        </div>
+      `)
+
+      // End marker (circle with flag)
+      if (allPoints.length > 1) {
+        const endIcon = L.divIcon({
+          className: 'custom-marker',
+          html: `<div style="position:relative;display:flex;align-items:center;justify-content:center;width:28px;height:28px;">
+            <div style="position:absolute;inset:0;background:${color};border:2px solid #fff;border-radius:50%;box-shadow:0 2px 8px rgba(0,0,0,0.3);opacity:0.7;"></div>
+            <span style="position:relative;z-index:1;font-size:14px;line-height:1;">🏁</span>
+          </div>`,
+          iconSize: [28, 28],
+          iconAnchor: [14, 14],
+          popupAnchor: [0, -16],
+        })
+        const endMarker = L.marker([td.endLat, td.endLng], { icon: endIcon }).addTo(layer)
+        endMarker.bindPopup(`
+          <div style="min-width:180px">
+            <strong style="font-size:14px;color:${color}">📅 ${td.title}</strong><br/>
+            <span style="color:#888;font-size:12px;display:block;margin:4px 0">📏 ${td.distance} km</span>
+            <span style="background:${color}22;color:${color};padding:2px 8px;border-radius:4px;font-size:11px;display:inline-block;margin-top:4px">${colorLabel} dan - CILJ</span>
+          </div>
+        `)
+      }
+
+      // Accommodation marker (hotel icon)
+      if (td.accommodation) {
+        const hotelIcon = L.divIcon({
+          className: 'custom-marker',
+          html: `<div style="position:relative;display:flex;align-items:center;justify-content:center;width:28px;height:28px;">
+            <div style="position:absolute;inset:0;background:#8b5cf6;border:2px solid #fff;border-radius:50%;box-shadow:0 2px 8px rgba(0,0,0,0.3);"></div>
+            <span style="position:relative;z-index:1;font-size:13px;line-height:1;">🏨</span>
+          </div>`,
+          iconSize: [28, 28],
+          iconAnchor: [14, 14],
+          popupAnchor: [0, -16],
+        })
+        const hotelMarker = L.marker([td.endLat, td.endLng], {
+          icon: hotelIcon,
+        }).addTo(layer)
+        hotelMarker.bindPopup(`
+          <div style="min-width:180px">
+            <strong style="font-size:14px;color:#8b5cf6">🏨 Namestitev</strong><br/>
+            <span style="color:#666;font-size:12px;display:block;margin:4px 0">${td.accommodation}</span>
+            <span style="color:#888;font-size:11px;display:block;margin:2px 0">📅 ${td.title}</span>
+          </div>
+        `)
+      }
+
+      // Fuel stop marker
+      if (td.fuelStop && allPoints.length > 0) {
+        // Place fuel marker at the midpoint of the route
+        const midIdx = Math.floor(allPoints.length / 2)
+        const midCoord = allPoints[midIdx] as L.LatLngExpression
+        const midLat = Array.isArray(midCoord) ? midCoord[0] : (midCoord as L.LatLng).lat
+        const midLng = Array.isArray(midCoord) ? midCoord[1] : (midCoord as L.LatLng).lng
+
+        const fuelIcon = L.divIcon({
+          className: 'custom-marker',
+          html: `<div style="position:relative;display:flex;align-items:center;justify-content:center;width:24px;height:24px;">
+            <div style="position:absolute;inset:0;background:#22c55e;border:2px solid #fff;border-radius:50%;box-shadow:0 2px 6px rgba(0,0,0,0.3);"></div>
+            <span style="position:relative;z-index:1;font-size:11px;line-height:1;">⛽</span>
+          </div>`,
+          iconSize: [24, 24],
+          iconAnchor: [12, 12],
+          popupAnchor: [0, -14],
+        })
+        const fuelMarker = L.marker([midLat, midLng], { icon: fuelIcon }).addTo(layer)
+        fuelMarker.bindPopup(`
+          <div style="min-width:140px">
+            <strong style="font-size:13px;color:#22c55e">⛽ Postanek za gorivo</strong><br/>
+            <span style="color:#888;font-size:11px;display:block;margin:2px 0">📅 ${td.title}</span>
+          </div>
+        `)
+      }
+
+      // Intermediate waypoints (small dots)
+      if (waypoints.length > 0) {
+        waypoints.forEach((wp, wi) => {
+          // Skip first/last if they match start/end
+          const isStart = wp.lat === td.startLat && wp.lng === td.startLng
+          const isEnd = wp.lat === td.endLat && wp.lng === td.endLng
+          if ((isStart && wi === 0) || (isEnd && wi === waypoints.length - 1)) return
+
+          L.circleMarker([wp.lat, wp.lng], {
+            radius: 4,
+            fillColor: color,
+            color: '#fff',
+            weight: 1.5,
+            opacity: 1,
+            fillOpacity: 0.8,
+          }).addTo(layer)
+        })
+      }
+    })
+  }, [tripDays])
 
   return (
     <div

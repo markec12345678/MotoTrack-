@@ -1,10 +1,11 @@
 'use client'
 
-import React, { useState, useEffect, useMemo } from 'react'
+import React, { useState, useEffect, useMemo, useCallback } from 'react'
 import {
   Compass, Search, X, Bike, Route, TrendingUp,
   Heart, User, Clock, Star, Trophy, Crown, Medal,
-  Users, Plus, LogOut, Shield, Sparkles,
+  Users, Plus, LogOut, Shield, Sparkles, UserPlus,
+  UserCheck, UserMinus, UserX, Send,
 } from 'lucide-react'
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
@@ -15,7 +16,7 @@ import { Avatar, AvatarFallback } from '@/components/ui/avatar'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { Dialog, DialogContent, DialogTitle } from '@/components/ui/dialog'
 import { toast } from 'sonner'
-import type { RideData, RouteData, LeaderboardUser, CommunityData } from '@/components/tabs/types'
+import type { RideData, RouteData, LeaderboardUser, CommunityData, FriendshipData } from '@/components/tabs/types'
 import { formatDuration, categoryLabel, categoryColor } from '@/components/tabs/types'
 
 interface ExploreTabProps {
@@ -31,7 +32,7 @@ export default function ExploreTab({ rides, routes, leaderboard, onOpenDetail, o
   const [exploreFilter, setExploreFilter] = useState<'all' | 'rides' | 'routes'>('all')
   const [exploreCategory, setExploreCategory] = useState<string>('all')
   const [searchQuery, setSearchQuery] = useState('')
-  const [exploreSection, setExploreSection] = useState<'discover' | 'communities'>('discover')
+  const [exploreSection, setExploreSection] = useState<'discover' | 'communities' | 'friends'>('discover')
 
   // Communities state
   const [communities, setCommunities] = useState<CommunityData[]>([])
@@ -41,6 +42,12 @@ export default function ExploreTab({ rides, routes, leaderboard, onOpenDetail, o
   const [newCommunityAvatar, setNewCommunityAvatar] = useState('🏍️')
   const [creatingCommunity, setCreatingCommunity] = useState(false)
 
+  // Friends state
+  const [friendships, setFriendships] = useState<FriendshipData[]>([])
+  const [friendSearch, setFriendSearch] = useState('')
+  const [allUsers, setAllUsers] = useState<Array<{ id: string; name: string; email: string; avatar: string | null; bike: string | null }>>([])
+  const [addingFriend, setAddingFriend] = useState<string | null>(null)
+
   // Fetch communities
   useEffect(() => {
     const url = userId ? `/api/communities?userId=${userId}` : '/api/communities'
@@ -49,6 +56,134 @@ export default function ExploreTab({ rides, routes, leaderboard, onOpenDetail, o
       .then(j => setCommunities(j.data || []))
       .catch(() => {})
   }, [userId])
+
+  // Fetch friendships
+  const fetchFriendships = useCallback(() => {
+    if (!userId) return
+    fetch(`/api/friends?userId=${userId}&status=all`)
+      .then(r => r.json())
+      .then(j => setFriendships(j.data || []))
+      .catch(() => {})
+  }, [userId])
+
+  useEffect(() => { fetchFriendships() }, [fetchFriendships])
+
+  // Fetch all users for "Add friend" section
+  useEffect(() => {
+    fetch('/api/users')
+      .then(r => r.json())
+      .then(j => setAllUsers(j.data || []))
+      .catch(() => {})
+  }, [])
+
+  // Derived friend lists
+  const acceptedFriends = useMemo(() =>
+    friendships.filter(f => f.status === 'accepted'),
+    [friendships]
+  )
+
+  const pendingReceived = useMemo(() =>
+    friendships.filter(f => f.status === 'pending' && f.addresseeId === userId),
+    [friendships, userId]
+  )
+
+  const pendingSent = useMemo(() =>
+    friendships.filter(f => f.status === 'pending' && f.requesterId === userId),
+    [friendships, userId]
+  )
+
+  // Non-friend users (excluding self and users with existing friendship)
+  const nonFriendUsers = useMemo(() => {
+    const friendIds = new Set(friendships.map(f => f.friend.id))
+    friendIds.add(userId || '')
+    return allUsers.filter(u => !friendIds.has(u.id))
+  }, [allUsers, friendships, userId])
+
+  // Filtered lists
+  const filteredFriends = useMemo(() => {
+    if (!friendSearch) return acceptedFriends
+    const q = friendSearch.toLowerCase()
+    return acceptedFriends.filter(f =>
+      f.friend.name.toLowerCase().includes(q) ||
+      (f.friend.bike || '').toLowerCase().includes(q)
+    )
+  }, [acceptedFriends, friendSearch])
+
+  const filteredNonFriends = useMemo(() => {
+    if (!friendSearch) return nonFriendUsers
+    const q = friendSearch.toLowerCase()
+    return nonFriendUsers.filter(u =>
+      u.name.toLowerCase().includes(q) ||
+      (u.bike || '').toLowerCase().includes(q) ||
+      u.email.toLowerCase().includes(q)
+    )
+  }, [nonFriendUsers, friendSearch])
+
+  // Friend actions
+  const handleAddFriend = async (addresseeId: string) => {
+    if (!userId) { toast.error('Izberite uporabnika'); return }
+    setAddingFriend(addresseeId)
+    try {
+      const res = await fetch('/api/friends', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ requesterId: userId, addresseeId }),
+      })
+      if (res.ok) {
+        toast.success('Prošnja za prijateljstvo poslana!')
+        fetchFriendships()
+      } else {
+        const j = await res.json()
+        toast.error(j.error || 'Napaka')
+      }
+    } catch { toast.error('Napaka') }
+    setAddingFriend(null)
+  }
+
+  const handleAcceptFriend = async (friendshipId: string) => {
+    if (!userId) return
+    try {
+      const res = await fetch(`/api/friends/${friendshipId}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ status: 'accepted', userId }),
+      })
+      if (res.ok) {
+        toast.success('Prijateljstvo sprejeto!')
+        fetchFriendships()
+      } else { toast.error('Napaka') }
+    } catch { toast.error('Napaka') }
+  }
+
+  const handleRejectFriend = async (friendshipId: string) => {
+    if (!userId) return
+    try {
+      const res = await fetch(`/api/friends/${friendshipId}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ status: 'rejected', userId }),
+      })
+      if (res.ok) {
+        toast.success('Prošnja zavrnjena')
+        fetchFriendships()
+      } else { toast.error('Napaka') }
+    } catch { toast.error('Napaka') }
+  }
+
+  const handleRemoveFriend = async (friendshipId: string) => {
+    if (!userId) return
+    try {
+      const res = await fetch(`/api/friends/${friendshipId}`, {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ userId }),
+      })
+      if (res.ok) {
+        toast.success('Prijatelj odstranjen')
+        fetchFriendships()
+      } else { toast.error('Napaka') }
+    } catch { toast.error('Napaka') }
+  }
 
   const filteredItems = useMemo(() => {
     const items: Array<{ type: 'ride' | 'route'; data: RideData | RouteData; category: string }> = [
@@ -150,9 +285,201 @@ export default function ExploreTab({ rides, routes, leaderboard, onOpenDetail, o
             <Users className="size-3.5" /> Skupnosti
             {communities.length > 0 && <span className="text-[10px] opacity-70">({communities.length})</span>}
           </Button>
+          <Button variant={exploreSection === 'friends' ? 'default' : 'ghost'} size="sm" className="text-xs gap-1 relative" onClick={() => setExploreSection('friends')}>
+            <UserPlus className="size-3.5" /> Prijatelji
+            {acceptedFriends.length > 0 && <span className="text-[10px] opacity-70">({acceptedFriends.length})</span>}
+            {pendingReceived.length > 0 && (
+              <span className="absolute -top-1 -right-1 bg-red-500 text-white text-[8px] font-bold rounded-full size-3.5 flex items-center justify-center">{pendingReceived.length}</span>
+            )}
+          </Button>
         </div>
 
-        {exploreSection === 'communities' ? (
+        {exploreSection === 'friends' ? (
+          /* ====== FRIENDS SECTION ====== */
+          <div className="space-y-6">
+            {/* Header */}
+            <div className="flex items-center justify-between">
+              <h2 className="text-lg font-bold flex items-center gap-2">
+                <UserPlus className="size-5 text-primary" /> Prijatelji
+              </h2>
+              <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                <span className="flex items-center gap-1"><UserCheck className="size-3" /> {acceptedFriends.length}</span>
+                {pendingReceived.length > 0 && (
+                  <Badge variant="outline" className="bg-amber-500/20 text-amber-400 border-amber-500/30 text-[9px] px-1.5 py-0">
+                    {pendingReceived.length} {pendingReceived.length === 1 ? 'prošnja' : 'prošnje'}
+                  </Badge>
+                )}
+              </div>
+            </div>
+
+            {/* Search friends */}
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground" />
+              <Input
+                placeholder="Išči prijatelje po imenu..."
+                value={friendSearch}
+                onChange={e => setFriendSearch(e.target.value)}
+                className="pl-9"
+              />
+              {friendSearch && (
+                <Button variant="ghost" size="sm" className="absolute right-1 top-1/2 -translate-y-1/2 h-7 w-7 p-0" onClick={() => setFriendSearch('')}>
+                  <X className="size-3" />
+                </Button>
+              )}
+            </div>
+
+            {/* Pending received requests */}
+            {pendingReceived.length > 0 && (
+              <div className="space-y-3">
+                <h3 className="text-sm font-semibold flex items-center gap-2 text-amber-400">
+                  <Send className="size-4" /> Prejete prošnje ({pendingReceived.length})
+                </h3>
+                <div className="space-y-2">
+                  {pendingReceived.map(f => (
+                    <Card key={f.id} className="border-amber-500/20 hover:border-amber-500/30 transition-all">
+                      <CardContent className="p-3 flex items-center gap-3">
+                        <Avatar className="size-10">
+                          <AvatarFallback className="text-sm bg-amber-500/20 text-amber-400">{f.friend.name.charAt(0)}</AvatarFallback>
+                        </Avatar>
+                        <div className="flex-1 min-w-0">
+                          <p className="font-medium text-sm truncate">{f.friend.name}</p>
+                          <p className="text-xs text-muted-foreground">{f.friend.bike || 'Motocikel'}</p>
+                        </div>
+                        <div className="flex items-center gap-1.5 shrink-0">
+                          <Button size="sm" className="text-xs gap-1 h-7 bg-green-500 hover:bg-green-600" onClick={() => handleAcceptFriend(f.id)}>
+                            <UserCheck className="size-3" /> Sprejmi
+                          </Button>
+                          <Button variant="outline" size="sm" className="text-xs gap-1 h-7 text-red-400 border-red-500/30 hover:bg-red-500/10" onClick={() => handleRejectFriend(f.id)}>
+                            <UserX className="size-3" /> Zavrni
+                          </Button>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Pending sent requests */}
+            {pendingSent.length > 0 && (
+              <div className="space-y-3">
+                <h3 className="text-sm font-semibold flex items-center gap-2 text-muted-foreground">
+                  <Send className="size-4" /> Poslane prošnje ({pendingSent.length})
+                </h3>
+                <div className="space-y-2">
+                  {pendingSent.map(f => (
+                    <Card key={f.id} className="opacity-70">
+                      <CardContent className="p-3 flex items-center gap-3">
+                        <Avatar className="size-10">
+                          <AvatarFallback className="text-sm bg-primary/20 text-primary">{f.friend.name.charAt(0)}</AvatarFallback>
+                        </Avatar>
+                        <div className="flex-1 min-w-0">
+                          <p className="font-medium text-sm truncate">{f.friend.name}</p>
+                          <p className="text-xs text-muted-foreground">{f.friend.bike || 'Motocikel'}</p>
+                        </div>
+                        <Badge variant="outline" className="text-[9px] bg-amber-500/10 text-amber-400 border-amber-500/20">
+                          Čaka potrditev
+                        </Badge>
+                      </CardContent>
+                    </Card>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Accepted friends */}
+            <div className="space-y-3">
+              <h3 className="text-sm font-semibold flex items-center gap-2">
+                <UserCheck className="size-4 text-primary" /> Moji prijatelji ({acceptedFriends.length})
+              </h3>
+              {filteredFriends.length > 0 ? (
+                <div className="space-y-2">
+                  {filteredFriends.map(f => (
+                    <Card key={f.id} className="hover:border-primary/30 transition-all group">
+                      <CardContent className="p-3 flex items-center gap-3">
+                        <Avatar className="size-10">
+                          <AvatarFallback className="text-sm bg-primary/20 text-primary">{f.friend.name.charAt(0)}</AvatarFallback>
+                        </Avatar>
+                        <div className="flex-1 min-w-0">
+                          <p className="font-medium text-sm truncate group-hover:text-primary transition-colors">{f.friend.name}</p>
+                          <p className="text-xs text-muted-foreground flex items-center gap-1">
+                            <Bike className="size-3" /> {f.friend.bike || 'Motocikel'}
+                          </p>
+                        </div>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="text-xs gap-1 h-7 text-red-400 border-red-500/30 hover:bg-red-500/10 shrink-0"
+                          onClick={() => handleRemoveFriend(f.id)}
+                        >
+                          <UserMinus className="size-3" /> Odstrani
+                        </Button>
+                      </CardContent>
+                    </Card>
+                  ))}
+                </div>
+              ) : (
+                <div className="text-center py-8">
+                  <UserCheck className="size-10 text-muted-foreground mx-auto mb-3" />
+                  <p className="text-muted-foreground text-sm">
+                    {friendSearch ? 'Ni prijateljev s tem imenom' : 'Še nimate prijateljev'}
+                  </p>
+                  {!friendSearch && <p className="text-xs text-muted-foreground mt-1">Dodajte prijatelje spodaj!</p>}
+                </div>
+              )}
+            </div>
+
+            {/* Add friend section */}
+            {!userId ? (
+              <div className="text-center py-8">
+                <User className="size-10 text-muted-foreground mx-auto mb-3" />
+                <p className="text-muted-foreground text-sm">Izberite uporabnika za upravljanje prijateljev</p>
+              </div>
+            ) : filteredNonFriends.length > 0 ? (
+              <div className="space-y-3">
+                <h3 className="text-sm font-semibold flex items-center gap-2">
+                  <UserPlus className="size-4 text-primary" /> Dodaj prijatelja ({nonFriendUsers.length})
+                </h3>
+                <ScrollArea className="max-h-96">
+                  <div className="space-y-2">
+                    {filteredNonFriends.map(u => (
+                      <Card key={u.id} className="hover:border-primary/30 transition-all group">
+                        <CardContent className="p-3 flex items-center gap-3">
+                          <Avatar className="size-10">
+                            <AvatarFallback className="text-sm bg-primary/20 text-primary">{u.name.charAt(0)}</AvatarFallback>
+                          </Avatar>
+                          <div className="flex-1 min-w-0">
+                            <p className="font-medium text-sm truncate group-hover:text-primary transition-colors">{u.name}</p>
+                            <p className="text-xs text-muted-foreground flex items-center gap-1">
+                              <Bike className="size-3" /> {u.bike || 'Motocikel'}
+                            </p>
+                          </div>
+                          <Button
+                            size="sm"
+                            className="text-xs gap-1 h-7 shrink-0"
+                            onClick={() => handleAddFriend(u.id)}
+                            disabled={addingFriend === u.id}
+                          >
+                            {addingFriend === u.id ? (
+                              'Pošiljam...'
+                            ) : (
+                              <><Plus className="size-3" /> Dodaj</>
+                            )}
+                          </Button>
+                        </CardContent>
+                      </Card>
+                    ))}
+                  </div>
+                </ScrollArea>
+              </div>
+            ) : (
+              <div className="text-center py-8">
+                <Users className="size-10 text-muted-foreground mx-auto mb-3" />
+                <p className="text-muted-foreground text-sm">Vsi uporabniki so že vaši prijatelji!</p>
+              </div>
+            )}
+          </div>
+        ) : exploreSection === 'communities' ? (
           /* ====== COMMUNITIES SECTION ====== */
           <div className="space-y-4">
             {/* Header with create button */}

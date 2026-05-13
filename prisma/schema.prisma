@@ -14,6 +14,23 @@ model User {
   avatar    String?
   bike      String?
   bio       String?
+  fuelCapacity    Float?    @default(15.0)   // liters
+  fuelConsumption Float?    @default(5.5)    // L/100km
+  currentFuel     Float?    @default(15.0)   // liters currently in tank
+  lastRefuelAt    DateTime?
+  iceName1        String?           // ICE contact 1 name (In Case of Emergency)
+  icePhone1       String?           // ICE contact 1 phone
+  iceName2        String?           // ICE contact 2 name
+  icePhone2       String?           // ICE contact 2 phone
+  bloodType       String?           // Blood type (e.g., "A+", "O-")
+  allergies       String?           // Known allergies
+  parkedLat       Float?              // latitude where motorcycle is parked
+  parkedLng       Float?              // longitude where motorcycle is parked
+  parkedAt        DateTime?           // when the motorcycle was parked
+  parkedNote      String?             // optional note about parking spot
+  speedLimit      Int?     @default(90)    // user's preferred speed limit (km/h) for alerts
+  speedAlertEnabled Boolean? @default(true)  // whether speed alerts are enabled
+  speedAlertSound   Boolean? @default(true)  // whether to play sound on alert
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
   rides        Ride[]
@@ -24,6 +41,14 @@ model User {
   achievements Achievement[]
   communities CommunityMember[]
   hazards     Hazard[]
+  notifications     Notification[]
+  sentNotifications Notification[] @relation("SentNotifications")
+  requestedFriends  Friendship[]  @relation("RequestedFriends")
+  receivedFriends   Friendship[]  @relation("ReceivedFriends")
+  sosAlerts    SosAlert[]
+  photos       Photo[]
+  roadRatings  RoadRating[]
+  trips        Trip[]
 }
 
 model Ride {
@@ -49,6 +74,7 @@ model Ride {
   comments    Comment[]
   communityId String?
   community   Community? @relation(fields: [communityId], references: [id])
+  photos      Photo[]
 }
 
 model Route {
@@ -68,6 +94,7 @@ model Route {
   updatedAt   DateTime @updatedAt
   comments    Comment[]
   likesRel    Like[]
+  photos      Photo[]
 }
 
 model Comment {
@@ -155,4 +182,116 @@ model Hazard {
   userId      String?
   user        User?    @relation(fields: [userId], references: [id])
   createdAt   DateTime @default(now())
+}
+
+model Friendship {
+  id          String   @id @default(cuid())
+  status      String   @default("pending")  // pending, accepted, blocked
+  requesterId String
+  requester   User     @relation("RequestedFriends", fields: [requesterId], references: [id])
+  addresseeId String
+  addressee   User     @relation("ReceivedFriends", fields: [addresseeId], references: [id])
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@unique([requesterId, addresseeId])
+}
+
+model Notification {
+  id         String   @id @default(cuid())
+  type       String   // like, comment, achievement, friend_request, community_join, hazard_nearby
+  title      String
+  message    String
+  read       Boolean  @default(false)
+  userId     String
+  user       User     @relation(fields: [userId], references: [id])
+  fromUserId String?
+  fromUser   User?    @relation("SentNotifications", fields: [fromUserId], references: [id])
+  relatedId  String?  // ID of related entity (ride, route, community, etc.)
+  createdAt  DateTime @default(now())
+
+  @@index([userId, read])
+  @@index([userId, createdAt])
+}
+
+model SosAlert {
+  id         String   @id @default(cuid())
+  userId     String
+  user       User     @relation(fields: [userId], references: [id])
+  lat        Float
+  lng        Float
+  type       String   @default("manual") // manual, crash_detected, no_movement
+  status     String   @default("active") // active, resolved, false_alarm
+  message    String?
+  resolvedAt DateTime?
+  createdAt  DateTime @default(now())
+
+  @@index([userId, status])
+}
+
+model Photo {
+  id        String   @id @default(cuid())
+  url       String   // URL to the image (base64 data URLs for simplicity)
+  caption   String?  // Optional caption
+  rideId    String?
+  ride      Ride?    @relation(fields: [rideId], references: [id])
+  routeId   String?
+  route     Route?   @relation(fields: [routeId], references: [id])
+  userId    String
+  user      User     @relation(fields: [userId], references: [id])
+  createdAt DateTime @default(now())
+
+  @@index([rideId])
+  @@index([routeId])
+}
+
+model RoadRating {
+  id        String   @id @default(cuid())
+  lat       Float
+  lng       Float
+  rating    Int      // 1-5 (1=very bad, 5=excellent)
+  surface   String   // asphalt, gravel, dirt, mixed
+  comment   String?
+  userId    String
+  user      User     @relation(fields: [userId], references: [id])
+  createdAt DateTime @default(now())
+
+  @@index([lat, lng])
+}
+
+model Trip {
+  id            String    @id @default(cuid())
+  title         String
+  description   String?
+  startDate     DateTime
+  endDate       DateTime
+  days          Int       @default(1)
+  totalDistance Float     @default(0)
+  isPublic      Boolean   @default(true)
+  userId        String
+  user          User      @relation(fields: [userId], references: [id])
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  tripDays      TripDay[]
+}
+
+model TripDay {
+  id            String   @id @default(cuid())
+  dayNumber     Int
+  title         String
+  startLat      Float
+  startLng      Float
+  endLat        Float
+  endLng        Float
+  waypoints     String   // JSON: array of {lat, lng}
+  distance      Float    @default(0)
+  duration      Int      @default(0)
+  notes         String?
+  accommodation String?
+  fuelStop      Boolean  @default(false)
+  tripId        String
+  trip          Trip     @relation(fields: [tripId], references: [id], onDelete: Cascade)
+
+  @@index([tripId])
 }

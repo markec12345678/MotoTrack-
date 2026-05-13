@@ -1,4 +1,5 @@
 import { db } from '@/lib/db'
+import { notifyAchievement } from '@/lib/notifications'
 import { NextRequest, NextResponse } from 'next/server'
 
 // All possible achievements
@@ -103,6 +104,8 @@ export async function POST(request: NextRequest) {
             },
           })
           newlyEarned.push(created)
+          // Send notification for the new achievement
+          notifyAchievement(userId, achievement.title, achievement.icon).catch(() => {})
         }
       }
     }
