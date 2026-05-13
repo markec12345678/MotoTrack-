@@ -6,7 +6,7 @@ import {
   Camera, ImageIcon, X, Trash2,
   Phone, Heart, Droplets, AlertTriangle, Save,
   Bell, BellOff, Volume2, VolumeX, AlertOctagon,
-  Receipt, Wrench, Plus, CheckCircle2, Calendar,
+  Receipt, Wrench, Plus, CheckCircle2, Calendar, Play,
 } from 'lucide-react'
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
@@ -21,12 +21,13 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Skeleton } from '@/components/ui/skeleton'
-import type { RideData, RouteData, UserData, PhotoData, EmergencyContactsData, SpeedAlertSettings, ExpenseData, MaintenanceReminderData } from '@/components/tabs/types'
+import type { RideData, RouteData, UserData, PhotoData, EmergencyContactsData, SpeedAlertSettings, ExpenseData, MaintenanceReminderData, TrackPoint } from '@/components/tabs/types'
 import { formatDuration, formatDate, categoryLabel, categoryColor } from '@/components/tabs/types'
 import AchievementsPanel from '@/components/tabs/achievements-panel'
 import PointsDisplay from '@/components/points-display'
 import BluetoothPanel from '@/components/bluetooth-panel'
 import OBDPanel from '@/components/obd-panel'
+import RideReplay3D from '@/components/ride-replay-3d'
 import { toast } from 'sonner'
 
 interface ProfileTabProps {
@@ -72,6 +73,28 @@ export default function ProfileTab({ user, allUsers, rides, routes, loading, onS
   const [reminderSaving, setReminderSaving] = useState(false)
   const [currentMileage, setCurrentMileage] = useState(0)
   const [mileageSaving, setMileageSaving] = useState(false)
+  const [replayRide, setReplayRide] = useState<RideData | null>(null)
+  const [replayTrackData, setReplayTrackData] = useState<TrackPoint[]>([])
+
+  const handleReplayRide = useCallback((ride: RideData) => {
+    try {
+      const parsed = JSON.parse(ride.trackData)
+      if (!Array.isArray(parsed) || parsed.length < 2) {
+        toast.error('Ni podatkov za predvajanje')
+        return
+      }
+      const points: TrackPoint[] = parsed.map((p: number[]) => ({
+        lat: p[0],
+        lng: p[1],
+        alt: p[2] ?? null,
+        timestamp: p[3] ?? Date.now(),
+      }))
+      setReplayTrackData(points)
+      setReplayRide(ride)
+    } catch {
+      toast.error('Napaka pri nalaganju podatkov')
+    }
+  }, [])
 
   // Fetch ICE data
   useEffect(() => {
@@ -1152,6 +1175,30 @@ export default function ProfileTab({ user, allUsers, rides, routes, loading, onS
         {/* OBD/IoT Connection */}
         <OBDPanel userId={user?.id} />
 
+        {/* REWIND - 3D Ride Replay */}
+        {replayRide && replayTrackData.length > 1 ? (
+          <div className="space-y-2">
+            <RideReplay3D trackData={replayTrackData} title={`REWIND: ${replayRide.title}`} />
+            <Button variant="ghost" size="sm" className="w-full text-xs" onClick={() => { setReplayRide(null); setReplayTrackData([]) }}>
+              <X className="size-3 mr-1" /> Zapri predvajanje
+            </Button>
+          </div>
+        ) : rides.filter(r => r.userId === user.id).some(r => r.trackData) ? (
+          <Card className="border-amber-500/20">
+            <CardContent className="p-4">
+              <div className="flex items-center gap-3">
+                <div className="size-10 rounded-xl bg-amber-500/15 flex items-center justify-center shrink-0">
+                  <Play className="size-5 text-amber-500" />
+                </div>
+                <div className="flex-1">
+                  <p className="text-sm font-medium">REWIND — Predvajaj vožnjo</p>
+                  <p className="text-xs text-muted-foreground">Kliknite ▶ pri vožnji spodaj za 3D predvajanje</p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        ) : null}
+
         {/* Photo Gallery */}
         <Card className="overflow-hidden border-primary/15">
           <div className="h-0.5 bg-gradient-to-r from-primary/80 via-accent/60 to-primary/40" />
@@ -1297,7 +1344,16 @@ export default function ProfileTab({ user, allUsers, rides, routes, loading, onS
                     rides.filter(r => r.userId === user.id).slice(0, 10).map(ride => (
                       <div key={ride.id} className="flex items-center justify-between py-2 border-b border-border/30 last:border-0 cursor-pointer hover:bg-secondary/30 rounded px-2 -mx-2" onClick={() => onOpenDetail(ride, 'ride')}>
                         <div><p className="text-sm font-medium">{ride.title}</p><p className="text-xs text-muted-foreground">{formatDate(ride.createdAt)}</p></div>
-                        <div className="text-right"><p className="text-sm font-bold text-primary">{ride.distance} km</p><p className="text-xs text-muted-foreground">{formatDuration(ride.duration)}</p></div>
+                        <div className="flex items-center gap-2">
+                          <button
+                            className="size-6 rounded-full bg-amber-500/20 text-amber-500 flex items-center justify-center hover:bg-amber-500/30 transition-colors"
+                            title="REWIND - Predvajaj vožnjo"
+                            onClick={(e) => { e.stopPropagation(); handleReplayRide(ride) }}
+                          >
+                            <Play className="size-3" />
+                          </button>
+                          <div className="text-right"><p className="text-sm font-bold text-primary">{ride.distance} km</p><p className="text-xs text-muted-foreground">{formatDuration(ride.duration)}</p></div>
+                        </div>
                       </div>
                     ))
                   )}
