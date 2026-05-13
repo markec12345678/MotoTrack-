@@ -295,6 +295,60 @@ export interface SpeedAlertSettings {
   speedAlertSound: boolean
 }
 
+export interface GroupRideParticipantData {
+  id: string
+  groupRideId: string
+  userId: string
+  status: 'joined' | 'maybe' | 'declined'
+  joinedAt: string
+  user: { id: string; name: string; avatar: string | null; bike: string | null }
+}
+
+export interface GroupRideData {
+  id: string
+  title: string
+  description: string | null
+  creatorId: string
+  creator: { id: string; name: string; avatar: string | null; bike: string | null }
+  date: string
+  meetingLat: number
+  meetingLng: number
+  meetingPlace: string
+  destinationLat: number | null
+  destinationLng: number | null
+  destinationPlace: string | null
+  maxRiders: number
+  category: string
+  status: string
+  createdAt: string
+  participants: GroupRideParticipantData[]
+}
+
+export interface ExpenseData {
+  id: string
+  userId: string
+  type: string // fuel, maintenance, insurance, parts, toll, parking, other
+  amount: number
+  date: string
+  description: string | null
+  mileage: number | null
+  createdAt: string
+}
+
+export interface MaintenanceReminderData {
+  id: string
+  userId: string
+  type: string // oil_change, tire_change, chain_service, brake_service, filter_change, inspection, custom
+  title: string
+  nextMileage: number | null
+  nextDate: string | null
+  intervalKm: number | null
+  intervalDays: number | null
+  completed: boolean
+  completedAt: string | null
+  createdAt: string
+}
+
 export type TabId = 'map' | 'plan' | 'track' | 'explore' | 'profile'
 
 export function haversine(lat1: number, lon1: number, lat2: number, lon2: number): number {

@@ -6,6 +6,7 @@ import {
   Camera, ImageIcon, X, Trash2,
   Phone, Heart, Droplets, AlertTriangle, Save,
   Bell, BellOff, Volume2, VolumeX, AlertOctagon,
+  Receipt, Wrench, Plus, CheckCircle2, Calendar,
 } from 'lucide-react'
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
@@ -20,7 +21,7 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Skeleton } from '@/components/ui/skeleton'
-import type { RideData, RouteData, UserData, PhotoData, EmergencyContactsData, SpeedAlertSettings } from '@/components/tabs/types'
+import type { RideData, RouteData, UserData, PhotoData, EmergencyContactsData, SpeedAlertSettings, ExpenseData, MaintenanceReminderData } from '@/components/tabs/types'
 import { formatDuration, formatDate, categoryLabel, categoryColor } from '@/components/tabs/types'
 import AchievementsPanel from '@/components/tabs/achievements-panel'
 import { toast } from 'sonner'
@@ -52,6 +53,22 @@ export default function ProfileTab({ user, allUsers, rides, routes, loading, onS
     speedLimit: 90, speedAlertEnabled: true, speedAlertSound: true,
   })
   const [speedSaving, setSpeedSaving] = useState(false)
+
+  // Expense tracker state
+  const [expenses, setExpenses] = useState<ExpenseData[]>([])
+  const [expenseTotals, setExpenseTotals] = useState({ allTime: 0, thisMonth: 0 })
+  const [expenseByType, setExpenseByType] = useState<Record<string, number>>({})
+  const [expensesLoading, setExpensesLoading] = useState(true)
+  const [newExpense, setNewExpense] = useState({ type: 'fuel', amount: '', description: '', mileage: '' })
+  const [expenseSaving, setExpenseSaving] = useState(false)
+
+  // Maintenance reminders state
+  const [reminders, setReminders] = useState<MaintenanceReminderData[]>([])
+  const [remindersLoading, setRemindersLoading] = useState(true)
+  const [newReminder, setNewReminder] = useState({ type: 'oil_change', title: '', nextMileage: '', nextDate: '', intervalKm: '', intervalDays: '' })
+  const [reminderSaving, setReminderSaving] = useState(false)
+  const [currentMileage, setCurrentMileage] = useState(0)
+  const [mileageSaving, setMileageSaving] = useState(false)
 
   // Fetch ICE data
   useEffect(() => {
@@ -91,6 +108,55 @@ export default function ProfileTab({ user, allUsers, rides, routes, loading, onS
       .catch(() => {})
   }, [user?.id])
 
+  // Fetch expenses
+  useEffect(() => {
+    if (!user?.id) return
+    let cancelled = false
+    setExpensesLoading(true)
+    fetch(`/api/expenses?userId=${user.id}&limit=10`)
+      .then(r => r.json())
+      .then(j => {
+        if (!cancelled) {
+          setExpenses(j.data || [])
+          setExpenseTotals(j.totals || { allTime: 0, thisMonth: 0 })
+          setExpenseByType(j.byType || {})
+          setExpensesLoading(false)
+        }
+      })
+      .catch(() => { if (!cancelled) setExpensesLoading(false) })
+    return () => { cancelled = true }
+  }, [user?.id])
+
+  // Fetch maintenance reminders
+  useEffect(() => {
+    if (!user?.id) return
+    let cancelled = false
+    setRemindersLoading(true)
+    fetch(`/api/maintenance?userId=${user.id}`)
+      .then(r => r.json())
+      .then(j => {
+        if (!cancelled) {
+          setReminders(j.data || [])
+          setRemindersLoading(false)
+        }
+      })
+      .catch(() => { if (!cancelled) setRemindersLoading(false) })
+    return () => { cancelled = true }
+  }, [user?.id])
+
+  // Fetch current mileage
+  useEffect(() => {
+    if (!user?.id) return
+    fetch(`/api/users/${user.id}`)
+      .then(r => r.json())
+      .then(j => {
+        if (j.data?.currentMileage !== undefined) {
+          setCurrentMileage(j.data.currentMileage || 0)
+        }
+      })
+      .catch(() => {})
+  }, [user?.id])
+
   const saveIceContacts = useCallback(async () => {
     if (!user?.id) return
     setIceSaving(true)
@@ -111,6 +177,149 @@ export default function ProfileTab({ user, allUsers, rides, routes, loading, onS
       setIceSaving(false)
     }
   }, [user?.id, iceData])
+
+  // Expense handlers
+  const addExpense = useCallback(async () => {
+    if (!user?.id || !newExpense.amount) return
+    setExpenseSaving(true)
+    try {
+      const res = await fetch('/api/expenses', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          userId: user.id,
+          type: newExpense.type,
+          amount: parseFloat(newExpense.amount),
+          description: newExpense.description || undefined,
+          mileage: newExpense.mileage ? parseInt(newExpense.mileage) : undefined,
+        }),
+      })
+      if (res.ok) {
+        toast.success('Strošek dodan')
+        setNewExpense({ type: 'fuel', amount: '', description: '', mileage: '' })
+        // Refresh expenses
+        const j = await (await fetch(`/api/expenses?userId=${user.id}&limit=10`)).json()
+        setExpenses(j.data || [])
+        setExpenseTotals(j.totals || { allTime: 0, thisMonth: 0 })
+        setExpenseByType(j.byType || {})
+      } else {
+        toast.error('Napaka pri dodajanju stroška')
+      }
+    } catch {
+      toast.error('Napaka pri povezavi')
+    } finally {
+      setExpenseSaving(false)
+    }
+  }, [user?.id, newExpense])
+
+  const deleteExpense = useCallback(async (expenseId: string) => {
+    if (!user?.id) return
+    try {
+      const res = await fetch(`/api/expenses/${expenseId}?userId=${user.id}`, { method: 'DELETE' })
+      if (res.ok) {
+        setExpenses(prev => prev.filter(e => e.id !== expenseId))
+        toast.success('Strošek izbrisan')
+        // Refresh totals
+        const j = await (await fetch(`/api/expenses?userId=${user.id}&limit=10`)).json()
+        setExpenseTotals(j.totals || { allTime: 0, thisMonth: 0 })
+        setExpenseByType(j.byType || {})
+      } else {
+        toast.error('Napaka pri brisanju')
+      }
+    } catch {
+      toast.error('Napaka pri povezavi')
+    }
+  }, [user?.id])
+
+  // Reminder handlers
+  const addReminder = useCallback(async () => {
+    if (!user?.id || !newReminder.title) return
+    setReminderSaving(true)
+    try {
+      const res = await fetch('/api/maintenance', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          userId: user.id,
+          type: newReminder.type,
+          title: newReminder.title,
+          nextMileage: newReminder.nextMileage ? parseInt(newReminder.nextMileage) : undefined,
+          nextDate: newReminder.nextDate || undefined,
+          intervalKm: newReminder.intervalKm ? parseInt(newReminder.intervalKm) : undefined,
+          intervalDays: newReminder.intervalDays ? parseInt(newReminder.intervalDays) : undefined,
+        }),
+      })
+      if (res.ok) {
+        toast.success('Opomnik dodan')
+        setNewReminder({ type: 'oil_change', title: '', nextMileage: '', nextDate: '', intervalKm: '', intervalDays: '' })
+        // Refresh reminders
+        const j = await (await fetch(`/api/maintenance?userId=${user.id}`)).json()
+        setReminders(j.data || [])
+      } else {
+        toast.error('Napaka pri dodajanju opomnika')
+      }
+    } catch {
+      toast.error('Napaka pri povezavi')
+    } finally {
+      setReminderSaving(false)
+    }
+  }, [user?.id, newReminder])
+
+  const completeReminder = useCallback(async (reminderId: string) => {
+    if (!user?.id) return
+    try {
+      const res = await fetch(`/api/maintenance/${reminderId}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ userId: user.id, completed: true }),
+      })
+      if (res.ok) {
+        toast.success('Vzdrževanje opravljeno')
+        const j = await (await fetch(`/api/maintenance?userId=${user.id}`)).json()
+        setReminders(j.data || [])
+      } else {
+        toast.error('Napaka pri označevanju')
+      }
+    } catch {
+      toast.error('Napaka pri povezavi')
+    }
+  }, [user?.id])
+
+  const deleteReminder = useCallback(async (reminderId: string) => {
+    if (!user?.id) return
+    try {
+      const res = await fetch(`/api/maintenance/${reminderId}?userId=${user.id}`, { method: 'DELETE' })
+      if (res.ok) {
+        setReminders(prev => prev.filter(r => r.id !== reminderId))
+        toast.success('Opomnik izbrisan')
+      } else {
+        toast.error('Napaka pri brisanju')
+      }
+    } catch {
+      toast.error('Napaka pri povezavi')
+    }
+  }, [user?.id])
+
+  const saveMileage = useCallback(async () => {
+    if (!user?.id) return
+    setMileageSaving(true)
+    try {
+      const res = await fetch(`/api/users/${user.id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ currentMileage }),
+      })
+      if (res.ok) {
+        toast.success('Kilometrina posodobljena')
+      } else {
+        toast.error('Napaka pri shranjevanju')
+      }
+    } catch {
+      toast.error('Napaka pri povezavi')
+    } finally {
+      setMileageSaving(false)
+    }
+  }, [user?.id, currentMileage])
 
   const saveSpeedSettings = useCallback(async () => {
     if (!user?.id) return
@@ -461,6 +670,470 @@ export default function ProfileTab({ user, allUsers, rides, routes, loading, onS
               <Save className="size-3.5" />
               {speedSaving ? 'Shranjujem...' : 'Shrani hitrostna opozorila'}
             </Button>
+          </CardContent>
+        </Card>
+
+        {/* Expense Tracker Card */}
+        <Card className="overflow-hidden border-emerald-500/20">
+          <div className="h-0.5 bg-gradient-to-r from-emerald-500/80 via-emerald-400/60 to-emerald-500/40" />
+          <CardHeader className="p-4 pb-2">
+            <div className="flex items-center gap-2">
+              <div className="flex items-center justify-center size-7 rounded-lg bg-emerald-500/15">
+                <Receipt className="size-4 text-emerald-500" />
+              </div>
+              <CardTitle className="text-sm">Stroški</CardTitle>
+              <Badge variant="outline" className="text-[9px] px-1.5 py-0 border-emerald-300 text-emerald-500">EUR</Badge>
+            </div>
+          </CardHeader>
+          <CardContent className="p-4 pt-0 space-y-4">
+            {/* Totals */}
+            <div className="grid grid-cols-2 gap-3">
+              <div className="rounded-lg bg-emerald-500/10 p-3 text-center">
+                <p className="text-lg font-bold text-emerald-600 dark:text-emerald-400">{expenseTotals.thisMonth.toFixed(2)} €</p>
+                <p className="text-[10px] text-muted-foreground">Ta mesec</p>
+              </div>
+              <div className="rounded-lg bg-emerald-500/10 p-3 text-center">
+                <p className="text-lg font-bold text-emerald-600 dark:text-emerald-400">{expenseTotals.allTime.toFixed(2)} €</p>
+                <p className="text-[10px] text-muted-foreground">Skupaj</p>
+              </div>
+            </div>
+
+            {/* By type mini breakdown */}
+            {Object.keys(expenseByType).length > 0 && (
+              <div className="flex flex-wrap gap-1.5">
+                {Object.entries(expenseByType).map(([t, amt]) => (
+                  <span key={t} className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] bg-muted">
+                    {t === 'fuel' ? '⛽' : t === 'maintenance' ? '🔧' : t === 'insurance' ? '🛡️' : t === 'parts' ? '🔩' : t === 'toll' ? '🛣️' : t === 'parking' ? '🅿️' : '📦'}
+                    {amt.toFixed(0)} €
+                  </span>
+                ))}
+              </div>
+            )}
+
+            <Separator className="opacity-30" />
+
+            {/* Add expense form */}
+            <div className="space-y-2">
+              <div className="flex items-center gap-2">
+                <Plus className="size-3.5 text-emerald-500" />
+                <span className="text-xs font-medium">Dodaj strošek</span>
+              </div>
+              <div className="grid grid-cols-2 gap-2">
+                <div className="space-y-1">
+                  <Label className="text-[10px] text-muted-foreground">Tip</Label>
+                  <Select value={newExpense.type} onValueChange={val => setNewExpense(prev => ({ ...prev, type: val }))}>
+                    <SelectTrigger className="h-8 text-xs">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="fuel" className="text-xs">⛽ Gorivo</SelectItem>
+                      <SelectItem value="maintenance" className="text-xs">🔧 Vzdrževanje</SelectItem>
+                      <SelectItem value="insurance" className="text-xs">🛡️ Zavarovanje</SelectItem>
+                      <SelectItem value="parts" className="text-xs">🔩 Deli</SelectItem>
+                      <SelectItem value="toll" className="text-xs">🛣️ Cestnina</SelectItem>
+                      <SelectItem value="parking" className="text-xs">🅿️ Parkiranje</SelectItem>
+                      <SelectItem value="other" className="text-xs">📦 Drugo</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-1">
+                  <Label className="text-[10px] text-muted-foreground">Znesek (€)</Label>
+                  <Input
+                    type="number"
+                    step="0.01"
+                    placeholder="0.00"
+                    value={newExpense.amount}
+                    onChange={e => setNewExpense(prev => ({ ...prev, amount: e.target.value }))}
+                    className="h-8 text-xs"
+                  />
+                </div>
+              </div>
+              <div className="grid grid-cols-2 gap-2">
+                <div className="space-y-1">
+                  <Label className="text-[10px] text-muted-foreground">Opis</Label>
+                  <Input
+                    placeholder="Opis stroška"
+                    value={newExpense.description}
+                    onChange={e => setNewExpense(prev => ({ ...prev, description: e.target.value }))}
+                    className="h-8 text-xs"
+                  />
+                </div>
+                <div className="space-y-1">
+                  <Label className="text-[10px] text-muted-foreground">Kilometrina</Label>
+                  <Input
+                    type="number"
+                    placeholder="km"
+                    value={newExpense.mileage}
+                    onChange={e => setNewExpense(prev => ({ ...prev, mileage: e.target.value }))}
+                    className="h-8 text-xs"
+                  />
+                </div>
+              </div>
+              <Button
+                size="sm"
+                className="w-full text-xs gap-2 bg-emerald-500 hover:bg-emerald-600 text-white"
+                onClick={addExpense}
+                disabled={expenseSaving || !newExpense.amount}
+              >
+                <Plus className="size-3.5" />
+                {expenseSaving ? 'Dodajam...' : 'Dodaj strošek'}
+              </Button>
+            </div>
+
+            <Separator className="opacity-30" />
+
+            {/* Recent expenses list */}
+            <div className="space-y-1">
+              <span className="text-xs font-medium">Zadnji stroški</span>
+              {expensesLoading ? (
+                <div className="space-y-2 mt-2">
+                  {[1, 2, 3].map(i => <Skeleton key={i} className="h-10 rounded" />)}
+                </div>
+              ) : expenses.length === 0 ? (
+                <div className="text-center py-4">
+                  <Receipt className="size-8 mx-auto mb-1 text-muted-foreground/30" />
+                  <p className="text-xs text-muted-foreground">Ni stroškov</p>
+                </div>
+              ) : (
+                <ScrollArea className="max-h-48">
+                  <div className="space-y-1">
+                    {expenses.map(exp => (
+                      <div key={exp.id} className="flex items-center justify-between py-1.5 px-2 rounded hover:bg-secondary/30 group">
+                        <div className="flex items-center gap-2">
+                          <span className="text-sm">
+                            {exp.type === 'fuel' ? '⛽' : exp.type === 'maintenance' ? '🔧' : exp.type === 'insurance' ? '🛡️' : exp.type === 'parts' ? '🔩' : exp.type === 'toll' ? '🛣️' : exp.type === 'parking' ? '🅿️' : '📦'}
+                          </span>
+                          <div>
+                            <p className="text-xs font-medium">{exp.description || (exp.type === 'fuel' ? 'Gorivo' : exp.type === 'maintenance' ? 'Vzdrževanje' : exp.type === 'insurance' ? 'Zavarovanje' : exp.type === 'parts' ? 'Deli' : exp.type === 'toll' ? 'Cestnina' : exp.type === 'parking' ? 'Parkiranje' : 'Drugo')}</p>
+                            <p className="text-[10px] text-muted-foreground">
+                              {formatDate(exp.date)}
+                              {exp.mileage ? ` • ${exp.mileage} km` : ''}
+                            </p>
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-1.5">
+                          <span className="text-xs font-bold text-emerald-600 dark:text-emerald-400">{exp.amount.toFixed(2)} €</span>
+                          <button
+                            className="size-5 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity text-destructive hover:bg-destructive/10"
+                            onClick={() => deleteExpense(exp.id)}
+                          >
+                            <Trash2 className="size-3" />
+                          </button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </ScrollArea>
+              )}
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Maintenance Reminders Card */}
+        <Card className="overflow-hidden border-violet-500/20">
+          <div className="h-0.5 bg-gradient-to-r from-violet-500/80 via-violet-400/60 to-violet-500/40" />
+          <CardHeader className="p-4 pb-2">
+            <div className="flex items-center gap-2">
+              <div className="flex items-center justify-center size-7 rounded-lg bg-violet-500/15">
+                <Wrench className="size-4 text-violet-500" />
+              </div>
+              <CardTitle className="text-sm">Vzdrževanje</CardTitle>
+              <Badge variant="outline" className="text-[9px] px-1.5 py-0 border-violet-300 text-violet-500">Opomniki</Badge>
+            </div>
+          </CardHeader>
+          <CardContent className="p-4 pt-0 space-y-4">
+            {/* Current mileage */}
+            <div className="space-y-2">
+              <div className="flex items-center gap-2">
+                <Gauge className="size-3.5 text-violet-500" />
+                <span className="text-xs font-medium">Trenutna kilometrina</span>
+              </div>
+              <div className="flex gap-2">
+                <div className="flex-1 relative">
+                  <Input
+                    type="number"
+                    value={currentMileage}
+                    onChange={e => setCurrentMileage(parseInt(e.target.value) || 0)}
+                    className="h-8 text-xs pr-8"
+                  />
+                  <span className="absolute right-2 top-1/2 -translate-y-1/2 text-[10px] text-muted-foreground">km</span>
+                </div>
+                <Button
+                  size="sm"
+                  className="h-8 text-xs gap-1 bg-violet-500 hover:bg-violet-600 text-white"
+                  onClick={saveMileage}
+                  disabled={mileageSaving}
+                >
+                  <Save className="size-3" />
+                  {mileageSaving ? '...' : 'Shrani'}
+                </Button>
+              </div>
+            </div>
+
+            <Separator className="opacity-30" />
+
+            {/* Common presets */}
+            <div className="space-y-2">
+              <span className="text-xs font-medium">Hitri predloge</span>
+              <div className="flex flex-wrap gap-1.5">
+                {[
+                  { type: 'oil_change', title: 'Zamenjava olja', intervalKm: 5000, emoji: '🛢️' },
+                  { type: 'tire_change', title: 'Zamenjava pnevmatik', intervalKm: 10000, emoji: '🛞' },
+                  { type: 'chain_service', title: 'Veriga', intervalKm: 3000, emoji: '⛓️' },
+                  { type: 'brake_service', title: 'Zavore', intervalKm: 15000, emoji: '🛑' },
+                  { type: 'inspection', title: 'Pregled', intervalDays: 365, emoji: '📋' },
+                ].map(preset => (
+                  <button
+                    key={preset.type}
+                    className="inline-flex items-center gap-1 px-2 py-1 rounded-lg text-[10px] font-medium bg-violet-500/10 text-violet-600 dark:text-violet-400 hover:bg-violet-500/20 transition-colors"
+                    onClick={() => {
+                      const nextKm = preset.intervalKm ? currentMileage + preset.intervalKm : undefined
+                      const nextDt = preset.intervalDays
+                        ? new Date(Date.now() + preset.intervalDays * 24 * 60 * 60 * 1000).toISOString().split('T')[0]
+                        : ''
+                      setNewReminder({
+                        type: preset.type,
+                        title: preset.title,
+                        nextMileage: nextKm ? String(nextKm) : '',
+                        nextDate: nextDt,
+                        intervalKm: preset.intervalKm ? String(preset.intervalKm) : '',
+                        intervalDays: preset.intervalDays ? String(preset.intervalDays) : '',
+                      })
+                    }}
+                  >
+                    {preset.emoji} {preset.title}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            <Separator className="opacity-30" />
+
+            {/* Add reminder form */}
+            <div className="space-y-2">
+              <div className="flex items-center gap-2">
+                <Plus className="size-3.5 text-violet-500" />
+                <span className="text-xs font-medium">Dodaj opomnik</span>
+              </div>
+              <div className="grid grid-cols-2 gap-2">
+                <div className="space-y-1">
+                  <Label className="text-[10px] text-muted-foreground">Tip</Label>
+                  <Select value={newReminder.type} onValueChange={val => setNewReminder(prev => ({ ...prev, type: val }))}>
+                    <SelectTrigger className="h-8 text-xs">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="oil_change" className="text-xs">🛢️ Zamenjava olja</SelectItem>
+                      <SelectItem value="tire_change" className="text-xs">🛞 Pnevmatike</SelectItem>
+                      <SelectItem value="chain_service" className="text-xs">⛓️ Veriga</SelectItem>
+                      <SelectItem value="brake_service" className="text-xs">🛑 Zavore</SelectItem>
+                      <SelectItem value="filter_change" className="text-xs">🔧 Filter</SelectItem>
+                      <SelectItem value="inspection" className="text-xs">📋 Pregled</SelectItem>
+                      <SelectItem value="custom" className="text-xs">⚙️ Po meri</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-1">
+                  <Label className="text-[10px] text-muted-foreground">Naslov</Label>
+                  <Input
+                    placeholder="Naslov opomnika"
+                    value={newReminder.title}
+                    onChange={e => setNewReminder(prev => ({ ...prev, title: e.target.value }))}
+                    className="h-8 text-xs"
+                  />
+                </div>
+              </div>
+              <div className="grid grid-cols-2 gap-2">
+                <div className="space-y-1">
+                  <Label className="text-[10px] text-muted-foreground">Naslednji pri km</Label>
+                  <Input
+                    type="number"
+                    placeholder="km"
+                    value={newReminder.nextMileage}
+                    onChange={e => setNewReminder(prev => ({ ...prev, nextMileage: e.target.value }))}
+                    className="h-8 text-xs"
+                  />
+                </div>
+                <div className="space-y-1">
+                  <Label className="text-[10px] text-muted-foreground">Naslednji pri datumu</Label>
+                  <Input
+                    type="date"
+                    value={newReminder.nextDate}
+                    onChange={e => setNewReminder(prev => ({ ...prev, nextDate: e.target.value }))}
+                    className="h-8 text-xs"
+                  />
+                </div>
+              </div>
+              <div className="grid grid-cols-2 gap-2">
+                <div className="space-y-1">
+                  <Label className="text-[10px] text-muted-foreground">Ponovi vsak X km</Label>
+                  <Input
+                    type="number"
+                    placeholder="npr. 5000"
+                    value={newReminder.intervalKm}
+                    onChange={e => setNewReminder(prev => ({ ...prev, intervalKm: e.target.value }))}
+                    className="h-8 text-xs"
+                  />
+                </div>
+                <div className="space-y-1">
+                  <Label className="text-[10px] text-muted-foreground">Ponovi vsak X dni</Label>
+                  <Input
+                    type="number"
+                    placeholder="npr. 365"
+                    value={newReminder.intervalDays}
+                    onChange={e => setNewReminder(prev => ({ ...prev, intervalDays: e.target.value }))}
+                    className="h-8 text-xs"
+                  />
+                </div>
+              </div>
+              <Button
+                size="sm"
+                className="w-full text-xs gap-2 bg-violet-500 hover:bg-violet-600 text-white"
+                onClick={addReminder}
+                disabled={reminderSaving || !newReminder.title}
+              >
+                <Plus className="size-3.5" />
+                {reminderSaving ? 'Dodajam...' : 'Dodaj opomnik'}
+              </Button>
+            </div>
+
+            <Separator className="opacity-30" />
+
+            {/* Active reminders list */}
+            <div className="space-y-2">
+              <span className="text-xs font-medium">Aktivni opomniki</span>
+              {remindersLoading ? (
+                <div className="space-y-2">
+                  {[1, 2, 3].map(i => <Skeleton key={i} className="h-16 rounded" />)}
+                </div>
+              ) : reminders.filter(r => !r.completed).length === 0 ? (
+                <div className="text-center py-4">
+                  <Wrench className="size-8 mx-auto mb-1 text-muted-foreground/30" />
+                  <p className="text-xs text-muted-foreground">Ni aktivnih opomnikov</p>
+                </div>
+              ) : (
+                <ScrollArea className="max-h-64">
+                  <div className="space-y-2">
+                    {reminders.filter(r => !r.completed).map(rem => {
+                      // Calculate progress
+                      let progress = 0
+                      let progressLabel = ''
+                      if (rem.nextMileage && currentMileage > 0) {
+                        const kmRemaining = rem.nextMileage - currentMileage
+                        progress = Math.max(0, Math.min(100, ((rem.nextMileage - kmRemaining) / rem.nextMileage) * 100))
+                        progressLabel = `${Math.max(0, kmRemaining).toLocaleString()} km do naslednjega`
+                      } else if (rem.nextDate) {
+                        const daysLeft = Math.ceil((new Date(rem.nextDate).getTime() - Date.now()) / (1000 * 60 * 60 * 24))
+                        progress = Math.max(0, Math.min(100, 100 - (daysLeft / 365) * 100))
+                        progressLabel = `${Math.max(0, daysLeft)} dni do naslednjega`
+                      }
+
+                      const isOverdue = (rem.nextMileage && currentMileage >= rem.nextMileage) ||
+                        (rem.nextDate && new Date(rem.nextDate) <= new Date())
+
+                      return (
+                        <div
+                          key={rem.id}
+                          className={`rounded-lg border p-3 space-y-2 ${isOverdue ? 'border-red-300 bg-red-50 dark:bg-red-500/10' : 'border-border/50'}`}
+                        >
+                          <div className="flex items-center justify-between">
+                            <div className="flex items-center gap-2">
+                              <span className="text-sm">
+                                {rem.type === 'oil_change' ? '🛢️' : rem.type === 'tire_change' ? '🛞' : rem.type === 'chain_service' ? '⛓️' : rem.type === 'brake_service' ? '🛑' : rem.type === 'filter_change' ? '🔧' : rem.type === 'inspection' ? '📋' : '⚙️'}
+                              </span>
+                              <div>
+                                <p className="text-xs font-medium">{rem.title}</p>
+                                <div className="flex items-center gap-2 text-[10px] text-muted-foreground">
+                                  {rem.nextMileage && <span>Ob {rem.nextMileage.toLocaleString()} km</span>}
+                                  {rem.nextDate && (
+                                    <span className="flex items-center gap-0.5">
+                                      <Calendar className="size-2.5" />
+                                      {new Date(rem.nextDate).toLocaleDateString('sl-SI')}
+                                    </span>
+                                  )}
+                                  {(rem.intervalKm || rem.intervalDays) && (
+                                    <span className="text-violet-500">
+                                      (vsak{rem.intervalKm ? ` ${rem.intervalKm.toLocaleString()} km` : ''}{rem.intervalKm && rem.intervalDays ? ' / ' : ''}{rem.intervalDays ? ` ${rem.intervalDays} dni` : ''})
+                                    </span>
+                                  )}
+                                </div>
+                              </div>
+                            </div>
+                            {isOverdue && (
+                              <Badge className="text-[9px] px-1.5 py-0 bg-red-500 text-white border-0">Zapadlo</Badge>
+                            )}
+                          </div>
+                          {/* Progress bar */}
+                          {(progress > 0 || isOverdue) && (
+                            <div className="space-y-1">
+                              <div className="relative h-2 rounded-full bg-muted overflow-hidden">
+                                <div
+                                  className={`absolute inset-y-0 left-0 rounded-full transition-all duration-500 ${isOverdue ? 'bg-red-500' : 'bg-violet-500'}`}
+                                  style={{ width: `${isOverdue ? 100 : Math.min(progress, 100)}%` }}
+                                />
+                              </div>
+                              <p className={`text-[10px] ${isOverdue ? 'text-red-500 font-medium' : 'text-muted-foreground'}`}>
+                                {isOverdue ? 'Potrebno vzdrževanje!' : progressLabel}
+                              </p>
+                            </div>
+                          )}
+                          <div className="flex gap-1.5">
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              className="h-6 text-[10px] gap-1 flex-1 text-emerald-600 border-emerald-300 hover:bg-emerald-50 dark:hover:bg-emerald-500/10"
+                              onClick={() => completeReminder(rem.id)}
+                            >
+                              <CheckCircle2 className="size-3" />
+                              Opravljeno
+                            </Button>
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              className="h-6 text-[10px] gap-1 text-destructive border-destructive/30 hover:bg-destructive/10"
+                              onClick={() => deleteReminder(rem.id)}
+                            >
+                              <Trash2 className="size-3" />
+                            </Button>
+                          </div>
+                        </div>
+                      )
+                    })}
+                  </div>
+                </ScrollArea>
+              )}
+
+              {/* Completed reminders */}
+              {reminders.filter(r => r.completed).length > 0 && (
+                <>
+                  <Separator className="opacity-30" />
+                  <div className="space-y-1">
+                    <div className="flex items-center gap-1.5">
+                      <CheckCircle2 className="size-3 text-muted-foreground" />
+                      <span className="text-[10px] text-muted-foreground font-medium">Opravljeno ({reminders.filter(r => r.completed).length})</span>
+                    </div>
+                    <ScrollArea className="max-h-32">
+                      <div className="space-y-1">
+                        {reminders.filter(r => r.completed).slice(0, 5).map(rem => (
+                          <div key={rem.id} className="flex items-center justify-between py-1 px-2 rounded opacity-50">
+                            <div className="flex items-center gap-2">
+                              <CheckCircle2 className="size-3 text-emerald-500" />
+                              <span className="text-xs line-through">{rem.title}</span>
+                            </div>
+                            <button
+                              className="size-4 rounded flex items-center justify-center text-muted-foreground hover:text-destructive"
+                              onClick={() => deleteReminder(rem.id)}
+                            >
+                              <Trash2 className="size-2.5" />
+                            </button>
+                          </div>
+                        ))}
+                      </div>
+                    </ScrollArea>
+                  </div>
+                </>
+              )}
+            </div>
           </CardContent>
         </Card>
 

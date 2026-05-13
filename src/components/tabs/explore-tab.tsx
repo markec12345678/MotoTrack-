@@ -5,7 +5,8 @@ import {
   Compass, Search, X, Bike, Route, TrendingUp,
   Heart, User, Clock, Star, Trophy, Crown, Medal,
   Users, Plus, LogOut, Shield, Sparkles, UserPlus,
-  UserCheck, UserMinus, UserX, Send,
+  UserCheck, UserMinus, UserX, Send, MapPin, Calendar,
+  ChevronRight, Trash2,
 } from 'lucide-react'
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
@@ -15,9 +16,11 @@ import { Input } from '@/components/ui/input'
 import { Avatar, AvatarFallback } from '@/components/ui/avatar'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { Dialog, DialogContent, DialogTitle } from '@/components/ui/dialog'
+import { Label } from '@/components/ui/label'
+import { Textarea } from '@/components/ui/textarea'
 import { toast } from 'sonner'
-import type { RideData, RouteData, LeaderboardUser, CommunityData, FriendshipData } from '@/components/tabs/types'
-import { formatDuration, categoryLabel, categoryColor } from '@/components/tabs/types'
+import type { RideData, RouteData, LeaderboardUser, CommunityData, FriendshipData, GroupRideData } from '@/components/tabs/types'
+import { formatDuration, categoryLabel, categoryColor, formatDate } from '@/components/tabs/types'
 
 interface ExploreTabProps {
   rides: RideData[]
@@ -32,7 +35,7 @@ export default function ExploreTab({ rides, routes, leaderboard, onOpenDetail, o
   const [exploreFilter, setExploreFilter] = useState<'all' | 'rides' | 'routes'>('all')
   const [exploreCategory, setExploreCategory] = useState<string>('all')
   const [searchQuery, setSearchQuery] = useState('')
-  const [exploreSection, setExploreSection] = useState<'discover' | 'communities' | 'friends'>('discover')
+  const [exploreSection, setExploreSection] = useState<'discover' | 'communities' | 'friends' | 'grouprides'>('discover')
 
   // Communities state
   const [communities, setCommunities] = useState<CommunityData[]>([])
@@ -47,6 +50,19 @@ export default function ExploreTab({ rides, routes, leaderboard, onOpenDetail, o
   const [friendSearch, setFriendSearch] = useState('')
   const [allUsers, setAllUsers] = useState<Array<{ id: string; name: string; email: string; avatar: string | null; bike: string | null }>>([])
   const [addingFriend, setAddingFriend] = useState<string | null>(null)
+
+  // Group Rides state
+  const [groupRides, setGroupRides] = useState<GroupRideData[]>([])
+  const [showCreateGroupRide, setShowCreateGroupRide] = useState(false)
+  const [newGroupRideTitle, setNewGroupRideTitle] = useState('')
+  const [newGroupRideDesc, setNewGroupRideDesc] = useState('')
+  const [newGroupRideDate, setNewGroupRideDate] = useState('')
+  const [newGroupRideMeetingPlace, setNewGroupRideMeetingPlace] = useState('')
+  const [newGroupRideDestinationPlace, setNewGroupRideDestinationPlace] = useState('')
+  const [newGroupRideMaxRiders, setNewGroupRideMaxRiders] = useState(10)
+  const [newGroupRideCategory, setNewGroupRideCategory] = useState('scenic')
+  const [creatingGroupRide, setCreatingGroupRide] = useState(false)
+  const [groupRideFilter, setGroupRideFilter] = useState<string>('all')
 
   // Fetch communities
   useEffect(() => {
@@ -75,6 +91,17 @@ export default function ExploreTab({ rides, routes, leaderboard, onOpenDetail, o
       .then(j => setAllUsers(j.data || []))
       .catch(() => {})
   }, [])
+
+  // Fetch group rides
+  const fetchGroupRides = useCallback(() => {
+    const statusParam = groupRideFilter !== 'all' ? `&status=${groupRideFilter}` : ''
+    fetch(`/api/group-rides?limit=50${statusParam}`)
+      .then(r => r.json())
+      .then(j => setGroupRides(j.data || []))
+      .catch(() => {})
+  }, [groupRideFilter])
+
+  useEffect(() => { fetchGroupRides() }, [fetchGroupRides])
 
   // Derived friend lists
   const acceptedFriends = useMemo(() =>
@@ -292,6 +319,10 @@ export default function ExploreTab({ rides, routes, leaderboard, onOpenDetail, o
               <span className="absolute -top-1 -right-1 bg-red-500 text-white text-[8px] font-bold rounded-full size-3.5 flex items-center justify-center">{pendingReceived.length}</span>
             )}
           </Button>
+          <Button variant={exploreSection === 'grouprides' ? 'default' : 'ghost'} size="sm" className="text-xs gap-1" onClick={() => { setExploreSection('grouprides'); fetchGroupRides() }}>
+            <Bike className="size-3.5" /> Vožnje
+            {groupRides.length > 0 && <span className="text-[10px] opacity-70">({groupRides.length})</span>}
+          </Button>
         </div>
 
         {exploreSection === 'friends' ? (
@@ -477,6 +508,194 @@ export default function ExploreTab({ rides, routes, leaderboard, onOpenDetail, o
                 <Users className="size-10 text-muted-foreground mx-auto mb-3" />
                 <p className="text-muted-foreground text-sm">Vsi uporabniki so že vaši prijatelji!</p>
               </div>
+            )}
+          </div>
+        ) : exploreSection === 'grouprides' ? (
+          /* ====== GROUP RIDES SECTION ====== */
+          <div className="space-y-4">
+            <div className="flex items-center justify-between">
+              <h2 className="text-lg font-bold flex items-center gap-2">
+                <Bike className="size-5 text-primary" /> Skupinske vožnje
+              </h2>
+              {userId && (
+                <Button size="sm" className="text-xs gap-1" onClick={() => setShowCreateGroupRide(true)}>
+                  <Plus className="size-3.5" /> Nova vožnja
+                </Button>
+              )}
+            </div>
+
+            {/* Filter */}
+            <div className="flex gap-2">
+              {['all', 'upcoming', 'active', 'completed'].map(f => (
+                <Button key={f} variant={groupRideFilter === f ? 'default' : 'outline'} size="sm" className="text-xs" onClick={() => { setGroupRideFilter(f); fetchGroupRides() }}>
+                  {f === 'all' ? 'Vse' : f === 'upcoming' ? 'Prihajajoče' : f === 'active' ? 'Aktivne' : 'Zaključene'}
+                </Button>
+              ))}
+            </div>
+
+            {/* Group rides list */}
+            {groupRides.length === 0 ? (
+              <div className="text-center py-12">
+                <Bike className="size-12 text-muted-foreground mx-auto mb-4" />
+                <p className="text-muted-foreground">Ni skupinskih voženj. Ustvarite prvo!</p>
+              </div>
+            ) : (
+              <div className="grid sm:grid-cols-2 gap-4">
+                {groupRides.map(gr => (
+                  <Card key={gr.id} className="overflow-hidden hover:border-primary/30 transition-all group">
+                    <div className="h-1 bg-gradient-to-r from-primary/60 via-accent/40 to-primary/20" />
+                    <CardContent className="p-4">
+                      <div className="flex items-start gap-3">
+                        <div className="size-10 rounded-xl bg-primary/15 flex items-center justify-center text-lg shrink-0">
+                          {gr.category === 'twisty' ? '🔄' : gr.category === 'offroad' ? '🏔️' : gr.category === 'city' ? '🏙️' : '🌅'}
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <h3 className="font-bold text-sm group-hover:text-primary transition-colors truncate">{gr.title}</h3>
+                          <p className="text-xs text-muted-foreground mt-0.5 line-clamp-2">{gr.description || 'Skupinska motorna vožnja'}</p>
+                          <div className="flex items-center gap-3 mt-2 text-xs text-muted-foreground">
+                            <span>📅 {new Date(gr.date).toLocaleDateString('sl-SI', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}</span>
+                            <span>📍 {gr.meetingPlace}</span>
+                          </div>
+                          <div className="flex items-center gap-2 mt-1.5">
+                            <Badge variant="outline" className="text-[9px]">{gr.category === 'twisty' ? 'Vijugasta' : gr.category === 'offroad' ? 'Off-road' : gr.category === 'city' ? 'Mestna' : 'Scenična'}</Badge>
+                            <span className="text-[10px] text-muted-foreground">👥 {gr.participantCount}/{gr.maxRiders}</span>
+                            <Badge variant="outline" className={`text-[9px] ${gr.status === 'upcoming' ? 'bg-emerald-500/15 text-emerald-500 border-emerald-500/30' : gr.status === 'active' ? 'bg-green-500/15 text-green-500 border-green-500/30' : 'bg-muted text-muted-foreground'}`}>
+                              {gr.status === 'upcoming' ? 'Prihajajoča' : gr.status === 'active' ? 'Aktivna' : gr.status === 'completed' ? 'Zaključena' : gr.status}
+                            </Badge>
+                          </div>
+                          {/* Participant avatars */}
+                          {gr.participants && gr.participants.length > 0 && (
+                            <div className="flex items-center gap-1 mt-2">
+                              {gr.participants.slice(0, 4).map(p => (
+                                <Avatar key={p.id} className="size-5 border border-background">
+                                  <AvatarFallback className="text-[7px] bg-primary/20 text-primary">{p.user?.name?.charAt(0) || '?'}</AvatarFallback>
+                                </Avatar>
+                              ))}
+                              {gr.participants.length > 4 && <span className="text-[10px] text-muted-foreground">+{gr.participants.length - 4}</span>}
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                      <div className="mt-3 flex gap-2">
+                        {userId && !gr.participants?.some((p: { userId: string }) => p.userId === userId) ? (
+                          <Button size="sm" className="flex-1 text-xs gap-1" onClick={async () => {
+                            try {
+                              const res = await fetch(`/api/group-rides/${gr.id}/join`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ userId, status: 'joined' }) })
+                              if (res.ok) { toast.success('Pridružili ste se!'); fetchGroupRides() }
+                              else { const j = await res.json(); toast.error(j.error || 'Napaka') }
+                            } catch { toast.error('Napaka') }
+                          }}>
+                            <Plus className="size-3" /> Pridruži se
+                          </Button>
+                        ) : userId && gr.participants?.some((p: { userId: string }) => p.userId === userId) ? (
+                          <Button variant="outline" size="sm" className="flex-1 text-xs gap-1" onClick={async () => {
+                            try {
+                              const res = await fetch(`/api/group-rides/${gr.id}/leave`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ userId }) })
+                              if (res.ok) { toast.success('Zapustili ste vožnjo'); fetchGroupRides() }
+                            } catch { toast.error('Napaka') }
+                          }}>
+                            Zapusti
+                          </Button>
+                        ) : null}
+                        <Button variant="ghost" size="sm" className="text-xs gap-1" onClick={async () => {
+                          try {
+                            const res = await fetch(`/api/group-rides/${gr.id}/join`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ userId, status: 'maybe' }) })
+                            if (res.ok) { toast.success('Označeno kot morda'); fetchGroupRides() }
+                          } catch { toast.error('Napaka') }
+                        }}>
+                          Morda
+                        </Button>
+                      </div>
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+            )}
+
+            {/* Create Group Ride Dialog */}
+            {showCreateGroupRide && (
+              <Dialog open onOpenChange={(open) => { if (!open) setShowCreateGroupRide(false) }}>
+                <DialogContent className="sm:max-w-md">
+                  <DialogTitle>Nova skupinska vožnja</DialogTitle>
+                  <div className="space-y-4 mt-2">
+                    <div>
+                      <Label className="text-xs font-medium text-muted-foreground mb-1 block">Naslov</Label>
+                      <Input placeholder="Npr. Nedeljski izlet" value={newGroupRideTitle} onChange={e => setNewGroupRideTitle(e.target.value)} />
+                    </div>
+                    <div>
+                      <Label className="text-xs font-medium text-muted-foreground mb-1 block">Opis</Label>
+                      <Input placeholder="Kratek opis vožnje..." value={newGroupRideDesc} onChange={e => setNewGroupRideDesc(e.target.value)} />
+                    </div>
+                    <div>
+                      <Label className="text-xs font-medium text-muted-foreground mb-1 block">Datum in ura</Label>
+                      <Input type="datetime-local" value={newGroupRideDate} onChange={e => setNewGroupRideDate(e.target.value)} />
+                    </div>
+                    <div>
+                      <Label className="text-xs font-medium text-muted-foreground mb-1 block">Zbirno mesto</Label>
+                      <Input placeholder="Npr. Petrol Ljubljana" value={newGroupRideMeetingPlace} onChange={e => setNewGroupRideMeetingPlace(e.target.value)} />
+                    </div>
+                    <div>
+                      <Label className="text-xs font-medium text-muted-foreground mb-1 block">Cilj (opcijsko)</Label>
+                      <Input placeholder="Npr. Bled" value={newGroupRideDestinationPlace} onChange={e => setNewGroupRideDestinationPlace(e.target.value)} />
+                    </div>
+                    <div className="grid grid-cols-2 gap-2">
+                      <div>
+                        <Label className="text-xs font-medium text-muted-foreground mb-1 block">Max motoristov</Label>
+                        <Input type="number" min={2} max={50} value={newGroupRideMaxRiders} onChange={e => setNewGroupRideMaxRiders(parseInt(e.target.value) || 10)} />
+                      </div>
+                      <div>
+                        <Label className="text-xs font-medium text-muted-foreground mb-1 block">Kategorija</Label>
+                        <div className="flex gap-1 flex-wrap">
+                          {['scenic', 'twisty', 'offroad', 'city'].map(cat => (
+                            <button key={cat} onClick={() => setNewGroupRideCategory(cat)} className={`px-2 py-1 rounded-md text-[10px] font-medium transition-colors ${newGroupRideCategory === cat ? 'bg-primary text-primary-foreground' : 'bg-secondary text-muted-foreground hover:bg-muted'}`}>
+                              {cat === 'scenic' ? 'Scenična' : cat === 'twisty' ? 'Vijugasta' : cat === 'offroad' ? 'Off-road' : 'Mestna'}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                    </div>
+                    <Button className="w-full" onClick={async () => {
+                      if (!newGroupRideTitle.trim() || !newGroupRideDate || !newGroupRideMeetingPlace.trim()) {
+                        toast.error('Izpolnite obvezna polja')
+                        return
+                      }
+                      setCreatingGroupRide(true)
+                      try {
+                        const res = await fetch('/api/group-rides', {
+                          method: 'POST',
+                          headers: { 'Content-Type': 'application/json' },
+                          body: JSON.stringify({
+                            creatorId: userId,
+                            title: newGroupRideTitle,
+                            description: newGroupRideDesc || undefined,
+                            date: newGroupRideDate,
+                            meetingLat: 46.0569, meetingLng: 14.5058,
+                            meetingPlace: newGroupRideMeetingPlace,
+                            destinationPlace: newGroupRideDestinationPlace || undefined,
+                            maxRiders: newGroupRideMaxRiders,
+                            category: newGroupRideCategory,
+                          }),
+                        })
+                        if (res.ok) {
+                          toast.success('Skupinska vožnja ustvarjena!')
+                          setShowCreateGroupRide(false)
+                          setNewGroupRideTitle('')
+                          setNewGroupRideDesc('')
+                          setNewGroupRideDate('')
+                          setNewGroupRideMeetingPlace('')
+                          fetchGroupRides()
+                        } else {
+                          const j = await res.json()
+                          toast.error(j.error || 'Napaka')
+                        }
+                      } catch { toast.error('Napaka') }
+                      setCreatingGroupRide(false)
+                    }} disabled={creatingGroupRide}>
+                      {creatingGroupRide ? 'Ustvarjam...' : 'Ustvari skupinsko vožnjo'}
+                    </Button>
+                  </div>
+                </DialogContent>
+              </Dialog>
             )}
           </div>
         ) : exploreSection === 'communities' ? (

@@ -31,6 +31,7 @@ model User {
   speedLimit      Int?     @default(90)    // user's preferred speed limit (km/h) for alerts
   speedAlertEnabled Boolean? @default(true)  // whether speed alerts are enabled
   speedAlertSound   Boolean? @default(true)  // whether to play sound on alert
+  currentMileage   Int?     @default(0)      // odometer reading in km
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
   rides        Ride[]
@@ -49,6 +50,10 @@ model User {
   photos       Photo[]
   roadRatings  RoadRating[]
   trips        Trip[]
+  expenses     Expense[]
+  reminders    MaintenanceReminder[]
+  createdGroupRides       GroupRide[]         @relation("GroupRideCreator")
+  groupRideParticipations GroupRideParticipant[]
 }
 
 model Ride {
@@ -294,4 +299,71 @@ model TripDay {
   trip          Trip     @relation(fields: [tripId], references: [id], onDelete: Cascade)
 
   @@index([tripId])
+}
+
+model Expense {
+  id          String   @id @default(cuid())
+  userId      String
+  user        User     @relation(fields: [userId], references: [id])
+  type        String   // fuel, maintenance, insurance, parts, toll, parking, other
+  amount      Float    // in EUR
+  date        DateTime @default(now())
+  description String?
+  mileage     Int?     // odometer reading
+  createdAt   DateTime @default(now())
+
+  @@map("expenses")
+}
+
+model MaintenanceReminder {
+  id            String   @id @default(cuid())
+  userId        String
+  user          User     @relation(fields: [userId], references: [id])
+  type          String   // oil_change, tire_change, chain_service, brake_service, filter_change, inspection, custom
+  title         String
+  nextMileage   Int?     // next service at this km
+  nextDate      DateTime? // next service by this date
+  intervalKm    Int?     // repeat every X km
+  intervalDays  Int?     // repeat every X days
+  completed     Boolean  @default(false)
+  completedAt   DateTime?
+  createdAt     DateTime @default(now())
+
+  @@map("maintenance_reminders")
+}
+
+model GroupRide {
+  id            String    @id @default(cuid())
+  title         String
+  description   String?
+  creatorId     String
+  creator       User      @relation("GroupRideCreator", fields: [creatorId], references: [id])
+  date          DateTime
+  meetingLat    Float
+  meetingLng    Float
+  meetingPlace  String    // name of meeting spot
+  destinationLat Float?
+  destinationLng  Float?
+  destinationPlace String?
+  maxRiders     Int       @default(10)
+  category      String    @default("scenic") // scenic, twisty, offroad, city
+  status        String    @default("upcoming") // upcoming, active, completed, cancelled
+  createdAt     DateTime  @default(now())
+
+  participants  GroupRideParticipant[]
+
+  @@map("group_rides")
+}
+
+model GroupRideParticipant {
+  id          String   @id @default(cuid())
+  groupRideId String
+  groupRide   GroupRide @relation(fields: [groupRideId], references: [id], onDelete: Cascade)
+  userId      String
+  user        User     @relation(fields: [userId], references: [id])
+  status      String   @default("joined") // joined, maybe, declined
+  joinedAt    DateTime @default(now())
+
+  @@unique([groupRideId, userId])
+  @@map("group_ride_participants")
 }

@@ -1,8 +1,8 @@
 'use client'
 
-import React, { useState, useEffect, useRef, useCallback } from 'react'
+import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react'
 import dynamic from 'next/dynamic'
-import { Route, Trash2, Save, MapPin, X, Upload, Plus, Calendar, Minus, Hotel, Fuel, ChevronDown, ChevronUp, Eye, Clock } from 'lucide-react'
+import { Route, Trash2, Save, MapPin, X, Upload, Plus, Calendar, Minus, Hotel, Fuel, ChevronDown, ChevronUp, Eye, Clock, RefreshCw, Navigation, ArrowLeft, ArrowRight } from 'lucide-react'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
 import { Switch } from '@/components/ui/switch'
@@ -10,6 +10,7 @@ import { Separator } from '@/components/ui/separator'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { Checkbox } from '@/components/ui/checkbox'
 import { Textarea } from '@/components/ui/textarea'
+import { Slider } from '@/components/ui/slider'
 import { toast } from 'sonner'
 import { categoryLabel, haversine } from '@/components/tabs/types'
 import type { TripData, TripDayData } from '@/components/tabs/types'
@@ -47,6 +48,10 @@ interface PlanTabProps {
   onRefresh: () => void
 }
 
+type PlanMode = 'single' | 'roundtrip' | 'multiday'
+type Curviness = 'straight' | 'moderate' | 'twisty'
+type Direction = 'left' | 'right'
+
 const dayColors = ['#22c55e', '#f59e0b', '#3b82f6', '#a855f7', '#ef4444', '#06b6d4', '#ec4899', '#84cc16']
 
 function getDayColor(dayNumber: number): string {
@@ -70,6 +75,114 @@ function emptyDay(num: number): DayPlan {
   }
 }
 
+// Round trip generation algorithm
+function generateRoundTrip(
+  startLat: number,
+  startLng: number,
+  targetDistanceKm: number,
+  curviness: Curviness,
+  direction: Direction
+): Array<{ lat: number; lng: number }> {
+  // Seed based on current time for unique routes each generation
+  const seed = Date.now()
+  // Simple seeded random: use a closure with mutable state
+  let rngState = seed
+  const seededRandom = () => {
+    rngState = (rngState * 1664525 + 1013904223) & 0xffffffff
+    return (rngState >>> 0) / 0xffffffff
+  }
+
+  // Determine number of waypoints based on curviness
+  // More waypoints = twistier route
+  let numWaypoints: number
+  let radiusVariation: number // How much the radius can vary from ideal
+  let angleJitter: number // How much angular jitter to add
+
+  switch (curviness) {
+    case 'straight':
+      numWaypoints = Math.max(4, Math.round(targetDistanceKm / 80))
+      radiusVariation = 0.1
+      angleJitter = 0.05
+      break
+    case 'moderate':
+      numWaypoints = Math.max(6, Math.round(targetDistanceKm / 40))
+      radiusVariation = 0.25
+      angleJitter = 0.15
+      break
+    case 'twisty':
+      numWaypoints = Math.max(8, Math.round(targetDistanceKm / 20))
+      radiusVariation = 0.4
+      angleJitter = 0.25
+      break
+  }
+
+  // Calculate approximate radius for a circle with the target circumference
+  // circumference = 2 * PI * r, so r = circumference / (2 * PI)
+  // But routes are not perfect circles, so adjust
+  const idealRadiusKm = targetDistanceKm / (2 * Math.PI)
+
+  // Direction: left = counter-clockwise, right = clockwise
+  const directionMultiplier = direction === 'left' ? 1 : -1
+
+  // Generate waypoints in a rough circle/ellipse
+  const waypoints: Array<{ lat: number; lng: number }> = []
+
+  // Start point
+  waypoints.push({ lat: startLat, lng: startLng })
+
+  for (let i = 1; i < numWaypoints; i++) {
+    // Distribute points around the circle, leaving the last segment for return
+    const baseAngle = (i / numWaypoints) * 2 * Math.PI * directionMultiplier
+
+    // Add angular jitter for more interesting routes
+    const jitteredAngle = baseAngle + (seededRandom() - 0.5) * angleJitter * 2 * Math.PI / numWaypoints
+
+    // Vary the radius for a more natural shape
+    const radiusFactor = 1 + (seededRandom() - 0.5) * 2 * radiusVariation
+    const pointRadiusKm = idealRadiusKm * radiusFactor
+
+    // Convert to lat/lng offset
+    // 1 degree lat ≈ 111 km, 1 degree lng ≈ 111 * cos(lat) km
+    const latOffset = pointRadiusKm * Math.sin(jitteredAngle) / 111
+    const lngOffset = pointRadiusKm * Math.cos(jitteredAngle) / (111 * Math.cos(startLat * Math.PI / 180))
+
+    // For twisty routes, add additional "wobble" between waypoints
+    if (curviness === 'twisty' && seededRandom() > 0.4) {
+      // Add an intermediate wobble point slightly before the main point
+      const wobbleAngle = jitteredAngle - directionMultiplier * 0.15
+      const wobbleRadius = pointRadiusKm * (0.7 + seededRandom() * 0.5)
+      const wobbleLat = startLat + wobbleRadius * Math.sin(wobbleAngle) / 111
+      const wobbleLng = startLng + wobbleRadius * Math.cos(wobbleAngle) / (111 * Math.cos(startLat * Math.PI / 180))
+      waypoints.push({ lat: wobbleLat, lng: wobbleLng })
+    }
+
+    waypoints.push({
+      lat: startLat + latOffset,
+      lng: startLng + lngOffset,
+    })
+  }
+
+  // Return to start (close the loop)
+  waypoints.push({ lat: startLat, lng: startLng })
+
+  return waypoints
+}
+
+// Calculate total distance of waypoints
+function calculateWaypointsDistance(wps: Array<{ lat: number; lng: number }>): number {
+  let dist = 0
+  for (let i = 1; i < wps.length; i++) {
+    dist += haversine(wps[i - 1].lat, wps[i - 1].lng, wps[i].lat, wps[i].lng)
+  }
+  return Math.round(dist * 10) / 10
+}
+
+const curvinessOptions: { value: Curviness; label: string; emoji: string; desc: string }[] = [
+  { value: 'straight', label: 'Ravna', emoji: '➡️', desc: 'Manj ovinkov, daljše ravnine' },
+  { value: 'moderate', label: 'Zmerna', emoji: '↗️', desc: 'Zmerno vijugasta, uravnotežena' },
+  { value: 'twisty', label: 'Vijugasta', emoji: '🔄', desc: 'Veliko ovinkov, vijugasta' },
+]
+
 export default function PlanTab({
   waypoints, setWaypoints, title, setTitle,
   category, setCategory, avoidHighways, setAvoidHighways,
@@ -77,8 +190,18 @@ export default function PlanTab({
 }: PlanTabProps) {
   const fileInputRef = useRef<HTMLInputElement>(null)
 
-  // Mode: 'single' or 'multiday'
-  const [mode, setMode] = useState<'single' | 'multiday'>('single')
+  // Mode: 'single', 'roundtrip', or 'multiday'
+  const [mode, setMode] = useState<PlanMode>('single')
+
+  // Round trip state
+  const [rtStartLat, setRtStartLat] = useState(46.0569)
+  const [rtStartLng, setRtStartLng] = useState(14.5058)
+  const [rtStartDetected, setRtStartDetected] = useState(false)
+  const [rtDistance, setRtDistance] = useState(80)
+  const [rtCurviness, setRtCurviness] = useState<Curviness>('moderate')
+  const [rtDirection, setRtDirection] = useState<Direction>('right')
+  const [rtWaypoints, setRtWaypoints] = useState<Array<{ lat: number; lng: number }>>([])
+  const [rtGenerated, setRtGenerated] = useState(false)
 
   // Multi-day trip state
   const [tripTitle, setTripTitle] = useState('')
@@ -93,6 +216,86 @@ export default function PlanTab({
   // Saved trips
   const [savedTrips, setSavedTrips] = useState<TripData[]>([])
   const [viewingTrip, setViewingTrip] = useState<TripData | null>(null)
+
+  // Auto-detect GPS on mount for round trip
+  useEffect(() => {
+    if (navigator.geolocation) {
+      navigator.geolocation.getCurrentPosition(
+        (pos) => {
+          setRtStartLat(pos.coords.latitude)
+          setRtStartLng(pos.coords.longitude)
+          setRtStartDetected(true)
+        },
+        () => {
+          // Default to Ljubljana
+          setRtStartLat(46.0569)
+          setRtStartLng(14.5058)
+          setRtStartDetected(false)
+        },
+        { enableHighAccuracy: true, timeout: 5000 }
+      )
+    }
+  }, [])
+
+  // Round trip distance calculation
+  const rtCalculatedDistance = useMemo(() => {
+    if (rtWaypoints.length < 2) return 0
+    return calculateWaypointsDistance(rtWaypoints)
+  }, [rtWaypoints])
+
+  // Generate round trip
+  const generateRoundTripRoute = useCallback(() => {
+    const wps = generateRoundTrip(rtStartLat, rtStartLng, rtDistance, rtCurviness, rtDirection)
+    setRtWaypoints(wps)
+    setRtGenerated(true)
+    // Also set as main waypoints so they show on map
+    setWaypoints(wps)
+  }, [rtStartLat, rtStartLng, rtDistance, rtCurviness, rtDirection, setWaypoints])
+
+  // Shuffle (regenerate) round trip
+  const shuffleRoundTrip = useCallback(() => {
+    // Add a small delay to ensure seed changes
+    setTimeout(() => {
+      const wps = generateRoundTrip(rtStartLat, rtStartLng, rtDistance, rtCurviness, rtDirection)
+      setRtWaypoints(wps)
+      setRtGenerated(true)
+      setWaypoints(wps)
+    }, 10)
+  }, [rtStartLat, rtStartLng, rtDistance, rtCurviness, rtDirection, setWaypoints])
+
+  // Save round trip as route
+  const saveRoundTrip = useCallback(async () => {
+    if (rtWaypoints.length < 3) {
+      toast.error('Generirajte pot pred shranjevanjem')
+      return
+    }
+    try {
+      const routeData = JSON.stringify(rtWaypoints.map(w => [w.lat, w.lng]))
+      const rtTitle = title || `Krožna pot ${rtDistance}km - ${new Date().toLocaleDateString('sl-SI')}`
+      const res = await fetch('/api/routes', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          title: rtTitle,
+          description: `Krožna pot: ${rtDistance}km, ${curvinessOptions.find(c => c.value === rtCurviness)?.label || rtCurviness}, ${rtDirection === 'left' ? 'Levo' : 'Desno'}`,
+          distance: rtCalculatedDistance,
+          waypoints: JSON.stringify(rtWaypoints),
+          routeData,
+          category: rtCurviness === 'twisty' ? 'twisty' : rtCurviness === 'straight' ? 'scenic' : 'scenic',
+          difficulty: rtCurviness === 'twisty' ? 'hard' : rtCurviness === 'moderate' ? 'medium' : 'easy',
+          isPublic: true,
+        }),
+      })
+      if (res.ok) {
+        toast.success('Krožna pot shranjena!')
+        onRefresh()
+      } else {
+        toast.error('Napaka pri shranjevanju')
+      }
+    } catch {
+      toast.error('Napaka pri shranjevanju')
+    }
+  }, [rtWaypoints, rtDistance, rtCurviness, rtDirection, rtCalculatedDistance, title, onRefresh])
 
   // Map click handler for multi-day: add waypoint to active day
   const handleMultiDayMapClick = useCallback((lat: number, lng: number) => {
@@ -129,8 +332,10 @@ export default function PlanTab({
   const handleMapClickInternal = useCallback((lat: number, lng: number) => {
     if (mode === 'multiday') {
       handleMultiDayMapClick(lat, lng)
+    } else if (mode === 'single') {
+      onMapClick(lat, lng)
     }
-    onMapClick(lat, lng)
+    // Roundtrip mode: no map click for adding waypoints
   }, [mode, handleMultiDayMapClick, onMapClick])
 
   // Calculate total trip distance
@@ -366,6 +571,10 @@ export default function PlanTab({
     }
   }, [tripStartDate, tripDays.length, tripEndDate])
 
+  // Determine planWaypoints for the map based on mode
+  const mapPlanWaypoints = mode === 'roundtrip' ? rtWaypoints : (mode === 'single' ? waypoints : [])
+  const mapShowPlan = mode === 'single' || mode === 'roundtrip'
+
   return (
     <div className="relative w-full h-[calc(100vh-104px)] flex flex-col lg:flex-row">
       <div className="flex-1 relative">
@@ -374,17 +583,17 @@ export default function PlanTab({
           zoom={8}
           rides={[]}
           routes={[]}
-          planWaypoints={mode === 'single' ? waypoints : []}
-          showPlan={mode === 'single'}
+          planWaypoints={mapPlanWaypoints}
+          showPlan={mapShowPlan}
           onMapClick={handleMapClickInternal}
           tripDays={mapTripDays}
         />
       </div>
       <div className="lg:w-96 w-full bg-card border-t lg:border-t-0 lg:border-l border-border/50 p-4 overflow-y-auto max-h-[40vh] lg:max-h-full">
-        {/* Mode toggle */}
-        <div className="flex items-center gap-1 mb-4 bg-secondary/50 rounded-lg p-1">
+        {/* Mode toggle - 3 options */}
+        <div className="flex items-center gap-0.5 mb-4 bg-secondary/50 rounded-lg p-1">
           <button
-            className={`flex-1 text-xs font-medium py-2 px-3 rounded-md transition-all ${
+            className={`flex-1 text-xs font-medium py-2 px-2 rounded-md transition-all ${
               mode === 'single' ? 'bg-primary text-primary-foreground shadow-sm' : 'text-muted-foreground hover:text-foreground'
             }`}
             onClick={() => { setMode('single'); setViewingTrip(null) }}
@@ -392,7 +601,15 @@ export default function PlanTab({
             Enodnevna pot
           </button>
           <button
-            className={`flex-1 text-xs font-medium py-2 px-3 rounded-md transition-all ${
+            className={`flex-1 text-xs font-medium py-2 px-2 rounded-md transition-all ${
+              mode === 'roundtrip' ? 'bg-primary text-primary-foreground shadow-sm' : 'text-muted-foreground hover:text-foreground'
+            }`}
+            onClick={() => { setMode('roundtrip'); setViewingTrip(null) }}
+          >
+            Krožna pot
+          </button>
+          <button
+            className={`flex-1 text-xs font-medium py-2 px-2 rounded-md transition-all ${
               mode === 'multiday' ? 'bg-primary text-primary-foreground shadow-sm' : 'text-muted-foreground hover:text-foreground'
             }`}
             onClick={() => { setMode('multiday'); setViewingTrip(null) }}
@@ -480,6 +697,183 @@ export default function PlanTab({
                 <Upload className="size-4 mr-2" />Uvozi GPX
               </Button>
             </div>
+          </div>
+        ) : mode === 'roundtrip' ? (
+          /* ===== ROUND TRIP MODE ===== */
+          <div className="space-y-4">
+            <h2 className="font-bold text-lg flex items-center gap-2"><RefreshCw className="size-5 text-primary" />Krožna pot</h2>
+
+            {/* Starting point */}
+            <div className="bg-secondary/30 rounded-lg p-3">
+              <div className="flex items-center justify-between mb-2">
+                <label className="text-xs font-medium text-muted-foreground flex items-center gap-1">
+                  <Navigation className="size-3" /> Izhodišče
+                </label>
+                {rtStartDetected && (
+                  <span className="text-[10px] bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 px-2 py-0.5 rounded-full font-medium">
+                    GPS zaznan
+                  </span>
+                )}
+              </div>
+              <div className="flex items-center gap-2">
+                <MapPin className="size-4 text-primary flex-shrink-0" />
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-medium">
+                    {rtStartDetected ? 'Vaša lokacija' : 'Ljubljana (privzeto)'}
+                  </p>
+                  <p className="text-xs text-muted-foreground">
+                    {rtStartLat.toFixed(4)}, {rtStartLng.toFixed(4)}
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            {/* Distance slider */}
+            <div>
+              <div className="flex items-center justify-between mb-2">
+                <label className="text-xs font-medium text-muted-foreground">Željena razdalja</label>
+                <span className="text-sm font-bold text-primary">{rtDistance} km</span>
+              </div>
+              <Slider
+                value={[rtDistance]}
+                min={30}
+                max={300}
+                step={10}
+                onValueChange={(v) => setRtDistance(v[0])}
+                className="w-full"
+              />
+              <div className="flex justify-between text-[10px] text-muted-foreground mt-1">
+                <span>30 km</span>
+                <span>150 km</span>
+                <span>300 km</span>
+              </div>
+            </div>
+
+            {/* Curviness preference */}
+            <div>
+              <label className="text-xs font-medium text-muted-foreground mb-2 block">Zavitanost</label>
+              <div className="grid grid-cols-3 gap-2">
+                {curvinessOptions.map(opt => (
+                  <button
+                    key={opt.value}
+                    className={`flex flex-col items-center gap-1 p-2.5 rounded-lg border-2 transition-all text-center ${
+                      rtCurviness === opt.value
+                        ? 'border-primary bg-primary/10 text-primary'
+                        : 'border-border/50 bg-secondary/30 text-muted-foreground hover:border-primary/30 hover:bg-secondary/50'
+                    }`}
+                    onClick={() => setRtCurviness(opt.value)}
+                  >
+                    <span className="text-lg">{opt.emoji}</span>
+                    <span className="text-xs font-semibold">{opt.label}</span>
+                    <span className="text-[10px] leading-tight opacity-70">{opt.desc}</span>
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Direction */}
+            <div>
+              <label className="text-xs font-medium text-muted-foreground mb-2 block">Smer vožnje</label>
+              <div className="grid grid-cols-2 gap-2">
+                <button
+                  className={`flex items-center justify-center gap-2 p-3 rounded-lg border-2 transition-all ${
+                    rtDirection === 'left'
+                      ? 'border-primary bg-primary/10 text-primary'
+                      : 'border-border/50 bg-secondary/30 text-muted-foreground hover:border-primary/30'
+                  }`}
+                  onClick={() => setRtDirection('left')}
+                >
+                  <ArrowLeft className="size-4" />
+                  <div className="text-left">
+                    <p className="text-xs font-semibold">Levo</p>
+                    <p className="text-[10px] opacity-70">Nasprotno urini kazalc</p>
+                  </div>
+                </button>
+                <button
+                  className={`flex items-center justify-center gap-2 p-3 rounded-lg border-2 transition-all ${
+                    rtDirection === 'right'
+                      ? 'border-primary bg-primary/10 text-primary'
+                      : 'border-border/50 bg-secondary/30 text-muted-foreground hover:border-primary/30'
+                  }`}
+                  onClick={() => setRtDirection('right')}
+                >
+                  <ArrowRight className="size-4" />
+                  <div className="text-left">
+                    <p className="text-xs font-semibold">Desno</p>
+                    <p className="text-[10px] opacity-70">V smeri urinih kazalcev</p>
+                  </div>
+                </button>
+              </div>
+            </div>
+
+            <Separator />
+
+            {/* Generate / Shuffle buttons */}
+            <div className="flex gap-2">
+              <Button className="flex-1" onClick={generateRoundTripRoute}>
+                <RefreshCw className="size-4 mr-2" />Generiraj pot
+              </Button>
+              {rtGenerated && (
+                <Button variant="outline" onClick={shuffleRoundTrip} title="Ponovno generiraj">
+                  <RefreshCw className="size-4" />
+                </Button>
+              )}
+            </div>
+
+            {/* Generated route info */}
+            {rtGenerated && rtWaypoints.length > 0 && (
+              <>
+                <div className="bg-primary/10 rounded-lg p-3">
+                  <div className="flex items-center justify-between text-sm mb-1">
+                    <span className="text-muted-foreground">Izračunana razdalja</span>
+                    <span className="font-bold text-primary">{rtCalculatedDistance} km</span>
+                  </div>
+                  <div className="flex items-center justify-between text-xs">
+                    <span className="text-muted-foreground">Število točk</span>
+                    <span className="font-medium">{rtWaypoints.length}</span>
+                  </div>
+                  <div className="flex items-center justify-between text-xs mt-0.5">
+                    <span className="text-muted-foreground">Predvideni čas</span>
+                    <span className="font-medium">~{Math.round(rtCalculatedDistance / 60 * 60)} min ({(rtCalculatedDistance / 60).toFixed(1)}h)</span>
+                  </div>
+                </div>
+
+                {/* Waypoints list */}
+                <div>
+                  <div className="flex items-center justify-between mb-2">
+                    <label className="text-xs font-medium text-muted-foreground">Točke poti ({rtWaypoints.length})</label>
+                  </div>
+                  <ScrollArea className="max-h-32">
+                    <div className="space-y-1">
+                      {rtWaypoints.map((wp, i) => (
+                        <div key={i} className="flex items-center gap-2 text-xs bg-secondary/50 rounded px-2 py-1.5">
+                          <div className={`w-2 h-2 rounded-full flex-shrink-0 ${
+                            i === 0 ? 'bg-emerald-500' : i === rtWaypoints.length - 1 ? 'bg-rose-500' : 'bg-primary'
+                          }`} />
+                          <span className="font-medium">
+                            {i === 0 ? 'START' : i === rtWaypoints.length - 1 ? 'CILJ' : `Točka ${i}`}
+                          </span>
+                          <span className="text-muted-foreground">{wp.lat.toFixed(4)}, {wp.lng.toFixed(4)}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </ScrollArea>
+                </div>
+
+                {/* Route name & save */}
+                <div>
+                  <label className="text-xs font-medium text-muted-foreground mb-1 block">Ime poti</label>
+                  <Input
+                    placeholder={`Krožna pot ${rtDistance}km`}
+                    value={title}
+                    onChange={e => setTitle(e.target.value)}
+                  />
+                </div>
+                <Button className="w-full" onClick={saveRoundTrip}>
+                  <Save className="size-4 mr-2" />Shrani krožno pot
+                </Button>
+              </>
+            )}
           </div>
         ) : (
           /* ===== MULTI-DAY MODE ===== */

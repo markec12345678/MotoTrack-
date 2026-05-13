@@ -18,6 +18,7 @@ export async function GET(
         avatar: true,
         bike: true,
         bio: true,
+        currentMileage: true,
         createdAt: true,
       },
     })
@@ -101,7 +102,7 @@ export async function PUT(
   try {
     const { id } = await params
     const body = await request.json()
-    const { name, bike, bio, avatar } = body
+    const { name, bike, bio, avatar, currentMileage } = body
 
     const user = await db.user.update({
       where: { id },
@@ -110,6 +111,7 @@ export async function PUT(
         ...(bike !== undefined && { bike }),
         ...(bio !== undefined && { bio }),
         ...(avatar !== undefined && { avatar }),
+        ...(currentMileage !== undefined && { currentMileage }),
       },
       select: {
         id: true,
