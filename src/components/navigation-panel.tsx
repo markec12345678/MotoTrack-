@@ -93,7 +93,7 @@ export default function NavigationPanel({ route, onStartNavigation, onStopNaviga
     if (isNavigating && currentStep) {
       speak(currentStep.instruction)
     }
-  }, [currentStepIndex, isNavigating]) // eslint-disable-line react-hooks/exhaustive-deps
+  }, [currentStepIndex, isNavigating, currentStep, speak])
 
   useEffect(() => {
     if (isNavigating) {
