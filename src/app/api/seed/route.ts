@@ -55,7 +55,6 @@ export async function GET() {
 async function seedDatabase() {
   try {
     // Delete existing data in correct order (FK constraints)
-    // Comments and Likes must be deleted before rides/routes/users
     await db.achievement.deleteMany()
     await db.comment.deleteMany()
     await db.like.deleteMany()
@@ -65,6 +64,17 @@ async function seedDatabase() {
     await db.ride.deleteMany()
     await db.route.deleteMany()
     await db.community.deleteMany()
+    await db.challengeParticipant.deleteMany()
+    await db.challenge.deleteMany()
+    await db.pointsTransaction.deleteMany()
+    await db.userPoints.deleteMany()
+    await db.liveTrackingViewer.deleteMany()
+    await db.liveTrackingSession.deleteMany()
+    await db.crashEvent.deleteMany()
+    await db.leanAngleSession.deleteMany()
+    await db.gpxImport.deleteMany()
+    await db.mapStyleConfig.deleteMany()
+    await db.serviceCenter.deleteMany()
     await db.user.deleteMany()
 
     // Create demo users
@@ -770,6 +780,54 @@ async function seedDatabase() {
       hazardsData.map((h) => db.hazard.create({ data: h }))
     )
 
+    // --- CHALLENGES ---
+    const now = new Date()
+    const challengesData = [
+      { title: 'Mesečni km', description: 'Prevozite 500 km ta mesec!', type: 'distance', goal: 500, unit: 'km', startDate: new Date(now.getFullYear(), now.getMonth(), 1), endDate: new Date(now.getFullYear(), now.getMonth() + 1, 0), category: 'monthly', icon: '🛣️', points: 200, creatorId: users[0].id },
+      { title: 'Vikend bojevnik', description: 'Zaključite 5 voženj ta teden!', type: 'rides', goal: 5, unit: 'voženj', startDate: new Date(now.getFullYear(), now.getMonth(), now.getDate() - now.getDay()), endDate: new Date(now.getFullYear(), now.getMonth(), now.getDate() - now.getDay() + 6), category: 'weekly', icon: '⚡', points: 100, creatorId: users[1].id },
+      { title: 'Alpski osvajalec', description: 'Premejajte 3000m višine ta mesec!', type: 'elevation', goal: 3000, unit: 'm', startDate: new Date(now.getFullYear(), now.getMonth(), 1), endDate: new Date(now.getFullYear(), now.getMonth() + 1, 0), category: 'monthly', icon: '⛰️', points: 300, creatorId: users[0].id },
+      { title: 'Veriga dni', description: 'Vozite 7 dni zapored!', type: 'streak', goal: 7, unit: 'dni', startDate: new Date(now.getFullYear(), now.getMonth(), 1), endDate: new Date(now.getFullYear(), now.getMonth() + 1, 0), category: 'monthly', icon: '🔥', points: 250, creatorId: users[2].id },
+      { title: 'Hitrostni kralj', description: 'Dosezite povprečno hitrost nad 60km/h na 3 vožnjah!', type: 'speed', goal: 3, unit: 'voženj', startDate: new Date(now.getFullYear(), now.getMonth(), 1), endDate: new Date(now.getFullYear(), now.getMonth() + 1, 0), category: 'monthly', icon: '🏎️', points: 150, creatorId: users[1].id },
+    ]
+
+    const challenges = await Promise.all(
+      challengesData.map((c) => db.challenge.create({ data: c }))
+    )
+
+    // Add challenge participants with some progress
+    await db.challengeParticipant.createMany({
+      data: [
+        { challengeId: challenges[0].id, userId: users[0].id, progress: 347 },
+        { challengeId: challenges[0].id, userId: users[1].id, progress: 215 },
+        { challengeId: challenges[1].id, userId: users[0].id, progress: 3 },
+        { challengeId: challenges[2].id, userId: users[1].id, progress: 1800 },
+        { challengeId: challenges[3].id, userId: users[2].id, progress: 4 },
+        { challengeId: challenges[4].id, userId: users[0].id, progress: 1 },
+      ]
+    })
+
+    // --- USER POINTS ---
+    await db.userPoints.createMany({
+      data: [
+        { userId: users[0].id, totalPoints: 1250, ridesPoints: 800, socialPoints: 250, challengePoints: 200, streakDays: 4, level: 3 },
+        { userId: users[1].id, totalPoints: 890, ridesPoints: 500, socialPoints: 190, challengePoints: 200, streakDays: 2, level: 2 },
+        { userId: users[2].id, totalPoints: 640, ridesPoints: 400, socialPoints: 140, challengePoints: 100, streakDays: 4, level: 2 },
+      ]
+    })
+
+    // Points transactions
+    await db.pointsTransaction.createMany({
+      data: [
+        { userId: users[0].id, amount: 100, reason: 'ride_completed' },
+        { userId: users[0].id, amount: 50, reason: 'social_share' },
+        { userId: users[0].id, amount: 200, reason: 'challenge_won' },
+        { userId: users[1].id, amount: 100, reason: 'ride_completed' },
+        { userId: users[1].id, amount: 200, reason: 'challenge_won' },
+        { userId: users[2].id, amount: 100, reason: 'ride_completed' },
+        { userId: users[2].id, amount: 50, reason: 'social_share' },
+      ]
+    })
+
     return NextResponse.json({
       success: true,
       message: 'Database seeded successfully',
@@ -784,6 +842,7 @@ async function seedDatabase() {
         communities: communities.length,
         communityMembers: communityMembers.length,
         hazards: hazards.length,
+        challenges: challenges.length,
       },
     })
   } catch (error: any) {

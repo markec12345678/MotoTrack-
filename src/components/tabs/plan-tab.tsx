@@ -12,6 +12,10 @@ import { Checkbox } from '@/components/ui/checkbox'
 import { Textarea } from '@/components/ui/textarea'
 import { Slider } from '@/components/ui/slider'
 import { toast } from 'sonner'
+import TwistyRoutePlanner from '@/components/twisty-route-planner'
+import RoundTripGenerator from '@/components/round-trip-generator'
+import GpxManager from '@/components/gpx-manager'
+import OfflineMapsManager from '@/components/offline-maps-manager'
 import { categoryLabel, haversine } from '@/components/tabs/types'
 import type { TripData, TripDayData } from '@/components/tabs/types'
 
@@ -696,6 +700,15 @@ export default function PlanTab({
               <Button variant="outline" className="w-full" onClick={() => fileInputRef.current?.click()}>
                 <Upload className="size-4 mr-2" />Uvozi GPX
               </Button>
+            </div>
+
+            {/* Advanced Planning Tools */}
+            <Separator />
+            <div className="space-y-3">
+              <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Napredna orodja</h3>
+              <TwistyRoutePlanner userId={userId} onRouteGenerated={(wps) => { setWaypoints(wps) }} />
+              <OfflineMapsManager />
+              <GpxManager userId={userId} onRefresh={onRefresh} />
             </div>
           </div>
         ) : mode === 'roundtrip' ? (

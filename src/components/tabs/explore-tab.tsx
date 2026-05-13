@@ -6,7 +6,7 @@ import {
   Heart, User, Clock, Star, Trophy, Crown, Medal,
   Users, Plus, LogOut, Shield, Sparkles, UserPlus,
   UserCheck, UserMinus, UserX, Send, MapPin, Calendar,
-  ChevronRight, Trash2,
+  ChevronRight, Trash2, Wrench,
 } from 'lucide-react'
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
@@ -21,6 +21,9 @@ import { Textarea } from '@/components/ui/textarea'
 import { toast } from 'sonner'
 import type { RideData, RouteData, LeaderboardUser, CommunityData, FriendshipData, GroupRideData } from '@/components/tabs/types'
 import { formatDuration, categoryLabel, categoryColor, formatDate } from '@/components/tabs/types'
+import ChallengesPanel from '@/components/challenges-panel'
+import ServiceLocator from '@/components/service-locator'
+import FuelPriceCard from '@/components/fuel-price-card'
 
 interface ExploreTabProps {
   rides: RideData[]
@@ -35,7 +38,7 @@ export default function ExploreTab({ rides, routes, leaderboard, onOpenDetail, o
   const [exploreFilter, setExploreFilter] = useState<'all' | 'rides' | 'routes'>('all')
   const [exploreCategory, setExploreCategory] = useState<string>('all')
   const [searchQuery, setSearchQuery] = useState('')
-  const [exploreSection, setExploreSection] = useState<'discover' | 'communities' | 'friends' | 'grouprides'>('discover')
+  const [exploreSection, setExploreSection] = useState<'discover' | 'communities' | 'friends' | 'grouprides' | 'challenges' | 'services' | 'fuel'>('discover')
 
   // Communities state
   const [communities, setCommunities] = useState<CommunityData[]>([])
@@ -322,6 +325,15 @@ export default function ExploreTab({ rides, routes, leaderboard, onOpenDetail, o
           <Button variant={exploreSection === 'grouprides' ? 'default' : 'ghost'} size="sm" className="text-xs gap-1" onClick={() => { setExploreSection('grouprides'); fetchGroupRides() }}>
             <Bike className="size-3.5" /> Vožnje
             {groupRides.length > 0 && <span className="text-[10px] opacity-70">({groupRides.length})</span>}
+          </Button>
+          <Button variant={exploreSection === 'challenges' ? 'default' : 'ghost'} size="sm" className="text-xs gap-1" onClick={() => setExploreSection('challenges')}>
+            <Trophy className="size-3.5" /> Izzivi
+          </Button>
+          <Button variant={exploreSection === 'services' ? 'default' : 'ghost'} size="sm" className="text-xs gap-1" onClick={() => setExploreSection('services')}>
+            <Wrench className="size-3.5" /> Servisi
+          </Button>
+          <Button variant={exploreSection === 'fuel' ? 'default' : 'ghost'} size="sm" className="text-xs gap-1" onClick={() => setExploreSection('fuel')}>
+            ⛽ Gorivo
           </Button>
         </div>
 
@@ -778,6 +790,21 @@ export default function ExploreTab({ rides, routes, leaderboard, onOpenDetail, o
                 <p className="text-muted-foreground">Ni skupnosti. Ustvarite prvo!</p>
               </div>
             )}
+          </div>
+        ) : exploreSection === 'challenges' ? (
+          /* ====== CHALLENGES SECTION ====== */
+          <div className="space-y-4">
+            <ChallengesPanel userId={userId} />
+          </div>
+        ) : exploreSection === 'services' ? (
+          /* ====== SERVICES SECTION ====== */
+          <div className="space-y-4">
+            <ServiceLocator userId={userId} />
+          </div>
+        ) : exploreSection === 'fuel' ? (
+          /* ====== FUEL PRICES SECTION ====== */
+          <div className="space-y-4">
+            <FuelPriceCard userId={userId} />
           </div>
         ) : (
           /* ====== DISCOVER SECTION ====== */

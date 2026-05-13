@@ -2,10 +2,17 @@
 
 import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react'
 import dynamic from 'next/dynamic'
-import { Play, Pause, Square, Save, Gauge, AlertTriangle } from 'lucide-react'
+import { Play, Pause, Square, Save, Gauge, AlertTriangle, ChevronDown, ChevronUp } from 'lucide-react'
 import { Button } from '@/components/ui/button'
+import { Card, CardContent } from '@/components/ui/card'
+import { Switch } from '@/components/ui/switch'
+import { Badge } from '@/components/ui/badge'
 import type { TrackPoint, SpeedAlertSettings } from '@/components/tabs/types'
 import { formatDuration } from '@/components/tabs/types'
+
+const CrashDetectionPanel = dynamic(() => import('@/components/crash-detection-panel'), { ssr: false })
+const LiveTrackingPanel = dynamic(() => import('@/components/live-tracking-panel'), { ssr: false })
+const LeanAngleDisplay = dynamic(() => import('@/components/lean-angle-display'), { ssr: false })
 
 const MotoMap = dynamic(() => import('@/components/moto-map'), { ssr: false })
 
@@ -41,6 +48,7 @@ export default function TrackTab({
   const [flashOn, setFlashOn] = useState(false)
   const audioCtxRef = useRef<AudioContext | null>(null)
   const hasPlayedBeepRef = useRef(false)
+  const [showFeatures, setShowFeatures] = useState(false)
 
   // Fetch speed alert settings
   useEffect(() => {
@@ -119,6 +127,26 @@ export default function TrackTab({
     <div className={`relative w-full h-[calc(100vh-104px)] flex flex-col transition-all duration-200 ${
       isOverSpeed && flashOn ? 'ring-4 ring-inset ring-red-500/70' : ''
     }`}>
+      {/* Feature panels toggle - when not tracking */}
+      {!isTracking && (
+        <div className="absolute top-2 left-2 right-2 z-[1002]">
+          <button
+            onClick={() => setShowFeatures(!showFeatures)}
+            className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-background/90 backdrop-blur-sm border border-border/50 text-xs font-medium shadow-sm hover:bg-background transition-all"
+          >
+            {showFeatures ? <ChevronUp className="size-3.5" /> : <ChevronDown className="size-3.5" />}
+            <span>Napredne funkcije</span>
+            <Badge variant="secondary" className="text-[9px] px-1.5 py-0">LIVE</Badge>
+          </button>
+          {showFeatures && (
+            <div className="mt-2 space-y-2 max-h-60 overflow-y-auto custom-scrollbar">
+              <CrashDetectionPanel userId={userId} />
+              <LiveTrackingPanel userId={userId} />
+              <LeanAngleDisplay userId={userId} isTracking={false} currentLean={0} />
+            </div>
+          )}
+        </div>
+      )}
       <div className="flex-1 relative">
         <MotoMap center={[46.15, 14.99]} zoom={12} rides={[]} routes={[]} trackPoints={trackPoints} showTrack={true} />
 

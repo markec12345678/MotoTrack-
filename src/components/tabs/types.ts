@@ -428,3 +428,198 @@ export function poiTypeColor(type: string): string {
   }
   return map[type] || '#6b7280'
 }
+
+// Feature 1: Turn-by-turn Navigation
+export interface NavigationStep {
+  instruction: string    // Slovenian instruction text
+  type: string           // turn, straight, left, right, slight_left, slight_right, sharp_left, sharp_right, roundabout, arrive
+  distance: number       // meters
+  duration: number       // seconds
+  name: string           // street/road name
+  lat: number
+  lng: number
+}
+
+export interface NavigationRoute {
+  steps: NavigationStep[]
+  totalDistance: number   // meters
+  totalDuration: number   // seconds
+  geometry: [number, number][]  // [lat, lng] pairs for the full route
+}
+
+// Feature 2: Offline Maps
+export interface OfflineMapRegion {
+  id: string
+  name: string
+  bounds: { north: number; south: number; east: number; west: number }
+  zoomLevels: string
+  estimatedSizeMB: number
+  downloaded: boolean
+}
+
+// Feature 3: Twisty Routing
+export interface TwistyRouteResult {
+  waypoints: { lat: number; lng: number }[]
+  totalDistance: number
+  estimatedDuration: number
+  twistyScore: number  // 1-10
+  geometry: [number, number][]
+  curvinessReport: {
+    straight: number   // % of route that's straight
+    curves: number     // % of route that's curved
+    tightCurves: number // % with tight curves
+  }
+}
+
+// Feature 4: Live Tracking
+export interface LiveTrackingSession {
+  id: string
+  shareToken: string
+  shareUrl: string
+  isActive: boolean
+  startedAt: string
+  viewerCount: number
+}
+
+export interface LiveTrackingView {
+  userName: string
+  lat: number
+  lng: number
+  speed: number
+  heading: number
+  lastUpdate: string
+  isActive: boolean
+}
+
+// Feature 5: Crash Detection
+export interface CrashEvent {
+  id: string
+  userId: string
+  lat: number
+  lng: number
+  gForce: number
+  speedBefore: number
+  detectedAt: string
+  alertSent: boolean
+  status: 'detected' | 'confirmed' | 'false_alarm'
+  notes: string | null
+}
+
+// Feature 7: Fuel Prices
+export interface FuelStation {
+  id: string
+  name: string
+  lat: number
+  lng: number
+  distance: number       // km from search point
+  prices: {
+    '95': number | null
+    '98': number | null
+    diesel: number | null
+  }
+  brand: string | null
+  address: string | null
+}
+
+// Feature 8: Lean Angle
+export interface LeanAngleSession {
+  id: string
+  maxLeanLeft: number
+  maxLeanRight: number
+  avgLean: number
+  duration: number
+  createdAt: string
+}
+
+// Feature 9: Round Trip
+export interface RoundTripResult {
+  waypoints: { lat: number; lng: number }[]
+  totalDistance: number
+  estimatedDuration: number
+  geometry: [number, number][]
+  twistyScore: number
+}
+
+// Feature 11: GPX
+export interface GpxImportResult {
+  id: string
+  fileName: string
+  routeCount: number
+  trackCount: number
+  status: string
+}
+
+// Feature 12: Challenges
+export interface ChallengeData {
+  id: string
+  title: string
+  description: string | null
+  type: string
+  goal: number
+  unit: string
+  startDate: string
+  endDate: string
+  isPublic: boolean
+  category: string
+  icon: string
+  points: number
+  participantCount: number
+  userProgress: number
+  userCompleted: boolean
+  daysRemaining: number
+}
+
+// Feature 14: Traffic
+export interface TrafficIncident {
+  id: string
+  type: string      // construction, accident, delay, closure
+  description: string
+  lat: number
+  lng: number
+  severity: string   // low, medium, high
+  updatedAt: string
+}
+
+// Feature 15: Map Styles
+export interface MapStyleConfig {
+  styleName: string
+  customUrl: string | null
+  overlayTraffic: boolean
+  overlayWeather: boolean
+  overlayHazards: boolean
+  overlayPois: boolean
+}
+
+// Feature 16: Service Centers
+export interface ServiceCenterData {
+  id: string
+  name: string
+  type: string
+  brand: string | null
+  lat: number
+  lng: number
+  distance: number
+  address: string | null
+  phone: string | null
+  website: string | null
+  rating: number
+  services: string[]
+}
+
+// Feature 17: Gamification
+export interface UserPointsData {
+  totalPoints: number
+  level: number
+  ridesPoints: number
+  socialPoints: number
+  challengePoints: number
+  streakDays: number
+  recentTransactions: PointsTransactionData[]
+}
+
+export interface PointsTransactionData {
+  id: string
+  amount: number
+  reason: string
+  createdAt: string
+}

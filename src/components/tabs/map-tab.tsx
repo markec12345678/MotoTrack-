@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useRef } from 'react'
 import dynamic from 'next/dynamic'
-import { Search, X, ChevronUp, ChevronDown, LocateFixed, Bike, Route as RouteIcon, Filter, MapPin, GitBranch, CloudRain, AlertTriangle, Radio, Plus, Send, Fuel, Users, Navigation, Trash2, Gauge, Star } from 'lucide-react'
+import { Search, X, ChevronUp, ChevronDown, LocateFixed, Bike, Route as RouteIcon, Filter, MapPin, GitBranch, CloudRain, AlertTriangle, Radio, Plus, Send, Fuel, Users, Navigation, Trash2, Gauge, Star, Layers } from 'lucide-react'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
@@ -10,6 +10,8 @@ import { ScrollArea } from '@/components/ui/scroll-area'
 import { Dialog, DialogContent, DialogTitle } from '@/components/ui/dialog'
 import { Slider } from '@/components/ui/slider'
 import { Label } from '@/components/ui/label'
+import MapStyleSelector from '@/components/map-style-selector'
+import TrafficOverlay from '@/components/traffic-overlay'
 import { toast } from 'sonner'
 import type { RideData, RouteData, PoiData, LiveRider, HazardData, FuelData, FriendshipData, ParkingData, RoadRatingData } from '@/components/tabs/types'
 import { categoryLabel, categoryColor, poiTypeLabel, poiTypeEmoji } from '@/components/tabs/types'
@@ -565,8 +567,9 @@ export default function MapTab({ rides, routes, onOpenDetail, userId }: MapTabPr
         </div>
       )}
 
-      {/* Locate button */}
-      <div className="absolute bottom-28 right-4 z-[1000]">
+      {/* Locate button & Map Style */}
+      <div className="absolute bottom-28 right-4 z-[1000] flex flex-col gap-2">
+        <MapStyleSelector userId={userId} />
         <Button size="icon" variant="secondary" className="h-10 w-10 rounded-full shadow-lg bg-background/90 backdrop-blur-md border border-border hover:bg-muted" onClick={handleLocate}>
           <LocateFixed className="h-5 w-5" />
         </Button>

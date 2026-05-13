@@ -24,6 +24,8 @@ import { Skeleton } from '@/components/ui/skeleton'
 import type { RideData, RouteData, UserData, PhotoData, EmergencyContactsData, SpeedAlertSettings, ExpenseData, MaintenanceReminderData } from '@/components/tabs/types'
 import { formatDuration, formatDate, categoryLabel, categoryColor } from '@/components/tabs/types'
 import AchievementsPanel from '@/components/tabs/achievements-panel'
+import PointsDisplay from '@/components/points-display'
+import BluetoothPanel from '@/components/bluetooth-panel'
 import { toast } from 'sonner'
 
 interface ProfileTabProps {
@@ -1139,6 +1141,12 @@ export default function ProfileTab({ user, allUsers, rides, routes, loading, onS
 
         {/* Achievements */}
         <AchievementsPanel userId={user.id} key={user.id} />
+
+        {/* Points & Level */}
+        <PointsDisplay userId={user.id} key={`pts-${user.id}`} />
+
+        {/* Bluetooth Helmet */}
+        <BluetoothPanel />
 
         {/* Photo Gallery */}
         <Card className="overflow-hidden border-primary/15">

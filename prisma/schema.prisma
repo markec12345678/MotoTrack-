@@ -54,6 +54,15 @@ model User {
   reminders    MaintenanceReminder[]
   createdGroupRides       GroupRide[]         @relation("GroupRideCreator")
   groupRideParticipations GroupRideParticipant[]
+  liveTrackingSessions    LiveTrackingSession[]
+  crashEvents             CrashEvent[]
+  leanAngleSessions       LeanAngleSession[]
+  gpxImports              GpxImport[]
+  createdChallenges       Challenge[]
+  challengeParticipations ChallengeParticipant[]
+  mapStyleConfig          MapStyleConfig?
+  userPoints              UserPoints?
+  pointsTransactions      PointsTransaction[]
 }
 
 model Ride {
@@ -366,4 +375,208 @@ model GroupRideParticipant {
 
   @@unique([groupRideId, userId])
   @@map("group_ride_participants")
+}
+
+// ==========================================
+// NEW MODELS - Top App Features
+// ==========================================
+
+// Feature 4: Live Tracking - share real-time location
+model LiveTrackingSession {
+  id          String   @id @default(cuid())
+  userId      String
+  user        User     @relation(fields: [userId], references: [id])
+  rideId      String?                     // optional link to a ride
+  lat         Float
+  lng         Float
+  speed       Float    @default(0)         // km/h
+  heading     Float    @default(0)         // degrees
+  shareToken  String   @unique             // public token for sharing link
+  isActive    Boolean  @default(true)
+  lastPingAt  DateTime @default(now())
+  createdAt   DateTime @default(now())
+
+  viewers     LiveTrackingViewer[]
+
+  @@index([userId, isActive])
+  @@map("live_tracking_sessions")
+}
+
+model LiveTrackingViewer {
+  id          String   @id @default(cuid())
+  sessionId   String
+  session     LiveTrackingSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  viewerName  String?                     // optional name of viewer
+  viewedAt    DateTime @default(now())
+
+  @@index([sessionId])
+  @@map("live_tracking_viewers")
+}
+
+// Feature 5: Crash Detection - automatic crash detection logs
+model CrashEvent {
+  id            String   @id @default(cuid())
+  userId        String
+  user          User     @relation(fields: [userId], references: [id])
+  lat           Float
+  lng           Float
+  gForce        Float    // detected g-force
+  speedBefore   Float    @default(0)  // km/h before crash
+  detectedAt    DateTime @default(now())
+  alertSent     Boolean  @default(false) // was emergency alert sent
+  alertSentTo   String?  // JSON: array of contact IDs notified
+  status        String   @default("detected") // detected, confirmed, false_alarm
+  resolvedAt    DateTime?
+  notes         String?
+
+  @@index([userId, detectedAt])
+  @@map("crash_events")
+}
+
+// Feature 8: Lean Angle tracking data
+model LeanAngleSession {
+  id          String   @id @default(cuid())
+  userId      String
+  user        User     @relation(fields: [userId], references: [id])
+  rideId      String?                     // optional link to ride
+  maxLeanLeft Float    @default(0)         // degrees
+  maxLeanRight Float   @default(0)         // degrees
+  avgLean     Float    @default(0)         // degrees
+  dataPoints  String                      // JSON: [{timestamp, lean, speed}]
+  duration    Int      @default(0)         // seconds
+  createdAt   DateTime @default(now())
+
+  @@index([userId])
+  @@map("lean_angle_sessions")
+}
+
+// Feature 11: GPX Import/Export history
+model GpxImport {
+  id          String   @id @default(cuid())
+  userId      String
+  user        User     @relation(fields: [userId], references: [id])
+  fileName    String
+  fileSize    Int      @default(0)         // bytes
+  routeCount  Int      @default(0)
+  trackCount  Int      @default(0)
+  status      String   @default("processing") // processing, completed, failed
+  resultData  String?  // JSON: summary of imported data
+  createdAt   DateTime @default(now())
+
+  @@index([userId])
+  @@map("gpx_imports")
+}
+
+// Feature 12: Challenges & Competitions
+model Challenge {
+  id          String   @id @default(cuid())
+  title       String
+  description String?
+  type        String   // distance, rides, elevation, speed, streak, custom
+  goal        Float                      // target value (km, count, meters, etc.)
+  unit        String   // km, rides, m, days
+  startDate   DateTime
+  endDate     DateTime
+  isPublic    Boolean  @default(true)
+  category    String   @default("monthly") // weekly, monthly, seasonal, yearly, special
+  icon        String   @default("🏆")
+  points      Int      @default(100)       // gamification points reward
+  creatorId   String?
+  creator     User?    @relation(fields: [creatorId], references: [id])
+  createdAt   DateTime @default(now())
+
+  participants ChallengeParticipant[]
+
+  @@index([startDate, endDate])
+  @@index([isPublic])
+  @@map("challenges")
+}
+
+model ChallengeParticipant {
+  id           String   @id @default(cuid())
+  challengeId  String
+  challenge    Challenge @relation(fields: [challengeId], references: [id], onDelete: Cascade)
+  userId       String
+  user         User     @relation(fields: [userId], references: [id])
+  progress     Float    @default(0)         // current progress value
+  completed    Boolean  @default(false)
+  completedAt  DateTime?
+  pointsEarned Int      @default(0)
+  joinedAt     DateTime @default(now())
+
+  @@unique([challengeId, userId])
+  @@index([userId])
+  @@map("challenge_participants")
+}
+
+// Feature 15: Map Styles (user preferences)
+model MapStyleConfig {
+  id          String   @id @default(cuid())
+  userId      String
+  user        User     @relation(fields: [userId], references: [id])
+  styleName   String   @default("streets") // streets, satellite, terrain, dark, topo, osm
+  customUrl   String?  // custom tile server URL
+  overlayTraffic Boolean @default(false)
+  overlayWeather Boolean @default(false)
+  overlayHazards Boolean @default(true)
+  overlayPois Boolean @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@unique([userId])
+  @@map("map_style_configs")
+}
+
+// Feature 16: Service/Dealer Locator
+model ServiceCenter {
+  id          String   @id @default(cuid())
+  name        String
+  type        String   // dealer, mechanic, tire_shop, parts, washing, inspection
+  brand       String?  // brand affiliation (BMW, Honda, Yamaha, etc.)
+  lat         Float
+  lng         Float
+  address     String?
+  phone       String?
+  website     String?
+  rating      Float    @default(0)
+  services    String?  // JSON: array of offered services
+  hours       String?  // JSON: opening hours
+  createdAt   DateTime @default(now())
+
+  @@index([lat, lng])
+  @@index([type])
+  @@map("service_centers")
+}
+
+// Feature 17: Gamification Points
+model UserPoints {
+  id              String   @id @default(cuid())
+  userId          String
+  user            User     @relation(fields: [userId], references: [id])
+  totalPoints     Int      @default(0)
+  level           Int      @default(1)
+  ridesPoints     Int      @default(0)   // points from rides
+  socialPoints    Int      @default(0)   // points from social activities
+  challengePoints Int      @default(0)   // points from challenges
+  streakDays      Int      @default(0)   // consecutive riding days
+  lastRideDate    DateTime?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@unique([userId])
+  @@index([totalPoints])
+  @@map("user_points")
+}
+
+model PointsTransaction {
+  id          String   @id @default(cuid())
+  userId      String
+  user        User     @relation(fields: [userId], references: [id])
+  amount      Int                        // positive = earn, negative = spend
+  reason      String   // ride_completed, challenge_won, social_share, etc.
+  relatedId   String?  // ID of related entity (ride, challenge, etc.)
+  createdAt   DateTime @default(now())
+
+  @@index([userId, createdAt])
+  @@map("points_transactions")
 }
