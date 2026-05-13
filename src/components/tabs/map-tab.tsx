@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useRef } from 'react'
 import dynamic from 'next/dynamic'
-import { Search, X, ChevronUp, ChevronDown, LocateFixed, Bike, Route as RouteIcon, Filter, MapPin, GitBranch, CloudRain, AlertTriangle, Radio, Plus, Send, Fuel, Users, Navigation, Trash2, Road, Star } from 'lucide-react'
+import { Search, X, ChevronUp, ChevronDown, LocateFixed, Bike, Route as RouteIcon, Filter, MapPin, GitBranch, CloudRain, AlertTriangle, Radio, Plus, Send, Fuel, Users, Navigation, Trash2, Gauge, Star } from 'lucide-react'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
@@ -480,7 +480,7 @@ export default function MapTab({ rides, routes, onOpenDetail, userId }: MapTabPr
           <Users className="h-4 w-4" />
         </Button>
         <Button size="icon" variant="secondary" className={`h-9 w-9 rounded-full shadow-lg backdrop-blur-md border border-border ${showRoadQuality ? 'bg-emerald-500 text-white' : 'bg-background/90 hover:bg-muted'}`} onClick={() => setShowRoadQuality(!showRoadQuality)} title="Kakovost ceste">
-          <Road className="h-4 w-4" />
+          <Gauge className="h-4 w-4" />
         </Button>
       </div>
 
@@ -974,7 +974,7 @@ export default function MapTab({ rides, routes, onOpenDetail, userId }: MapTabPr
         <div className="absolute bottom-20 left-4 z-[1000] bg-background/95 backdrop-blur-md border border-border rounded-2xl shadow-lg p-4 w-80 max-h-[70vh] flex flex-col">
           <div className="flex items-center justify-between mb-3">
             <div className="flex items-center gap-2">
-              <Road className="size-4 text-emerald-500" />
+              <Gauge className="size-4 text-emerald-500" />
               <span className="text-sm font-bold">Kakovost ceste</span>
             </div>
             <button onClick={() => setShowRoadQuality(false)} className="p-1 rounded-full hover:bg-muted transition-colors">
