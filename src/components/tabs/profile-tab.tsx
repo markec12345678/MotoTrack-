@@ -26,6 +26,7 @@ import { formatDuration, formatDate, categoryLabel, categoryColor } from '@/comp
 import AchievementsPanel from '@/components/tabs/achievements-panel'
 import PointsDisplay from '@/components/points-display'
 import BluetoothPanel from '@/components/bluetooth-panel'
+import OBDPanel from '@/components/obd-panel'
 import { toast } from 'sonner'
 
 interface ProfileTabProps {
@@ -1147,6 +1148,9 @@ export default function ProfileTab({ user, allUsers, rides, routes, loading, onS
 
         {/* Bluetooth Helmet */}
         <BluetoothPanel />
+
+        {/* OBD/IoT Connection */}
+        <OBDPanel userId={user?.id} />
 
         {/* Photo Gallery */}
         <Card className="overflow-hidden border-primary/15">

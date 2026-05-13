@@ -9,26 +9,27 @@ import { Label } from '@/components/ui/label'
 import { Badge } from '@/components/ui/badge'
 import type { TwistyRouteResult } from '@/components/tabs/types'
 import {
-  Spline,
-  Highway,
-  Zap,
+  Waypoints,
   Route as RouteIcon,
   Clock,
   Gauge,
   Loader2,
   ChevronDown,
   ChevronUp,
+  Zap,
 } from 'lucide-react'
 
 interface TwistyRoutePlannerProps {
+  userId?: string
   onGenerate?: (curviness: number, avoidHighways: boolean) => void
+  onRouteGenerated?: (waypoints: Array<{ lat: number; lng: number }>) => void
   result?: TwistyRouteResult | null
 }
 
 const CURVINESS_LABELS = ['Ravno', 'Rahlo vijugasto', 'Vijugasto', 'Zelo vijugasto', 'Ekstremno vijugasto']
 const CURVINESS_EMOJIS = ['➡️', '↗️', '↪️', '🌀', '🏎️']
 
-export default function TwistyRoutePlanner({ onGenerate, result }: TwistyRoutePlannerProps) {
+export default function TwistyRoutePlanner({ userId, onGenerate, onRouteGenerated, result }: TwistyRoutePlannerProps) {
   const [curviness, setCurviness] = useState(3)
   const [avoidHighways, setAvoidHighways] = useState(true)
   const [isGenerating, setIsGenerating] = useState(false)
@@ -36,8 +37,18 @@ export default function TwistyRoutePlanner({ onGenerate, result }: TwistyRoutePl
 
   const handleGenerate = async () => {
     setIsGenerating(true)
-    // Simulate generation delay
-    await new Promise(resolve => setTimeout(resolve, 1500))
+    try {
+      const res = await fetch(`/api/twisty-route?curviness=${curviness}&avoidHighways=${avoidHighways}`)
+      if (res.ok) {
+        const j = await res.json()
+        const waypoints = j.data?.waypoints || []
+        if (waypoints.length > 0 && onRouteGenerated) {
+          onRouteGenerated(waypoints)
+        }
+      }
+    } catch {
+      // fallback - just call onGenerate
+    }
     onGenerate?.(curviness, avoidHighways)
     setIsGenerating(false)
   }
@@ -46,7 +57,7 @@ export default function TwistyRoutePlanner({ onGenerate, result }: TwistyRoutePl
     <Card className="border-amber-500/30">
       <CardHeader className="pb-3">
         <CardTitle className="flex items-center gap-2 text-base">
-          <Spline className="h-5 w-5 text-amber-500" />
+          <Waypoints className="h-5 w-5 text-amber-500" />
           Vijugasta ruta
         </CardTitle>
       </CardHeader>
@@ -79,7 +90,7 @@ export default function TwistyRoutePlanner({ onGenerate, result }: TwistyRoutePl
         {/* Avoid highways toggle */}
         <div className="flex items-center justify-between rounded-lg bg-muted/50 p-3">
           <div className="flex items-center gap-2">
-            <Highway className="h-4 w-4 text-muted-foreground" />
+            <RouteIcon className="h-4 w-4 text-muted-foreground" />
             <Label className="text-sm cursor-pointer">Izogibaj se avtocestam</Label>
           </div>
           <Switch

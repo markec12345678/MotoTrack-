@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useState, useEffect, useCallback } from 'react'
+import React, { useState, useCallback } from 'react'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Switch } from '@/components/ui/switch'
@@ -35,8 +35,6 @@ export default function TrafficOverlay({ lat = 46.15, lng = 14.99, enabled = fal
     } catch { /* ignore */ }
     setLoading(false)
   }, [lat, lng])
-
-  useEffect(() => { if (enabled && !propIncidents) fetchTraffic() }, [enabled, propIncidents, fetchTraffic])
 
   return (
     <div className="space-y-2">

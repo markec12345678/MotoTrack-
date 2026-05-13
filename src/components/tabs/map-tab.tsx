@@ -12,8 +12,9 @@ import { Slider } from '@/components/ui/slider'
 import { Label } from '@/components/ui/label'
 import MapStyleSelector from '@/components/map-style-selector'
 import TrafficOverlay from '@/components/traffic-overlay'
+import NavigationPanel from '@/components/navigation-panel'
 import { toast } from 'sonner'
-import type { RideData, RouteData, PoiData, LiveRider, HazardData, FuelData, FriendshipData, ParkingData, RoadRatingData } from '@/components/tabs/types'
+import type { RideData, RouteData, PoiData, LiveRider, HazardData, FuelData, FriendshipData, ParkingData, RoadRatingData, NavigationRoute } from '@/components/tabs/types'
 import { categoryLabel, categoryColor, poiTypeLabel, poiTypeEmoji } from '@/components/tabs/types'
 
 const MotoMap = dynamic(() => import('@/components/moto-map'), { ssr: false })
@@ -93,6 +94,14 @@ export default function MapTab({ rides, routes, onOpenDetail, userId }: MapTabPr
   const [savingParking, setSavingParking] = useState(false)
   const [flyToParking, setFlyToParking] = useState<{ lat: number; lng: number; zoom: number } | undefined>(undefined)
   const [currentPosition, setCurrentPosition] = useState<{ lat: number; lng: number } | null>(null)
+
+  // Navigation state
+  const [navigationRoute, setNavigationRoute] = useState<NavigationRoute | null>(null)
+  const [showNavigation, setShowNavigation] = useState(false)
+  const [navigatingRoute, setNavigatingRoute] = useState<string | null>(null)
+
+  // Traffic state
+  const [showTraffic, setShowTraffic] = useState(false)
 
   // Road Quality state
   const [showRoadQuality, setShowRoadQuality] = useState(false)
@@ -481,6 +490,42 @@ export default function MapTab({ rides, routes, onOpenDetail, userId }: MapTabPr
         <Button size="icon" variant="secondary" className={`h-9 w-9 rounded-full shadow-lg backdrop-blur-md border border-border ${showFriendRides ? 'bg-blue-500 text-white' : 'bg-background/90 hover:bg-muted'}`} onClick={() => setShowFriendRides(!showFriendRides)} title="Prijateljeve vožnje">
           <Users className="h-4 w-4" />
         </Button>
+        <Button size="icon" variant="secondary" className={`h-9 w-9 rounded-full shadow-lg backdrop-blur-md border border-border ${showNavigation ? 'bg-amber-500 text-white' : 'bg-background/90 hover:bg-muted'}`} onClick={async () => {
+          if (!showNavigation && routes.length > 0) {
+            // Use the first public route for navigation demo
+            const firstRoute = routes[0]
+            try {
+              let waypoints: Array<{lat: number; lng: number}> = []
+              if (firstRoute.waypoints) {
+                waypoints = JSON.parse(firstRoute.waypoints)
+              } else if (firstRoute.startLat && firstRoute.startLng) {
+                waypoints = [{ lat: firstRoute.startLat, lng: firstRoute.startLng }]
+              }
+              if (waypoints.length >= 2) {
+                const res = await fetch(`/api/navigation?waypoints=${encodeURIComponent(JSON.stringify(waypoints))}`)
+                if (res.ok) {
+                  const j = await res.json()
+                  setNavigationRoute(j.data)
+                  setShowNavigation(true)
+                  toast.success('Navigacija zagnana!')
+                } else {
+                  toast.error('Napaka pri navigaciji')
+                }
+              } else {
+                toast.error('Pot nima dovolj točk za navigacijo')
+              }
+            } catch {
+              toast.error('Napaka pri navigaciji')
+            }
+          } else {
+            setShowNavigation(!showNavigation)
+          }
+        }} title="Turn-by-turn navigacija">
+          <Navigation className="h-4 w-4" />
+        </Button>
+        <Button size="icon" variant="secondary" className={`h-9 w-9 rounded-full shadow-lg backdrop-blur-md border border-border ${showTraffic ? 'bg-orange-500 text-white' : 'bg-background/90 hover:bg-muted'}`} onClick={() => setShowTraffic(!showTraffic)} title="Promet v živo">
+          <Layers className="h-4 w-4" />
+        </Button>
         <Button size="icon" variant="secondary" className={`h-9 w-9 rounded-full shadow-lg backdrop-blur-md border border-border ${showRoadQuality ? 'bg-emerald-500 text-white' : 'bg-background/90 hover:bg-muted'}`} onClick={() => setShowRoadQuality(!showRoadQuality)} title="Kakovost ceste">
           <Gauge className="h-4 w-4" />
         </Button>
@@ -574,6 +619,24 @@ export default function MapTab({ rides, routes, onOpenDetail, userId }: MapTabPr
           <LocateFixed className="h-5 w-5" />
         </Button>
       </div>
+
+      {/* Navigation Panel */}
+      {showNavigation && (
+        <NavigationPanel
+          route={navigationRoute}
+          onStartNavigation={() => setNavigatingRoute('active')}
+          onStopNavigation={() => { setNavigatingRoute(null); window.speechSynthesis?.cancel() }}
+        />
+      )}
+
+      {/* Traffic Overlay Panel */}
+      {showTraffic && (
+        <div className="absolute top-4 left-4 z-[1000] mt-[52px] max-w-md">
+          <div className="bg-background/95 backdrop-blur-md border border-border rounded-xl shadow-lg p-3">
+            <TrafficOverlay lat={fuelCenter.lat} lng={fuelCenter.lng} enabled={showTraffic} />
+          </div>
+        </div>
+      )}
 
       {/* Nearby panel */}
       <div className="absolute bottom-4 left-4 right-4 z-[1000]">

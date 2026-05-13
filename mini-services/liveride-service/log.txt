@@ -1,0 +1,2 @@
+$ bun --hot index.ts
+🟢 LiveRIDE WebSocket service running on port 3003

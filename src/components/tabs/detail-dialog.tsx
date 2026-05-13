@@ -20,6 +20,7 @@ import type { RideData, RouteData, CommentData, WeatherData, UserData, PhotoData
 import { formatDuration, formatDate, categoryLabel, categoryColor, difficultyLabel } from '@/components/tabs/types'
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell } from 'recharts'
 import ElevationProfile from '@/components/tabs/elevation-profile'
+import RideReplay3D from '@/components/ride-replay-3d'
 import { toast } from 'sonner'
 
 interface DetailDialogProps {
@@ -691,6 +692,19 @@ export default function DetailDialog({
             </div>
             {/* Elevation Profile */}
             <ElevationProfile trackData={(item as RideData).trackData} />
+
+            {/* 3D Ride Replay */}
+            {isRide && (item as RideData).trackData && (() => {
+              try {
+                const parsed = typeof (item as RideData).trackData === 'string'
+                  ? JSON.parse((item as RideData).trackData)
+                  : (item as RideData).trackData
+                const trackPoints: import('@/components/tabs/types').TrackPoint[] = parsed.map((p: number[]) => ({
+                  lat: p[0], lng: p[1], alt: p[2] ?? null, timestamp: p[3] ?? Date.now()
+                }))
+                return trackPoints.length >= 2 ? <RideReplay3D trackData={trackPoints} title="Rewind - Predvajaj vožnjo" /> : null
+              } catch { return null }
+            })()}
           </div>
         )}
 
