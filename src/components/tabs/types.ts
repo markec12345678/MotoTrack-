@@ -544,9 +544,12 @@ export interface RoundTripResult {
 export interface GpxImportResult {
   id: string
   fileName: string
+  fileSize?: number
   routeCount: number
   trackCount: number
   status: string
+  resultData?: string | null
+  createdAt?: string
 }
 
 // Feature 12: Challenges

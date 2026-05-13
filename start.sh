@@ -1,3 +1,7 @@
 #!/bin/bash
 cd /home/z/my-project
-exec node --max-old-space-size=1024 node_modules/.bin/next dev -p 3000
+while true; do
+  NODE_OPTIONS="--max-old-space-size=1024" npx next dev -p 3000
+  echo "Server crashed, restarting in 3 seconds..." >> /tmp/nextjs-restart.log
+  sleep 3
+done

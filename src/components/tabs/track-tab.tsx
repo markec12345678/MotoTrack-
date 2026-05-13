@@ -142,7 +142,7 @@ export default function TrackTab({
             <div className="mt-2 space-y-2 max-h-60 overflow-y-auto custom-scrollbar">
               <CrashDetectionPanel userId={userId} />
               <LiveTrackingPanel userId={userId} />
-              <LeanAngleDisplay currentAngle={0} />
+              <LeanAngleDisplay currentAngle={0} userId={userId} isTracking={isTracking} />
             </div>
           )}
         </div>

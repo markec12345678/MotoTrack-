@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useCallback } from 'react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Slider } from '@/components/ui/slider'
@@ -15,11 +15,15 @@ import {
   Spline,
   Loader2,
   Zap,
+  Shuffle,
+  MapPin,
 } from 'lucide-react'
+import { toast } from 'sonner'
 
 interface RoundTripGeneratorProps {
-  onGenerate?: (distance: number, direction: string, curviness: number) => void
-  result?: RoundTripResult | null
+  onGenerate?: (result: RoundTripResult) => void
+  startLat?: number
+  startLng?: number
 }
 
 const DIRECTIONS = [
@@ -33,17 +37,66 @@ const DIRECTIONS = [
   { id: 'NW', label: 'SZ', full: 'Severozahod' },
 ]
 
-export default function RoundTripGenerator({ onGenerate, result }: RoundTripGeneratorProps) {
+export default function RoundTripGenerator({ onGenerate, startLat = 46.05, startLng = 14.5 }: RoundTripGeneratorProps) {
   const [distance, setDistance] = useState(120)
   const [direction, setDirection] = useState('N')
   const [curviness, setCurviness] = useState(3)
   const [isGenerating, setIsGenerating] = useState(false)
+  const [result, setResult] = useState<RoundTripResult | null>(null)
+  const [error, setError] = useState<string | null>(null)
 
-  const handleGenerate = async () => {
+  const fetchRoundTrip = useCallback(async () => {
     setIsGenerating(true)
-    await new Promise(resolve => setTimeout(resolve, 1500))
-    onGenerate?.(distance, direction, curviness)
-    setIsGenerating(false)
+    setError(null)
+    try {
+      const params = new URLSearchParams({
+        startLat: startLat.toString(),
+        startLng: startLng.toString(),
+        distance: distance.toString(),
+        direction: direction,
+        curviness: curviness.toString(),
+      })
+      const res = await fetch(`/api/round-trip?${params}`)
+      if (!res.ok) {
+        const errData = await res.json().catch(() => ({}))
+        throw new Error(errData.error || `Napaka strežnika (${res.status})`)
+      }
+      const json = await res.json()
+      const data: RoundTripResult = json.data
+      setResult(data)
+      onGenerate?.(data)
+      toast.success(`Krožna ruta ustvarjena: ${Math.round(data.totalDistance / 1000)} km`)
+    } catch (err: any) {
+      setError(err.message || 'Napaka pri generiranju route')
+      toast.error('Napaka pri generiranju route', { description: err.message })
+    } finally {
+      setIsGenerating(false)
+    }
+  }, [startLat, startLng, distance, direction, curviness, onGenerate])
+
+  const handleShuffle = useCallback(() => {
+    // Pick a random direction to get a different route
+    const dirs = DIRECTIONS.map(d => d.id)
+    let newDir = direction
+    // Try to pick a different direction
+    const otherDirs = dirs.filter(d => d !== direction)
+    if (otherDirs.length > 0) {
+      newDir = otherDirs[Math.floor(Math.random() * otherDirs.length)]
+    }
+    setDirection(newDir)
+    // The fetchRoundTrip will use the new direction
+    // We need to trigger after state update, so use a slight delay
+    setTimeout(() => {
+      fetchRoundTrip()
+    }, 50)
+  }, [direction, fetchRoundTrip])
+
+  // Format duration nicely
+  const formatDuration = (seconds: number): string => {
+    const h = Math.floor(seconds / 3600)
+    const m = Math.floor((seconds % 3600) / 60)
+    if (h > 0) return `${h}h ${m}min`
+    return `${m} min`
   }
 
   return (
@@ -55,6 +108,12 @@ export default function RoundTripGenerator({ onGenerate, result }: RoundTripGene
         </CardTitle>
       </CardHeader>
       <CardContent className="space-y-4">
+        {/* Starting point info */}
+        <div className="flex items-center gap-2 text-[10px] text-muted-foreground">
+          <MapPin className="size-3" />
+          <span>Začetek: {startLat.toFixed(4)}, {startLng.toFixed(4)}</span>
+        </div>
+
         {/* Distance slider */}
         <div className="space-y-2">
           <div className="flex items-center justify-between">
@@ -123,24 +182,43 @@ export default function RoundTripGenerator({ onGenerate, result }: RoundTripGene
           />
         </div>
 
-        {/* Generate button */}
-        <Button
-          onClick={handleGenerate}
-          disabled={isGenerating}
-          className="w-full bg-emerald-600 hover:bg-emerald-700 gap-2"
-        >
-          {isGenerating ? (
-            <>
-              <Loader2 className="h-4 w-4 animate-spin" />
-              Ustvarjam ruto...
-            </>
-          ) : (
-            <>
-              <Zap className="h-4 w-4" />
-              Ustvari krožno ruto
-            </>
+        {/* Generate + Shuffle buttons */}
+        <div className="flex gap-2">
+          <Button
+            onClick={fetchRoundTrip}
+            disabled={isGenerating}
+            className="flex-1 bg-emerald-600 hover:bg-emerald-700 gap-2"
+          >
+            {isGenerating ? (
+              <>
+                <Loader2 className="h-4 w-4 animate-spin" />
+                Ustvarjam ruto...
+              </>
+            ) : (
+              <>
+                <Zap className="h-4 w-4" />
+                Generiraj
+              </>
+            )}
+          </Button>
+          {result && !isGenerating && (
+            <Button
+              variant="outline"
+              onClick={handleShuffle}
+              className="gap-1"
+              title="Ponovno generiraj z drugo smerjo"
+            >
+              <Shuffle className="size-4" />
+            </Button>
           )}
-        </Button>
+        </div>
+
+        {/* Error display */}
+        {error && (
+          <div className="rounded-lg bg-red-500/10 border border-red-500/20 p-3">
+            <p className="text-xs text-red-500">{error}</p>
+          </div>
+        )}
 
         {/* Result preview */}
         {result && (
@@ -162,7 +240,7 @@ export default function RoundTripGenerator({ onGenerate, result }: RoundTripGene
               </div>
               <div className="flex flex-col items-center rounded-md bg-muted/50 p-2">
                 <Clock className="h-4 w-4 text-muted-foreground mb-1" />
-                <span className="text-xs font-medium">{Math.round(result.estimatedDuration / 60)} min</span>
+                <span className="text-xs font-medium">{formatDuration(result.estimatedDuration)}</span>
                 <span className="text-[10px] text-muted-foreground">Trajanje</span>
               </div>
               <div className="flex flex-col items-center rounded-md bg-muted/50 p-2">

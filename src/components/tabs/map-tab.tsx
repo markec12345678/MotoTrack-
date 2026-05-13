@@ -633,7 +633,7 @@ export default function MapTab({ rides, routes, onOpenDetail, userId }: MapTabPr
       {showTraffic && (
         <div className="absolute top-4 left-4 z-[1000] mt-[52px] max-w-md">
           <div className="bg-background/95 backdrop-blur-md border border-border rounded-xl shadow-lg p-3">
-            <TrafficOverlay lat={fuelCenter.lat} lng={fuelCenter.lng} enabled={showTraffic} />
+            <TrafficOverlay lat={fuelCenter.lat} lng={fuelCenter.lng} enabled={showTraffic} userId={userId} />
           </div>
         </div>
       )}

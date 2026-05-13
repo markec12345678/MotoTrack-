@@ -706,7 +706,7 @@ export default function PlanTab({
             <div className="space-y-3">
               <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Napredna orodja</h3>
               <TwistyRoutePlanner userId={userId} onRouteGenerated={(wps) => { setWaypoints(wps) }} />
-              <OfflineMapsManager />
+              <OfflineMapsManager userId={userId} />
               <GpxManager userId={userId} onRefresh={onRefresh} />
             </div>
           </div>

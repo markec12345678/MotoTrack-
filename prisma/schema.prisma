@@ -63,6 +63,7 @@ model User {
   mapStyleConfig          MapStyleConfig?
   userPoints              UserPoints?
   pointsTransactions      PointsTransaction[]
+  offlineMaps             OfflineMap[]
 }
 
 model Ride {
@@ -579,4 +580,16 @@ model PointsTransaction {
 
   @@index([userId, createdAt])
   @@map("points_transactions")
+}
+
+// Feature 2: Offline Maps - persisted download status
+model OfflineMap {
+  id            String   @id @default(cuid())
+  regionId      String   @unique              // maps to the region identifier (e.g. "slovenia-full")
+  userId        String
+  user          User     @relation(fields: [userId], references: [id])
+  downloadedAt  DateTime @default(now())
+
+  @@index([userId])
+  @@map("offline_maps")
 }

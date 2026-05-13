@@ -5,6 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Badge } from '@/components/ui/badge'
+import { Label } from '@/components/ui/label'
 import type { LiveTrackingSession } from '@/components/tabs/types'
 import {
   Radio,
@@ -16,7 +17,9 @@ import {
   StopCircle,
   Play,
   Share2,
+  Loader2,
 } from 'lucide-react'
+import { toast } from 'sonner'
 
 interface LiveTrackingPanelProps {
   userId?: string
@@ -28,8 +31,62 @@ export default function LiveTrackingPanel({ userId, onSessionChange }: LiveTrack
   const [session, setSession] = useState<LiveTrackingSession | null>(null)
   const [copied, setCopied] = useState(false)
   const [duration, setDuration] = useState(0)
+  const [viewerCount, setViewerCount] = useState(0)
+  const [loading, setLoading] = useState(false)
+  const [currentSpeed, setCurrentSpeed] = useState(0)
+  const [currentHeading, setCurrentHeading] = useState(0)
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null)
+  const watchRef = useRef<number | null>(null)
+  const updateIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null)
+  const lastPositionRef = useRef<{ lat: number; lng: number; speed: number; heading: number } | null>(null)
+  const sessionRef = useRef<LiveTrackingSession | null>(null)
 
+  // Keep sessionRef in sync
+  useEffect(() => {
+    sessionRef.current = session
+  }, [session])
+
+  // Fetch active sessions on mount
+  useEffect(() => {
+    if (!userId) return
+
+    const fetchActiveSession = async () => {
+      try {
+        const res = await fetch(`/api/live-tracking?userId=${encodeURIComponent(userId)}`)
+        if (!res.ok) return
+        const json = await res.json()
+        const sessions = json.data as Array<LiveTrackingSession & { viewerCount?: number }>
+        const activeSession = sessions?.find(s => s.isActive)
+        if (activeSession) {
+          const fullUrl = `${typeof window !== 'undefined' ? window.location.origin : ''}/live/${activeSession.shareToken}`
+          const restored: LiveTrackingSession = {
+            id: activeSession.id,
+            shareToken: activeSession.shareToken,
+            shareUrl: fullUrl,
+            isActive: true,
+            startedAt: activeSession.startedAt,
+            viewerCount: activeSession.viewerCount ?? 0,
+          }
+          setSession(restored)
+          setIsActive(true)
+          setViewerCount(activeSession.viewerCount ?? 0)
+
+          // Calculate duration from start
+          const startMs = new Date(activeSession.startedAt).getTime()
+          const elapsed = Math.floor((Date.now() - startMs) / 1000)
+          setDuration(elapsed)
+
+          onSessionChange?.(restored)
+        }
+      } catch {
+        // Silently fail on mount
+      }
+    }
+
+    fetchActiveSession()
+  }, [userId, onSessionChange])
+
+  // Duration timer
   useEffect(() => {
     if (isActive) {
       timerRef.current = setInterval(() => {
@@ -43,6 +100,75 @@ export default function LiveTrackingPanel({ userId, onSessionChange }: LiveTrack
     }
   }, [isActive])
 
+  // Poll viewer count while active
+  useEffect(() => {
+    if (!isActive || !userId) return
+
+    const pollViewers = async () => {
+      try {
+        const res = await fetch(`/api/live-tracking?userId=${encodeURIComponent(userId)}`)
+        if (!res.ok) return
+        const json = await res.json()
+        const sessions = json.data as Array<LiveTrackingSession & { viewerCount?: number }>
+        const current = sessions?.find(s => s.id === sessionRef.current?.id)
+        if (current?.viewerCount !== undefined) {
+          setViewerCount(current.viewerCount)
+        }
+      } catch {
+        // Silently fail
+      }
+    }
+
+    const interval = setInterval(pollViewers, 10000)
+    return () => clearInterval(interval)
+  }, [isActive, userId])
+
+  // Send position updates to API periodically while tracking
+  const startPositionUpdates = useCallback((sessionId: string) => {
+    if (updateIntervalRef.current) clearInterval(updateIntervalRef.current)
+
+    updateIntervalRef.current = setInterval(async () => {
+      const pos = lastPositionRef.current
+      if (!pos) return
+
+      try {
+        await fetch('/api/live-tracking', {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            sessionId,
+            lat: pos.lat,
+            lng: pos.lng,
+            speed: pos.speed,
+            heading: pos.heading,
+          }),
+        })
+      } catch {
+        // Silently fail
+      }
+    }, 5000) // Update every 5 seconds
+  }, [])
+
+  // Clean up all tracking resources
+  const cleanupTracking = useCallback(() => {
+    if (watchRef.current !== null) {
+      navigator.geolocation.clearWatch(watchRef.current)
+      watchRef.current = null
+    }
+    if (updateIntervalRef.current) {
+      clearInterval(updateIntervalRef.current)
+      updateIntervalRef.current = null
+    }
+    lastPositionRef.current = null
+  }, [])
+
+  // Cleanup on unmount
+  useEffect(() => {
+    return () => {
+      cleanupTracking()
+    }
+  }, [cleanupTracking])
+
   const formatDuration = useCallback((seconds: number) => {
     const h = Math.floor(seconds / 3600)
     const m = Math.floor((seconds % 3600) / 60)
@@ -50,25 +176,123 @@ export default function LiveTrackingPanel({ userId, onSessionChange }: LiveTrack
     return `${h.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`
   }, [])
 
-  const handleStart = () => {
-    const newSession: LiveTrackingSession = {
-      id: `lt-${Date.now()}`,
-      shareToken: Math.random().toString(36).substring(2, 10),
-      shareUrl: `${typeof window !== 'undefined' ? window.location.origin : ''}/track/live/${Math.random().toString(36).substring(2, 10)}`,
-      isActive: true,
-      startedAt: new Date().toISOString(),
-      viewerCount: 0,
+  const handleStart = async () => {
+    if (!userId) {
+      toast.error('Prijava je potrebna za sledenje v živo')
+      return
     }
-    setSession(newSession)
-    setIsActive(true)
-    setDuration(0)
-    onSessionChange?.(newSession)
+
+    setLoading(true)
+
+    try {
+      // Get current position first
+      const position = await new Promise<GeolocationPosition>((resolve, reject) => {
+        navigator.geolocation.getCurrentPosition(resolve, reject, {
+          enableHighAccuracy: true,
+          timeout: 10000,
+        })
+      })
+
+      const lat = position.coords.latitude
+      const lng = position.coords.longitude
+      const speed = position.coords.speed ?? 0
+      const heading = position.coords.heading ?? 0
+
+      // Create session via API
+      const res = await fetch('/api/live-tracking', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ userId, lat, lng, speed, heading }),
+      })
+
+      if (!res.ok) {
+        const err = await res.json()
+        throw new Error(err.error || 'Napaka pri ustvarjanju seje')
+      }
+
+      const json = await res.json()
+      const fullUrl = `${typeof window !== 'undefined' ? window.location.origin : ''}/live/${json.data.shareToken}`
+      const newSession: LiveTrackingSession = {
+        id: json.data.id,
+        shareToken: json.data.shareToken,
+        shareUrl: fullUrl,
+        isActive: true,
+        startedAt: json.data.startedAt,
+        viewerCount: json.data.viewerCount ?? 0,
+      }
+
+      setSession(newSession)
+      setIsActive(true)
+      setDuration(0)
+      setViewerCount(0)
+      setCurrentSpeed(speed)
+      setCurrentHeading(heading)
+      onSessionChange?.(newSession)
+
+      // Store initial position
+      lastPositionRef.current = { lat, lng, speed, heading }
+
+      // Start watching GPS position
+      watchRef.current = navigator.geolocation.watchPosition(
+        (pos) => {
+          const newLat = pos.coords.latitude
+          const newLng = pos.coords.longitude
+          const newSpeed = pos.coords.speed ?? 0
+          const newHeading = pos.coords.heading ?? 0
+
+          lastPositionRef.current = { lat: newLat, lng: newLng, speed: newSpeed, heading: newHeading }
+          setCurrentSpeed(newSpeed)
+          setCurrentHeading(newHeading)
+        },
+        (err) => {
+          console.warn('GPS watch error:', err.message)
+        },
+        { enableHighAccuracy: true, maximumAge: 2000, timeout: 10000 }
+      )
+
+      // Start periodic position updates to API
+      startPositionUpdates(json.data.id)
+
+      toast.success('Sledenje v živo začeto!')
+    } catch (err: any) {
+      if (err instanceof GeolocationPositionError) {
+        toast.error('Dostop do lokacije zavrnjen. Omogočite GPS.')
+      } else {
+        toast.error(err.message || 'Napaka pri začetku sledenja')
+      }
+    } finally {
+      setLoading(false)
+    }
   }
 
-  const handleStop = () => {
-    setIsActive(false)
-    setDuration(0)
-    onSessionChange?.(null)
+  const handleStop = async () => {
+    if (!session) return
+
+    try {
+      const res = await fetch('/api/live-tracking', {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ sessionId: session.id }),
+      })
+
+      if (!res.ok) {
+        const err = await res.json()
+        throw new Error(err.error || 'Napaka pri ustavitvi seje')
+      }
+
+      cleanupTracking()
+      setIsActive(false)
+      setDuration(0)
+      setViewerCount(0)
+      setCurrentSpeed(0)
+      setCurrentHeading(0)
+      onSessionChange?.(null)
+      setSession(null)
+
+      toast.success('Sledenje v živo ustavljeno')
+    } catch (err: any) {
+      toast.error(err.message || 'Napaka pri ustavitvi sledenja')
+    }
   }
 
   const handleCopyLink = async () => {
@@ -77,8 +301,9 @@ export default function LiveTrackingPanel({ userId, onSessionChange }: LiveTrack
         await navigator.clipboard.writeText(session.shareUrl)
         setCopied(true)
         setTimeout(() => setCopied(false), 2000)
+        toast.success('Povezava kopirana!')
       } catch {
-        // Fallback
+        toast.error('Kopiranje ni uspelo')
       }
     }
   }
@@ -108,8 +333,20 @@ export default function LiveTrackingPanel({ userId, onSessionChange }: LiveTrack
               </div>
               <div className="flex flex-col items-center rounded-lg bg-muted/50 p-3">
                 <Eye className="h-4 w-4 text-muted-foreground mb-1" />
-                <span className="text-lg font-bold">{session.viewerCount}</span>
+                <span className="text-lg font-bold">{viewerCount}</span>
                 <span className="text-[10px] text-muted-foreground">Gledalci</span>
+              </div>
+            </div>
+
+            {/* Speed & heading info */}
+            <div className="grid grid-cols-2 gap-2">
+              <div className="flex flex-col items-center rounded-lg bg-muted/50 p-2">
+                <span className="text-sm font-bold">{Math.round(currentSpeed * 3.6)} km/h</span>
+                <span className="text-[10px] text-muted-foreground">Hitrost</span>
+              </div>
+              <div className="flex flex-col items-center rounded-lg bg-muted/50 p-2">
+                <span className="text-sm font-bold">{Math.round(currentHeading)}°</span>
+                <span className="text-[10px] text-muted-foreground">Smer</span>
               </div>
             </div>
 
@@ -194,18 +431,19 @@ export default function LiveTrackingPanel({ userId, onSessionChange }: LiveTrack
 
             <Button
               onClick={handleStart}
+              disabled={loading || !userId}
               className="w-full bg-emerald-600 hover:bg-emerald-700 gap-2"
             >
-              <Play className="h-4 w-4" />
-              Začni sledenje v živo
+              {loading ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                <Play className="h-4 w-4" />
+              )}
+              {loading ? 'Pridobivanje lokacije...' : 'Začni sledenje v živo'}
             </Button>
           </>
         )}
       </CardContent>
     </Card>
   )
-}
-
-function Label({ className, children, ...props }: React.LabelHTMLAttributes<HTMLLabelElement> & { className?: string }) {
-  return <label className={className} {...props}>{children}</label>
 }

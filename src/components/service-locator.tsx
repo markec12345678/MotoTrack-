@@ -27,7 +27,7 @@ export default function ServiceLocator({ userId }: { userId?: string }) {
   const fetchCenters = useCallback(async () => {
     setLoading(true)
     try {
-      const params = new URLSearchParams({ lat: '46.15', lng: '14.99', radius: String(radius[0] * 1000) })
+      const params = new URLSearchParams({ lat: '46.15', lng: '14.99', radius: String(radius[0]) })
       if (typeFilter && typeFilter !== 'all') params.set('type', typeFilter)
       const res = await fetch(`/api/services?${params}`)
       if (res.ok) {

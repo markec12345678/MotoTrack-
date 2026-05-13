@@ -61,6 +61,18 @@ export async function POST(request: NextRequest) {
     }
 
     if (points.length < 2) {
+      // Record failed import
+      await db.gpxImport.create({
+        data: {
+          userId,
+          fileName: file.name,
+          fileSize: file.size,
+          routeCount: 0,
+          trackCount: 0,
+          status: 'failed',
+          resultData: JSON.stringify({ error: 'GPX datoteka ne vsebuje dovolj točk' }),
+        },
+      })
       return NextResponse.json({ error: 'GPX datoteka ne vsebuje dovolj točk (najmanj 2)' }, { status: 400 })
     }
 
@@ -97,7 +109,24 @@ export async function POST(request: NextRequest) {
       },
     })
 
-    return NextResponse.json({ data: route })
+    // Count tracks (trk elements) and routes (rte elements)
+    const trackCount = (text.match(/<trk[\s>]/g) || []).length
+    const rteCount = (text.match(/<rte[\s>]/g) || []).length
+
+    // Create GPX import record
+    const gpxImport = await db.gpxImport.create({
+      data: {
+        userId,
+        fileName: file.name,
+        fileSize: file.size,
+        routeCount: 1 + rteCount,
+        trackCount,
+        status: 'completed',
+        resultData: JSON.stringify({ routeId: route.id, routeName: name, distance: Math.round(totalDistance * 10) / 10 }),
+      },
+    })
+
+    return NextResponse.json({ data: route, import: gpxImport })
   } catch (error) {
     console.error('GPX import error:', error)
     return NextResponse.json({ error: 'Napaka pri uvozu GPX' }, { status: 500 })

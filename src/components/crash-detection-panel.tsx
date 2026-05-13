@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect, useCallback, useRef } from 'react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Switch } from '@/components/ui/switch'
@@ -16,52 +16,241 @@ import {
   CheckCircle,
   AlertTriangle,
   XCircle,
+  Loader2,
 } from 'lucide-react'
+import { toast } from 'sonner'
 
 interface CrashDetectionPanelProps {
   userId?: string
-  emergencyContacts?: Array<{ name: string; phone: string }>
 }
-
-const MOCK_CRASH_HISTORY: CrashEvent[] = [
-  {
-    id: 'crash-1',
-    userId: 'user-1',
-    lat: 46.0569,
-    lng: 14.5058,
-    gForce: 3.2,
-    speedBefore: 45,
-    detectedAt: '2024-03-15T14:30:00Z',
-    alertSent: true,
-    status: 'false_alarm',
-    notes: 'Zdrsnil na mokri cesti',
-  },
-  {
-    id: 'crash-2',
-    userId: 'user-1',
-    lat: 46.2397,
-    lng: 14.3556,
-    gForce: 5.8,
-    speedBefore: 60,
-    detectedAt: '2024-04-02T09:15:00Z',
-    alertSent: true,
-    status: 'confirmed',
-    notes: null,
-  },
-]
 
 type Sensitivity = 'low' | 'medium' | 'high'
 
-export default function CrashDetectionPanel({ userId, emergencyContacts }: CrashDetectionPanelProps) {
+const SENSITIVITY_THRESHOLDS: Record<Sensitivity, number> = {
+  low: 4.0,
+  medium: 3.0,
+  high: 2.5,
+}
+
+export default function CrashDetectionPanel({ userId }: CrashDetectionPanelProps) {
   const [enabled, setEnabled] = useState(true)
   const [sensitivity, setSensitivity] = useState<Sensitivity>('medium')
   const [isTesting, setIsTesting] = useState(false)
-  const [crashHistory] = useState<CrashEvent[]>(MOCK_CRASH_HISTORY)
+  const [crashHistory, setCrashHistory] = useState<CrashEvent[]>([])
+  const [loadingHistory, setLoadingHistory] = useState(false)
+  const [iceContacts, setIceContacts] = useState<Array<{ name: string; phone: string }>>([])
 
+  const enabledRef = useRef(enabled)
+  const sensitivityRef = useRef(sensitivity)
+  const userIdRef = useRef(userId)
+  const crashCooldownRef = useRef(false)
+
+  // Keep refs in sync with state
+  useEffect(() => { enabledRef.current = enabled }, [enabled])
+  useEffect(() => { sensitivityRef.current = sensitivity }, [sensitivity])
+  useEffect(() => { userIdRef.current = userId }, [userId])
+
+  // Fetch crash history from API
+  const fetchCrashHistory = useCallback(async () => {
+    if (!userId) return
+    setLoadingHistory(true)
+    try {
+      const res = await fetch(`/api/crash-detection?userId=${userId}`)
+      if (res.ok) {
+        const json = await res.json()
+        const events: CrashEvent[] = (json.data || []).map((e: any) => ({
+          id: e.id,
+          userId: e.userId,
+          lat: e.lat,
+          lng: e.lng,
+          gForce: e.gForce,
+          speedBefore: e.speedBefore,
+          detectedAt: e.detectedAt,
+          alertSent: e.alertSent,
+          status: e.status,
+          notes: e.notes,
+        }))
+        setCrashHistory(events)
+      }
+    } catch {
+      // Silently fail — UI will just show empty history
+    } finally {
+      setLoadingHistory(false)
+    }
+  }, [userId])
+
+  // Fetch ICE contacts from API
+  const fetchIceContacts = useCallback(async () => {
+    if (!userId) return
+    try {
+      const res = await fetch(`/api/emergency-contacts?userId=${userId}`)
+      if (res.ok) {
+        const json = await res.json()
+        const data = json.data
+        const contacts: Array<{ name: string; phone: string }> = []
+        if (data?.iceName1 && data?.icePhone1) {
+          contacts.push({ name: data.iceName1, phone: data.icePhone1 })
+        }
+        if (data?.iceName2 && data?.icePhone2) {
+          contacts.push({ name: data.iceName2, phone: data.icePhone2 })
+        }
+        setIceContacts(contacts)
+      }
+    } catch {
+      // Silently fail
+    }
+  }, [userId])
+
+  // Initial data fetch
+  useEffect(() => {
+    fetchCrashHistory()
+    fetchIceContacts()
+  }, [fetchCrashHistory, fetchIceContacts])
+
+  // DeviceMotionEvent listener for real crash detection
+  useEffect(() => {
+    if (!enabled || !userId) return
+
+    const handleMotion = (event: DeviceMotionEvent) => {
+      if (!enabledRef.current || crashCooldownRef.current) return
+
+      const acc = event.accelerationIncludingGravity
+      if (!acc || acc.x === null || acc.y === null || acc.z === null) return
+
+      // Calculate total g-force from acceleration values
+      const gForce = Math.sqrt(acc.x * acc.x + acc.y * acc.y + acc.z * acc.z) / 9.81
+      const threshold = SENSITIVITY_THRESHOLDS[sensitivityRef.current]
+
+      if (gForce >= threshold) {
+        crashCooldownRef.current = true
+
+        // Get current position for crash event
+        navigator.geolocation?.getCurrentPosition(
+          async (pos) => {
+            try {
+              const res = await fetch('/api/crash-detection', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                  userId: userIdRef.current,
+                  lat: pos.coords.latitude,
+                  lng: pos.coords.longitude,
+                  gForce: Math.round(gForce * 10) / 10,
+                  speedBefore: Math.round((pos.coords.speed ?? 0) * 3.6), // m/s to km/h
+                }),
+              })
+              if (res.ok) {
+                toast.error('Zaznan trk!', {
+                  description: `G-sila: ${gForce.toFixed(1)}G — SOS alert poslan`,
+                  duration: 10000,
+                })
+                fetchCrashHistory()
+              }
+            } catch {
+              toast.error('Napaka pri pošiljanju alerta')
+            } finally {
+              // Cooldown: prevent duplicate alerts for 10 seconds
+              setTimeout(() => { crashCooldownRef.current = false }, 10000)
+            }
+          },
+          async () => {
+            // Geolocation failed — post with default coords
+            try {
+              await fetch('/api/crash-detection', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                  userId: userIdRef.current,
+                  lat: 46.0569,
+                  lng: 14.5058,
+                  gForce: Math.round(gForce * 10) / 10,
+                  speedBefore: 0,
+                }),
+              })
+              toast.error('Zaznan trk!', { description: `G-sila: ${gForce.toFixed(1)}G` })
+              fetchCrashHistory()
+            } catch {
+              // silently fail
+            } finally {
+              setTimeout(() => { crashCooldownRef.current = false }, 10000)
+            }
+          },
+          { timeout: 5000 }
+        )
+      }
+    }
+
+    // Check if DeviceMotionEvent is available and requires permission (iOS 13+)
+    let cleanup = false
+
+    const startListening = () => {
+      if (cleanup) return
+      window.addEventListener('devicemotion', handleMotion)
+    }
+
+    if (typeof DeviceMotionEvent !== 'undefined' && typeof (DeviceMotionEvent as any).requestPermission === 'function') {
+      // iOS 13+ requires user permission
+      // We don't auto-request permission — it will be requested when user enables detection
+      // For now, just try to listen (will work if already granted)
+      startListening()
+    } else if (typeof DeviceMotionEvent !== 'undefined') {
+      startListening()
+    }
+
+    return () => {
+      cleanup = true
+      window.removeEventListener('devicemotion', handleMotion)
+    }
+  }, [enabled, userId, fetchCrashHistory])
+
+  // Test button — simulate a crash event via the API
   const handleTest = async () => {
+    if (!userId) {
+      toast.error('Manjka userId')
+      return
+    }
     setIsTesting(true)
-    await new Promise(resolve => setTimeout(resolve, 2000))
-    setIsTesting(false)
+    try {
+      // Get current position for test event
+      const getPosition = (): Promise<{ lat: number; lng: number }> =>
+        new Promise((resolve) => {
+          navigator.geolocation?.getCurrentPosition(
+            (pos) => resolve({ lat: pos.coords.latitude, lng: pos.coords.longitude }),
+            () => resolve({ lat: 46.0569, lng: 14.5058 }),
+            { timeout: 5000 }
+          )
+        })
+
+      const { lat, lng } = await getPosition()
+
+      const res = await fetch('/api/crash-detection', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          userId,
+          lat,
+          lng,
+          gForce: 3.5,
+          speedBefore: 45,
+        }),
+      })
+
+      if (res.ok) {
+        const json = await res.json()
+        toast.success('Testni trk zaznan', {
+          description: json.data?.alertSent
+            ? 'SOS alert poslan kontaktem v sili'
+            : 'Dogodek zabeležen (brez alerta)',
+        })
+        fetchCrashHistory()
+      } else {
+        toast.error('Napaka pri testiranju')
+      }
+    } catch {
+      toast.error('Napaka pri testiranju')
+    } finally {
+      setIsTesting(false)
+    }
   }
 
   const statusConfig: Record<CrashEvent['status'], { label: string; icon: React.ReactNode; color: string }> = {
@@ -83,9 +272,9 @@ export default function CrashDetectionPanel({ userId, emergencyContacts }: Crash
   }
 
   const sensitivityConfig: Record<Sensitivity, { label: string; description: string; gThreshold: string }> = {
-    low: { label: 'Nizka', description: 'Samo močni udarci', gThreshold: '> 5G' },
-    medium: { label: 'Srednja', description: 'Zmerne in močne nesreče', gThreshold: '> 3G' },
-    high: { label: 'Visoka', description: 'Vsi udarci in trki', gThreshold: '> 1.5G' },
+    low: { label: 'Nizka', description: 'Samo močni udarci', gThreshold: `> ${SENSITIVITY_THRESHOLDS.low}G` },
+    medium: { label: 'Srednja', description: 'Zmerne in močne nesreče', gThreshold: `> ${SENSITIVITY_THRESHOLDS.medium}G` },
+    high: { label: 'Visoka', description: 'Vsi udarci in trki', gThreshold: `> ${SENSITIVITY_THRESHOLDS.high}G` },
   }
 
   return (
@@ -157,13 +346,13 @@ export default function CrashDetectionPanel({ userId, emergencyContacts }: Crash
         )}
 
         {/* Emergency contacts */}
-        {emergencyContacts && emergencyContacts.length > 0 && (
+        {iceContacts.length > 0 && (
           <div className="space-y-2">
             <span className="text-sm text-muted-foreground flex items-center gap-1">
               <Phone className="h-3.5 w-3.5" />
               Kontakti v sili
             </span>
-            {emergencyContacts.map((contact, i) => (
+            {iceContacts.map((contact, i) => (
               <div key={i} className="flex items-center justify-between rounded-md bg-muted/50 p-2">
                 <div className="flex items-center gap-2">
                   <Bell className="h-3.5 w-3.5 text-muted-foreground" />
@@ -189,18 +378,28 @@ export default function CrashDetectionPanel({ userId, emergencyContacts }: Crash
           disabled={!enabled || isTesting}
           className="w-full gap-2"
         >
-          <TestTube className="h-4 w-4" />
+          {isTesting ? (
+            <Loader2 className="h-4 w-4 animate-spin" />
+          ) : (
+            <TestTube className="h-4 w-4" />
+          )}
           {isTesting ? 'Testiram...' : 'Preizkusi zaznavanje'}
         </Button>
 
         {/* Crash history */}
-        {crashHistory.length > 0 && (
-          <div className="space-y-2">
-            <span className="text-sm text-muted-foreground">Zgodovina dogodkov</span>
+        <div className="space-y-2">
+          <span className="text-sm text-muted-foreground">Zgodovina dogodkov</span>
+          {loadingHistory && crashHistory.length === 0 ? (
+            <div className="flex items-center justify-center py-4">
+              <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
+            </div>
+          ) : crashHistory.length === 0 ? (
+            <p className="text-xs text-muted-foreground text-center py-2">Ni zgodovine dogodkov</p>
+          ) : (
             <ScrollArea className="max-h-40">
               <div className="space-y-2 pr-2">
                 {crashHistory.map(event => {
-                  const config = statusConfig[event.status]
+                  const config = statusConfig[event.status] || statusConfig.detected
                   return (
                     <div key={event.id} className="rounded-md border p-2 space-y-1">
                       <div className="flex items-center justify-between">
@@ -225,8 +424,8 @@ export default function CrashDetectionPanel({ userId, emergencyContacts }: Crash
                 })}
               </div>
             </ScrollArea>
-          </div>
-        )}
+          )}
+        </div>
       </CardContent>
     </Card>
   )

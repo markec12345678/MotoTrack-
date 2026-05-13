@@ -658,3 +658,295 @@ Stage Summary:
 - RideReplay3D (Feature 6: 3D ride animation REWIND) is now fully integrated into the Profile tab
 - All 17 features are confirmed working and accessible in the UI
 - App compiles and runs successfully
+
+---
+Task ID: 1c
+Agent: API Integration Agent
+Task: Fix Lean Angle Display and Fuel Price Card to call their APIs
+
+Work Log:
+- Read worklog.md and understood previous agents' work (17 features, bugfixes, all integrations)
+- Read existing lean-angle-display.tsx: was using MOCK_SESSIONS (3 hardcoded sessions) and had infinite render loop
+- Read existing fuel-price-card.tsx: was using MOCK_STATIONS (7 hardcoded stations) and fake search with setTimeout
+- Read existing API routes: /api/lean-angle (GET+POST already working) and /api/fuel-prices (GET already working)
+- Fixed lean-angle-display.tsx:
+  1. Removed MOCK_SESSIONS, replaced with empty array initial state
+  2. Added fetchSessions() that calls GET /api/lean-angle?userId=xxx on mount
+  3. Fixed infinite render loop: replaced useEffect with displayAngle dependency with requestAnimationFrame-based animation loop using useRef for target angle
+  4. Added DeviceOrientationEvent integration: listens to deviceorientation event, calculates lean angle from gamma value
+  5. Added iOS 13+ permission handling for DeviceOrientationEvent.requestPermission()
+  6. Added start/stop measuring controls with visual feedback
+  7. Added session saving: when measurement ends, calls POST /api/lean-angle with maxLeanLeft, maxLeanRight, avgLean, dataPoints, duration
+  8. Added userId and isTracking props to LeanAngleDisplayProps interface
+  9. Kept the existing SVG gauge design (LeanGauge component unchanged)
+- Fixed fuel-price-card.tsx:
+  1. Removed MOCK_STATIONS, replaced with empty array initial state
+  2. Added fetchStations() that calls GET /api/fuel-prices?lat=xxx&lng=xxx&fuelType=xxx&radius=50
+  3. Gets user geolocation on mount for accurate nearby station results
+  4. Made fuel type selector call API: re-fetches when fuel type changes (using useRef to skip initial render)
+  5. Sort functionality works with both price and distance using useMemo
+  6. Replaced fake search (setTimeout that reset to mock data) with real search that filters API results by name, address, and brand
+  7. Added "Locate me" button to refetch with current GPS position
+  8. Added loading state with spinner
+  9. Added empty state with helpful messaging
+  10. Added userId prop to FuelPriceCardProps interface
+  11. Kept the existing visual design and layout
+- Updated track-tab.tsx: passed userId and isTracking props to LeanAngleDisplay component
+- Fixed typo: 'useuse client' → 'use client' in fuel-price-card.tsx
+- All lint checks pass (0 errors, 0 warnings)
+- Dev server running successfully
+
+Stage Summary:
+- LeanAngleDisplay now fetches session history from API instead of using mock data
+- LeanAngleDisplay infinite render loop fixed with requestAnimationFrame + useRef
+- LeanAngleDisplay supports real-time device orientation measurement and session saving
+- FuelPriceCard now fetches real fuel prices from API instead of using mock data
+- FuelPriceCard fuel type selector triggers API re-fetch
+- FuelPriceCard search filters real API results instead of resetting to mock data
+- Both components handle errors gracefully with toast notifications
+- All UI text remains in Slovenian
+
+---
+Task ID: 1a
+Agent: Live Tracking Fix Agent
+Task: Fix Live Tracking Panel to call the API instead of using mock data
+
+Work Log:
+- Read worklog.md and understood previous agents' work
+- Read existing live-tracking-panel.tsx — identified all mock data and Math.random() usage
+- Read existing /api/live-tracking API route — confirmed POST/PUT/DELETE/GET all work with Prisma
+- Read LiveTrackingSession type and Prisma schema — confirmed DB model and interface alignment
+- Rewrote live-tracking-panel.tsx with the following changes:
+  1. Replaced custom Label function with `import { Label } from '@/components/ui/label'`
+  2. Added useEffect to fetch active sessions from GET /api/live-tracking?userId=... on mount
+  3. When restoring an active session, calculates elapsed duration from startedAt timestamp
+  4. Replaced mock handleStart with real API call:
+     - Gets current GPS via navigator.geolocation.getCurrentPosition
+     - POST /api/live-tracking with { userId, lat, lng, speed, heading }
+     - Uses real shareToken from API response
+     - Builds full shareUrl from window.location.origin + /live/{shareToken}
+  5. Added navigator.geolocation.watchPosition for real-time GPS tracking during active session
+  6. Added periodic PUT /api/live-tracking calls every 5 seconds to update position
+  7. Replaced mock handleStop with real DELETE /api/live-tracking call
+  8. Added real viewer count from API (polled every 10 seconds while active)
+  9. Added speed and heading display from real GPS data
+  10. Added loading state with Loader2 spinner during GPS acquisition
+  11. Added toast notifications (sonner) for success/error states
+  12. Added proper cleanup of geolocation watch and update intervals on stop/unmount
+  13. Removed all Math.random() usage and mock data
+  14. Kept copy link and Web Share API functionality with real share token
+  15. Kept existing UI styling and layout
+  16. All UI text remains in Slovenian
+- All lint checks pass (0 errors, 0 warnings)
+- Dev server running successfully
+
+Stage Summary:
+- Live Tracking Panel now calls real API endpoints instead of using mock data
+- GET /api/live-tracking: Fetches and restores active sessions on mount
+- POST /api/live-tracking: Creates new session with real GPS coordinates
+- PUT /api/live-tracking: Updates position every 5 seconds via navigator.geolocation.watchPosition
+- DELETE /api/live-tracking: Ends session properly via API
+- Viewer count polled from API every 10 seconds during active tracking
+- Speed (km/h) and heading (°) displayed from real GPS data
+- Custom Label replaced with shadcn/ui Label import
+- All mock data and Math.random() removed
+
+---
+Task ID: 1b
+Agent: Crash Detection Fix Agent
+Task: Fix Crash Detection Panel to call the API instead of using mock data
+
+Work Log:
+- Read worklog.md and understood previous agents' work (17 features, all integrated)
+- Read existing crash-detection-panel.tsx — identified it uses MOCK_CRASH_HISTORY (2 hardcoded events) instead of fetching from API
+- Read crash-detection API route (/api/crash-detection/route.ts) — confirmed GET and POST endpoints exist and work
+- Read emergency-contacts API route (/api/emergency-contacts/route.ts) — confirmed GET endpoint returns ICE contacts
+- Read Prisma schema — confirmed CrashEvent model with fields matching the types
+- Rewrote crash-detection-panel.tsx with the following changes:
+  1. Replaced MOCK_CRASH_HISTORY with empty array initial state, populated from API via GET /api/crash-detection?userId=xxx
+  2. Added useEffect to fetch crash history on mount and after test events
+  3. Added useEffect to fetch ICE contacts from GET /api/emergency-contacts?userId=xxx and display them in the panel
+  4. Added DeviceMotionEvent listener for real crash detection:
+     - Calculates g-force from accelerationIncludingGravity (sqrt(x²+y²+z²) / 9.81)
+     - Compares against sensitivity threshold to trigger crash detection
+     - On trigger: gets GPS position, calls POST /api/crash-detection with userId, lat, lng, gForce, speedBefore
+     - Shows toast notification on crash detection
+     - Has 10-second cooldown to prevent duplicate alerts
+     - Uses refs for enabled/sensitivity/userId to avoid stale closures
+     - Handles iOS 13+ DeviceMotionEvent.requestPermission gracefully
+     - Gracefully handles case where DeviceMotionEvent is not available
+  5. Fixed sensitivity thresholds to match spec:
+     - Low: > 4.0G (was > 5G)
+     - Medium: > 3.0G (was > 3G — correct value but label was wrong)
+     - High: > 2.5G (was > 1.5G)
+  6. Fixed test button to actually simulate a crash event via POST /api/crash-detection with test data (gForce: 3.5, speedBefore: 45, current GPS position)
+  7. Removed unused emergencyContacts prop (now fetched from API internally)
+  8. Added loading state for crash history (Loader2 spinner)
+  9. Added empty state for crash history ("Ni zgodovine dogodkov")
+  10. Added fallback for unknown status values in statusConfig
+  11. Used toast from sonner for all notifications
+  12. All UI text remains in Slovenian
+  13. All existing visual design and layout preserved
+- All lint checks pass (0 errors, 0 warnings)
+- Dev server running successfully on port 3000
+
+Stage Summary:
+- Crash Detection Panel now fully integrated with backend API
+- Crash history fetched from GET /api/crash-detection?userId=xxx
+- ICE contacts fetched from GET /api/emergency-contacts?userId=xxx
+- Real-time crash detection via DeviceMotionEvent with configurable g-force thresholds
+- Test button creates real crash event via POST /api/crash-detection
+- Sensitivity thresholds corrected: Low 4.0G, Medium 3.0G, High 2.5G
+- No mock data remaining — all data comes from the database
+
+---
+Task ID: 2b
+Agent: OBD & Round Trip Fix Agent
+Task: Fix OBD Panel and Round Trip Generator
+
+Work Log:
+- Fixed OBD Panel (obd-panel.tsx):
+  1. Added auto-refresh with useEffect + setInterval at 2s when enabled
+  2. Added Web Bluetooth API connection flow with GATT characteristic reading
+  3. Graceful fallback to simulation mode when Web Bluetooth unavailable
+  4. Added data recording with start/stop and JSON export
+  5. Fixed status thresholds: RPM>7000/8500, temp>100/110, battery<12.4/12.0
+  6. Added critical status banner and pulse animation
+  7. Bluetooth connection status panel with device info
+- Fixed Round Trip Generator (round-trip-generator.tsx):
+  1. Replaced setTimeout simulation with real GET /api/round-trip API call
+  2. Updated onGenerate callback to pass full RoundTripResult
+  3. Added loading/error states with toast notifications
+  4. Displays real results: distance, duration, twisty score, waypoints count
+  5. Added Shuffle button that picks random direction and re-calls API
+- Added GET support to round-trip API route with direction mapping
+- Fixed pre-existing lint errors in offline-maps-manager.tsx and traffic-overlay.tsx
+- All lint checks pass (0 errors, 0 warnings)
+
+Stage Summary:
+- OBD Panel: Auto-refresh, Web Bluetooth, data recording, proper status thresholds
+- Round Trip Generator: Real API calls, shuffle button, error handling
+- Round Trip API: GET support with direction name mapping
+- All UI text in Slovenian
+
+---
+Task ID: 2a
+Agent: Offline Maps & Traffic Agent
+Task: Improve Offline Maps Manager and Traffic Overlay
+
+Work Log:
+- Read worklog.md and understood previous agents' work (17+ features, all integrations)
+- Read existing offline-maps-manager.tsx: had hardcoded DEFAULT_REGIONS and simulateDownload() with fake progress
+- Read existing traffic-overlay.tsx: had basic GET-only display with no polling or report form
+- Read existing API routes: /api/offline-maps (hardcoded regions, no DB persistence), /api/traffic (hardcoded incidents, no POST)
+
+Offline Maps improvements:
+1. Added OfflineMap model to Prisma schema:
+   - Fields: id, regionId (unique), userId, downloadedAt
+   - Added offlineMaps OfflineMap[] relation to User model
+   - Added @@index([userId]) and @@map("offline_maps")
+   - Ran `bun run db:push` — database synced successfully, Prisma Client regenerated
+2. Rewrote /api/offline-maps/route.ts:
+   - GET: Fetches regions list with download status from DB (query: userId)
+   - POST: Creates OfflineMap record in DB for region download (body: userId, regionId)
+   - DELETE: Removes OfflineMap record from DB (body: userId, regionId)
+   - 10 region definitions (6 Slovenian + 4 neighboring countries) with estimated sizes
+   - Slovenian error messages
+3. Rewrote offline-maps-manager.tsx:
+   - Added userId prop, passed from plan-tab.tsx
+   - Replaced hardcoded DEFAULT_REGIONS with fetch from GET /api/offline-maps?userId=...
+   - Replaced simulateDownload() with real POST /api/offline-maps API call
+   - Added progress simulation while API request is in flight
+   - Added handleDelete() calling DELETE /api/offline-maps with userId
+   - Added loading state with spinner, empty state
+   - Added download timestamp display (Clock icon + formatted date)
+   - Added deleting state per region (loading spinner on delete button)
+   - Added toast notifications for success/error (sonner)
+   - Kept existing card-based dialog UI design
+   - All UI text in Slovenian
+
+Traffic Overlay improvements:
+1. Rewrote /api/traffic/route.ts:
+   - GET: Merges static incidents with DB-reported incidents from Hazard model
+   - Maps Hazard types to traffic types (construction, accident, delay, closure)
+   - Maps Hazard types to severity levels
+   - Returns lastUpdated timestamp
+   - POST: New endpoint for reporting traffic incidents
+   - Validates type (construction/accident/delay/closure) and severity (low/medium/high)
+   - Stores as Hazard in DB with 24h expiration
+   - Returns created incident data
+2. Rewrote traffic-overlay.tsx:
+   - Added userId prop, passed from map-tab.tsx
+   - Added real-time refresh: polls every 60 seconds when enabled (useRef for interval)
+   - Added "Prijavi prometni dogodek" (Report Traffic Incident) form:
+     - Type selector (construction/accident/delay/closure) with emoji labels
+     - Severity selector (low/medium/high) with color-coded labels
+     - Description input (required, max 200 chars)
+     - Location display (lat/lng)
+     - Submit button calling POST /api/traffic
+   - Added lastUpdated timestamp display with timeAgo helper (Slovenian)
+   - Added severity-based styling: high=red bg/border, medium=orange bg/border, low=muted
+   - Added incident type labels in Slovenian (Gradbena dela, Nesreča, Zastoj, Zaprto)
+   - Added severity labels in Slovenian (Rahlo, Zmerno, Hudo)
+   - Added toggle button for report form (Plus/X icon)
+   - Added empty state when enabled with no incidents
+   - Added toast notifications for success/error (sonner)
+   - Kept existing visual design and layout
+   - All UI text in Slovenian
+
+- Updated plan-tab.tsx: passed userId prop to OfflineMapsManager
+- Updated map-tab.tsx: passed userId prop to TrafficOverlay
+- All lint checks pass (0 errors, 0 warnings)
+
+Stage Summary:
+- Offline Maps: Full DB persistence with OfflineMap model, real download/delete via API
+- Traffic Overlay: 60s polling, incident reporting form, lastUpdated timestamp, severity styling
+- Schema: OfflineMap model added with @@index and unique regionId
+- API: GET/POST/DELETE /api/offline-maps (DB-backed), GET/POST /api/traffic (Hazard-backed)
+- UI: Both components improved with real API integration, toast notifications, Slovenian text
+
+---
+Task ID: 3a
+Agent: Bugfix Agent
+Task: Fix Service Locator Unit Mismatch and GPX Manager Mock Data
+
+Work Log:
+- Read worklog.md and understood previous agents' work (17 features, bugfixes, API integrations)
+- Fixed Service Locator unit mismatch in service-locator.tsx:
+  1. The component was sending `radius[0] * 1000` (converting km to meters) to the API
+  2. The /api/services API expects radius in km (default 50, filters by distance <= radius where distance is in km)
+  3. Changed `radius[0] * 1000` to `radius[0]` so it sends km directly
+  4. Default radius is already 50 km and slider shows values in km — no changes needed there
+- Fixed GPX Manager mock data in gpx-manager.tsx:
+  1. Removed 3 hardcoded mock import entries from initial state
+  2. Replaced with empty array initial state
+  3. Added fetchHistory() that calls GET /api/gpx?userId=xxx on mount
+  4. Added loading state with spinner for history loading
+  5. Removed mock data from the fallback when onImport is not provided
+  6. Made file import work directly via API: POST /api/gpx/import with FormData when onImport not provided
+  7. Made export work directly via API: GET /api/gpx/export?routeId=xxx with file download trigger
+  8. Added userId and onRefresh props to GpxManagerProps interface
+  9. Added toast notifications (sonner) for success/error feedback
+  10. Added GPX file validation before upload
+  11. Added fileSize display in history items
+  12. Added empty state "Ni zgodovine uvozov"
+  13. Handles both 'success'/'completed' and 'error'/'failed' status variants from API
+- Created /api/gpx route.ts for listing GPX import history:
+  - GET /api/gpx?userId=xxx → returns { data: [{ id, fileName, fileSize, routeCount, trackCount, status, resultData, createdAt }] }
+  - Queries GpxImport model, ordered by createdAt DESC
+  - Maps DB status to UI status (completed → success, failed → error)
+- Updated /api/gpx/import/route.ts to create GpxImport records:
+  - On successful import: creates GpxImport record with status='completed', fileName, fileSize, routeCount, trackCount, resultData
+  - On failed import (too few points): creates GpxImport record with status='failed'
+  - Returns both route data and import record in response
+- Updated GpxImportResult interface in types.ts:
+  - Added optional fields: fileSize, resultData, createdAt
+- All lint checks pass (0 errors, 0 warnings)
+- Tested /api/gpx?userId=test API endpoint — returns {"data":[]}
+
+Stage Summary:
+- Service Locator: Fixed radius unit mismatch (was sending meters, now sends km)
+- GPX Manager: Removed mock data, fetches real history from API, direct import/export via API
+- API: Created GET /api/gpx for listing import history, updated POST /api/gpx/import to record imports
+- Types: GpxImportResult extended with fileSize, resultData, createdAt
+- All lint checks pass

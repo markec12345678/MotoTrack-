@@ -1,12 +1,12 @@
+/* eslint-disable react-hooks/set-state-in-effect */
 'use client'
 
-import { useState, useCallback } from 'react'
+import { useState, useCallback, useEffect } from 'react'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
 import { Progress } from '@/components/ui/progress'
 import { Badge } from '@/components/ui/badge'
 import { ScrollArea } from '@/components/ui/scroll-area'
-import type { OfflineMapRegion } from '@/components/tabs/types'
 import {
   Download,
   Trash2,
@@ -16,98 +16,149 @@ import {
   WifiOff,
   Check,
   Loader2,
+  Clock,
 } from 'lucide-react'
+import { toast } from 'sonner'
 
-// Default offline map regions for Slovenia
-const DEFAULT_REGIONS: OfflineMapRegion[] = [
-  {
-    id: 'slovenia-full',
-    name: 'Slovenija (celotna)',
-    bounds: { north: 46.88, south: 45.42, east: 16.61, west: 13.38 },
-    zoomLevels: '6-15',
-    estimatedSizeMB: 850,
-    downloaded: false,
-  },
-  {
-    id: 'ljubljana-region',
-    name: 'Ljubljana in okolica',
-    bounds: { north: 46.25, south: 45.95, east: 14.85, west: 14.25 },
-    zoomLevels: '10-17',
-    estimatedSizeMB: 220,
-    downloaded: false,
-  },
-  {
-    id: 'gorenjska',
-    name: 'Gorenjska (Julijske Alpe)',
-    bounds: { north: 46.65, south: 46.15, east: 14.45, west: 13.65 },
-    zoomLevels: '10-16',
-    estimatedSizeMB: 310,
-    downloaded: false,
-  },
-  {
-    id: 'primorska',
-    name: 'Primorska in Obala',
-    bounds: { north: 46.05, south: 45.45, east: 14.25, west: 13.38 },
-    zoomLevels: '10-16',
-    estimatedSizeMB: 280,
-    downloaded: false,
-  },
-  {
-    id: 'stajerska',
-    name: 'Štajerska in Koroška',
-    bounds: { north: 46.75, south: 46.35, east: 16.10, west: 15.05 },
-    zoomLevels: '10-16',
-    estimatedSizeMB: 290,
-    downloaded: false,
-  },
-  {
-    id: 'dolenjska',
-    name: 'Dolenjska in Bela Krajina',
-    bounds: { north: 46.05, south: 45.42, east: 15.70, west: 14.70 },
-    zoomLevels: '10-16',
-    estimatedSizeMB: 260,
-    downloaded: false,
-  },
-]
+interface OfflineMapRegion {
+  id: string
+  name: string
+  bounds: { north: number; south: number; east: number; west: number }
+  zoomLevels: string
+  estimatedSizeMB: number
+  downloaded: boolean
+  downloadedAt: string | null
+}
 
-export default function OfflineMapsManager() {
-  const [regions, setRegions] = useState<OfflineMapRegion[]>(DEFAULT_REGIONS)
+interface Props {
+  userId?: string
+}
+
+export default function OfflineMapsManager({ userId }: Props) {
+  const [regions, setRegions] = useState<OfflineMapRegion[]>([])
+  const [loading, setLoading] = useState(true)
   const [downloading, setDownloading] = useState<string | null>(null)
   const [downloadProgress, setDownloadProgress] = useState(0)
+  const [deleting, setDeleting] = useState<string | null>(null)
+
+  const fetchRegions = useCallback(async () => {
+    setLoading(true)
+    try {
+      const url = userId ? `/api/offline-maps?userId=${userId}` : '/api/offline-maps'
+      const res = await fetch(url)
+      if (res.ok) {
+        const json = await res.json()
+        setRegions(json.data || [])
+      }
+    } catch {
+      toast.error('Napaka pri nalaganju regij')
+    }
+    setLoading(false)
+  }, [userId])
+
+  useEffect(() => {
+    fetchRegions()
+  }, [fetchRegions])
 
   const totalDownloaded = regions
     .filter(r => r.downloaded)
     .reduce((sum, r) => sum + r.estimatedSizeMB, 0)
 
-  const simulateDownload = useCallback((regionId: string) => {
+  const handleDownload = useCallback(async (regionId: string) => {
+    if (!userId) {
+      toast.error('Prijava je potrebna za prenos')
+      return
+    }
     setDownloading(regionId)
     setDownloadProgress(0)
 
+    // Simulate progress while the API request is in flight
     let progress = 0
-    const interval = setInterval(() => {
-      progress += Math.random() * 15 + 5
-      if (progress >= 100) {
-        progress = 100
-        clearInterval(interval)
-        setRegions(prev =>
-          prev.map(r => (r.id === regionId ? { ...r, downloaded: true } : r))
-        )
-        setDownloading(null)
-        setDownloadProgress(0)
-      }
+    const progressInterval = setInterval(() => {
+      progress += Math.random() * 10 + 2
+      if (progress > 90) progress = 90
       setDownloadProgress(Math.round(progress))
     }, 300)
-  }, [])
 
-  const handleDelete = useCallback((regionId: string) => {
-    setRegions(prev =>
-      prev.map(r => (r.id === regionId ? { ...r, downloaded: false } : r))
-    )
-  }, [])
+    try {
+      const res = await fetch('/api/offline-maps', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ regionId, userId }),
+      })
+
+      clearInterval(progressInterval)
+
+      if (res.ok) {
+        setDownloadProgress(100)
+        // Small delay to show 100%
+        await new Promise(resolve => setTimeout(resolve, 500))
+        setRegions(prev =>
+          prev.map(r =>
+            r.id === regionId
+              ? { ...r, downloaded: true, downloadedAt: new Date().toISOString() }
+              : r
+          )
+        )
+        toast.success('Zemljevid uspešno prenesen!')
+      } else {
+        const json = await res.json()
+        toast.error(json.error || 'Napaka pri prenosu')
+      }
+    } catch {
+      clearInterval(progressInterval)
+      toast.error('Napaka pri povezavi s strežnikom')
+    }
+
+    setDownloading(null)
+    setDownloadProgress(0)
+  }, [userId])
+
+  const handleDelete = useCallback(async (regionId: string) => {
+    if (!userId) {
+      toast.error('Prijava je potrebna za brisanje')
+      return
+    }
+    setDeleting(regionId)
+    try {
+      const res = await fetch('/api/offline-maps', {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ regionId, userId }),
+      })
+
+      if (res.ok) {
+        setRegions(prev =>
+          prev.map(r =>
+            r.id === regionId
+              ? { ...r, downloaded: false, downloadedAt: null }
+              : r
+          )
+        )
+        toast.success('Offline zemljevid izbrisan')
+      } else {
+        const json = await res.json()
+        toast.error(json.error || 'Napaka pri brisanju')
+      }
+    } catch {
+      toast.error('Napaka pri povezavi s strežnikom')
+    }
+    setDeleting(null)
+  }, [userId])
 
   const formatSize = (mb: number) => {
     if (mb >= 1000) return `${(mb / 1000).toFixed(1)} GB`
     return `${mb} MB`
+  }
+
+  const formatDate = (dateStr: string) => {
+    return new Date(dateStr).toLocaleDateString('sl-SI', {
+      day: 'numeric',
+      month: 'short',
+      year: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit',
+    })
   }
 
   return (
@@ -159,71 +210,92 @@ export default function OfflineMapsManager() {
           {/* Regions list */}
           <ScrollArea className="max-h-96">
             <div className="space-y-2 pr-3">
-              {regions.map(region => (
-                <div
-                  key={region.id}
-                  className={`flex items-center justify-between rounded-lg border p-3 transition-colors ${
-                    region.downloaded
-                      ? 'border-emerald-500/30 bg-emerald-500/5'
-                      : 'border-border'
-                  }`}
-                >
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2">
-                      <span className="font-medium text-sm truncate">{region.name}</span>
-                      {region.downloaded && (
-                        <Badge className="bg-emerald-500/20 text-emerald-400 border-emerald-500/30 text-[10px] px-1.5">
-                          <Check className="h-3 w-3 mr-0.5" />
-                          Nameščeno
-                        </Badge>
+              {loading ? (
+                <div className="flex items-center justify-center py-8">
+                  <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+                </div>
+              ) : regions.length === 0 ? (
+                <div className="text-center py-8 text-sm text-muted-foreground">
+                  Ni razpoložljivih regij
+                </div>
+              ) : (
+                regions.map(region => (
+                  <div
+                    key={region.id}
+                    className={`flex items-center justify-between rounded-lg border p-3 transition-colors ${
+                      region.downloaded
+                        ? 'border-emerald-500/30 bg-emerald-500/5'
+                        : 'border-border'
+                    }`}
+                  >
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2">
+                        <span className="font-medium text-sm truncate">{region.name}</span>
+                        {region.downloaded && (
+                          <Badge className="bg-emerald-500/20 text-emerald-400 border-emerald-500/30 text-[10px] px-1.5">
+                            <Check className="h-3 w-3 mr-0.5" />
+                            Nameščeno
+                          </Badge>
+                        )}
+                      </div>
+                      <div className="flex items-center gap-3 mt-1 text-xs text-muted-foreground">
+                        <span className="flex items-center gap-1">
+                          <HardDrive className="h-3 w-3" />
+                          {formatSize(region.estimatedSizeMB)}
+                        </span>
+                        <span className="flex items-center gap-1">
+                          {region.downloaded ? (
+                            <WifiOff className="h-3 w-3 text-emerald-500" />
+                          ) : (
+                            <Wifi className="h-3 w-3" />
+                          )}
+                          Zoom: {region.zoomLevels}
+                        </span>
+                        {region.downloaded && region.downloadedAt && (
+                          <span className="flex items-center gap-1">
+                            <Clock className="h-3 w-3" />
+                            {formatDate(region.downloadedAt)}
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                    <div className="flex-shrink-0 ml-2">
+                      {region.downloaded ? (
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => handleDelete(region.id)}
+                          disabled={deleting !== null}
+                          className="h-8 text-rose-500 hover:text-rose-400 hover:bg-rose-500/10"
+                        >
+                          {deleting === region.id ? (
+                            <Loader2 className="h-4 w-4 animate-spin" />
+                          ) : (
+                            <Trash2 className="h-4 w-4" />
+                          )}
+                        </Button>
+                      ) : (
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => handleDownload(region.id)}
+                          disabled={downloading !== null}
+                          className="h-8 gap-1"
+                        >
+                          {downloading === region.id ? (
+                            <Loader2 className="h-4 w-4 animate-spin" />
+                          ) : (
+                            <Download className="h-4 w-4" />
+                          )}
+                          <span className="hidden sm:inline text-xs">
+                            {downloading === region.id ? 'Prenašam' : 'Prenesi'}
+                          </span>
+                        </Button>
                       )}
                     </div>
-                    <div className="flex items-center gap-3 mt-1 text-xs text-muted-foreground">
-                      <span className="flex items-center gap-1">
-                        <HardDrive className="h-3 w-3" />
-                        {formatSize(region.estimatedSizeMB)}
-                      </span>
-                      <span className="flex items-center gap-1">
-                        {region.downloaded ? (
-                          <WifiOff className="h-3 w-3 text-emerald-500" />
-                        ) : (
-                          <Wifi className="h-3 w-3" />
-                        )}
-                        Zoom: {region.zoomLevels}
-                      </span>
-                    </div>
                   </div>
-                  <div className="flex-shrink-0 ml-2">
-                    {region.downloaded ? (
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => handleDelete(region.id)}
-                        className="h-8 text-rose-500 hover:text-rose-400 hover:bg-rose-500/10"
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
-                    ) : (
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => simulateDownload(region.id)}
-                        disabled={downloading !== null}
-                        className="h-8 gap-1"
-                      >
-                        {downloading === region.id ? (
-                          <Loader2 className="h-4 w-4 animate-spin" />
-                        ) : (
-                          <Download className="h-4 w-4" />
-                        )}
-                        <span className="hidden sm:inline text-xs">
-                          {downloading === region.id ? 'Prenašam' : 'Prenesi'}
-                        </span>
-                      </Button>
-                    )}
-                  </div>
-                </div>
-              ))}
+                ))
+              )}
             </div>
           </ScrollArea>
 
