@@ -403,6 +403,10 @@ export function poiTypeLabel(type: string): string {
     parking: 'Parkirišče',
     hotel: 'Hotel/Namestitev',
     mechanic: 'Servis',
+    camping: 'Kamp',
+    viewpoint: 'Razgledna točka',
+    snowmobile: 'Snežni skuter',
+    racetrack: 'Dirkališče',
   }
   return map[type] || type
 }
@@ -415,6 +419,10 @@ export function poiTypeEmoji(type: string): string {
     parking: '🅿️',
     hotel: '🏨',
     mechanic: '🔧',
+    camping: '⛺',
+    viewpoint: '🏔️',
+    snowmobile: '🛷',
+    racetrack: '🏁',
   }
   return map[type] || '📍'
 }
@@ -427,6 +435,10 @@ export function poiTypeColor(type: string): string {
     parking: '#3b82f6',
     hotel: '#8b5cf6',
     mechanic: '#f97316',
+    camping: '#059669',
+    viewpoint: '#0ea5e9',
+    snowmobile: '#06b6d4',
+    racetrack: '#dc2626',
   }
   return map[type] || '#6b7280'
 }
@@ -722,4 +734,98 @@ export interface ShareData {
   user: { name: string; avatar: string | null }
   createdAt: string
   shareUrl: string
+}
+
+// Balkan Moto Event
+export interface MotoEventData {
+  id: string
+  title: string
+  description: string | null
+  date: string
+  endDate: string | null
+  lat: number
+  lng: number
+  location: string
+  country: string
+  category: string
+  website: string | null
+  imageUrl: string | null
+  organizerName: string | null
+  contactEmail: string | null
+  isFeatured: boolean
+  createdAt: string
+}
+
+// Camp Site
+export interface CampSiteData {
+  id: string
+  name: string
+  description: string | null
+  lat: number
+  lng: number
+  country: string
+  address: string | null
+  phone: string | null
+  website: string | null
+  email: string | null
+  rating: number
+  priceRange: string | null
+  amenities: string[]
+  motoFriendly: boolean
+  openSeason: string | null
+  imageUrl: string | null
+}
+
+// Gradient/Incline Analysis
+export interface GradientSegment {
+  distance: number       // meters
+  elevationGain: number  // meters
+  elevationLoss: number  // meters
+  gradient: number       // percentage (-100 to 100)
+  startIndex: number
+  endIndex: number
+}
+
+export interface GradientProfile {
+  segments: GradientSegment[]
+  totalAscent: number     // meters
+  totalDescent: number    // meters
+  maxGradient: number     // percentage
+  minGradient: number     // percentage
+  avgGradient: number     // percentage
+  steepUphillPct: number  // % of route > 8% uphill
+  moderateUphillPct: number // % of route 3-8% uphill
+  flatPct: number         // % of route -3% to 3%
+  moderateDownhillPct: number // % of route -8% to -3%
+  steepDownhillPct: number // % of route < -8% downhill
+}
+
+// Weather Alert
+export interface WeatherAlert {
+  id: string
+  type: 'wind' | 'rain' | 'storm' | 'ice' | 'fog' | 'heat' | 'snow'
+  severity: 'low' | 'medium' | 'high' | 'extreme'
+  title: string
+  description: string
+  lat: number
+  lng: number
+  radius: number  // km
+  startTime: string
+  endTime: string
+  source: string
+}
+
+// Balkan Motorcycle Road (Butler Maps equivalent)
+export interface BalkanMotoRoad {
+  id: string
+  name: string
+  description: string
+  lat: number
+  lng: number
+  difficulty: 'easy' | 'moderate' | 'challenging' | 'extreme'
+  roadType: 'asphalt' | 'mixed' | 'gravel'
+  lengthKm: number
+  country: string
+  rating: number  // 1-5
+  geometry?: [number, number][]
 }

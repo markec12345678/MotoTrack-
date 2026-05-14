@@ -111,7 +111,7 @@ model Route {
   distance    Float    @default(0)
   waypoints   String                 // JSON: array of {lat, lng}
   routeData   String?                // JSON: full polyline coordinates
-  category    String   @default("scenic") // scenic, twisty, offroad, city
+  category    String   @default("scenic") // scenic, twisty, offroad, city, snowmobile, racetrack
   difficulty  String   @default("medium") // easy, medium, hard
   isPublic    Boolean  @default(true)
   likes       Int      @default(0)
@@ -152,7 +152,7 @@ model Like {
 model Poi {
   id          String   @id @default(cuid())
   name        String
-  type        String   // gas_station, restaurant, biker_spot, parking, hotel, mechanic
+  type        String   // gas_station, restaurant, biker_spot, parking, hotel, mechanic, camping, viewpoint, snowmobile, racetrack
   lat         Float
   lng         Float
   description String?
@@ -668,4 +668,58 @@ model PrivacyZone {
 
   @@index([userId])
   @@map("privacy_zones")
+}
+
+// Balkan Moto Events - motorcycle events across the Balkans
+model MotoEvent {
+  id            String   @id @default(cuid())
+  title         String
+  description   String?
+  date          DateTime                    // event start date
+  endDate       DateTime?                   // event end date (for multi-day)
+  lat           Float
+  lng           Float
+  location      String                      // location name
+  country       String                      // SI, HR, BA, RS, ME, MK, AL, BG, RO, GR, TR, HU, AT
+  category      String   @default("meet")   // meet, rally, race, show, charity, tour, festival
+  website       String?                     // event website URL
+  imageUrl      String?                     // event image/poster
+  organizerName String?                      // organizer name
+  contactEmail  String?                      // contact email
+  isFeatured    Boolean  @default(false)     // featured event
+  isPublic      Boolean  @default(true)
+  createdBy     String?                      // userId of creator
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@index([date])
+  @@index([country])
+  @@index([category])
+  @@map("moto_events")
+}
+
+// Camp Site - Balkan camping locations for moto travelers
+model CampSite {
+  id          String   @id @default(cuid())
+  name        String
+  description String?
+  lat         Float
+  lng         Float
+  country     String                      // SI, HR, BA, RS, ME, MK, AL, BG, RO, GR, TR, HU, AT
+  address     String?
+  phone       String?
+  website     String?
+  email       String?
+  rating      Float    @default(0)
+  priceRange  String?                      // budget, mid, premium
+  amenities   String?                      // JSON: array of amenities (wifi, showers, kitchen, etc.)
+  motoFriendly Boolean @default(true)       // motorcycle-friendly
+  openSeason  String?                      // e.g. "Apr-Oct", "All year"
+  imageUrl    String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([lat, lng])
+  @@index([country])
+  @@map("camp_sites")
 }
