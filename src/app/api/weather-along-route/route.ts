@@ -55,7 +55,7 @@ export async function GET(request: NextRequest) {
       : sampleEvenly(waypoints, maxPoints)
 
     // Fetch weather for each point sequentially to avoid overwhelming
-    const results = []
+    const results: Array<{ lat: number; lng: number; temperature: number | null; windspeed: number | null; weathercode: number | null; description: string; windDirection: number | null; precipitation: number | null; isWindDangerous: boolean }> = []
     for (const point of sampledPoints) {
       try {
         const url = `https://api.open-meteo.com/v1/forecast?latitude=${point.lat}&longitude=${point.lng}&current_weather=true&hourly=precipitation&timezone=auto&forecast_days=1`

@@ -49,7 +49,7 @@ export default function PointsPanel({ userId, compact = false, onClose }: Points
         const newData = j.data
         // Check for level up using ref
         if (prevDataRef.current && newData && newData.level !== prevDataRef.current.level) {
-          setPrevLevel(prevDataRef.current.level)
+          setPrevLevel(String(prevDataRef.current.level))
           setShowCelebration(true)
           setTimeout(() => setShowCelebration(false), 3000)
         }

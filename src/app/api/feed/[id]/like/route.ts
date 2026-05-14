@@ -37,7 +37,7 @@ export async function POST(
     if (!activity) {
       // Auto-generated activities use IDs like "ride-xxx", "route-xxx", "achievement-xxx"
       // We need to find the actual entity and create a SocialActivity for it
-      let createdActivity = null
+      let createdActivity: { id: string; createdAt: Date; title: string; description: string | null; isPublic: boolean; userId: string; type: string; icon: string; targetId: string | null; targetType: string | null } | null = null
 
       if (id.startsWith('ride-')) {
         const rideId = id.replace('ride-', '')

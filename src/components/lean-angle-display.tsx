@@ -45,7 +45,7 @@ function LeanGauge({ angle, maxAngle = 60 }: { angle: number; maxAngle?: number 
     .join(' ')
 
   // Tick marks
-  const ticks = []
+  const ticks: Array<{ x1: number; y1: number; x2: number; y2: number; isCenter: boolean }> = []
   for (let a = startAngle; a <= endAngle; a += 20) {
     const rad = ((a - 90) * Math.PI) / 180
     const innerR = radius - 12

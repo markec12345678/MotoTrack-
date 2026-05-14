@@ -1,4 +1,4 @@
-import { NextResponse } from 'next/server'
+import { NextRequest, NextResponse } from 'next/server'
 
 // OBD/IoT Motorcycle Connection (simulated)
 export const dynamic = 'force-dynamic'

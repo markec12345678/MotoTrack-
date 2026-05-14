@@ -654,7 +654,7 @@ const ExploreTabInner = React.memo(function ExploreTabInner({ rides, routes, lea
                           <p className="font-medium text-sm truncate group-hover:text-primary transition-colors">{item.title}</p>
                           <div className="flex items-center gap-2 text-xs text-muted-foreground mt-0.5">
                             <span>{item.distance?.toFixed(1)} km</span>
-                            {!isRide && 'category' in item && <Badge variant="outline" className="text-[9px] px-1 py-0">{categoryLabel((item as Record<string, unknown>).category as string)}</Badge>}
+                            {!isRide && 'category' in item && <Badge variant="outline" className="text-[9px] px-1 py-0">{categoryLabel((item as unknown as RouteData).category)}</Badge>}
                           </div>
                         </div>
                         <Button
@@ -933,7 +933,7 @@ const ExploreTabInner = React.memo(function ExploreTabInner({ rides, routes, lea
                           </div>
                           <div className="flex items-center gap-2 mt-1.5">
                             <Badge variant="outline" className="text-[9px]">{gr.category === 'twisty' ? 'Vijugasta' : gr.category === 'offroad' ? 'Off-road' : gr.category === 'city' ? 'Mestna' : 'Scenična'}</Badge>
-                            <span className="text-[10px] text-muted-foreground flex items-center gap-0.5"><Users className="size-3" /> {gr.participantCount}/{gr.maxRiders}</span>
+                            <span className="text-[10px] text-muted-foreground flex items-center gap-0.5"><Users className="size-3" /> {gr.participants?.length ?? 0}/{gr.maxRiders}</span>
                             <Badge variant="outline" className={`text-[9px] ${gr.status === 'upcoming' ? 'bg-emerald-500/15 text-emerald-500 border-emerald-500/30' : gr.status === 'active' ? 'bg-green-500/15 text-green-500 border-green-500/30' : 'bg-muted text-muted-foreground'}`}>
                               {gr.status === 'upcoming' ? 'Prihajajoča' : gr.status === 'active' ? 'Aktivna' : gr.status === 'completed' ? 'Zaključena' : gr.status}
                             </Badge>

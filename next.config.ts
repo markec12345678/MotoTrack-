@@ -5,9 +5,8 @@ const nextConfig: NextConfig = {
     ignoreBuildErrors: true,
   },
   reactStrictMode: false,
-  // Enable instrumentation.ts to run before any module is loaded
-  // This is critical for setting DATABASE_URL before Prisma initializes
-  instrumentationHook: true,
+  // instrumentationHook is enabled by default in Next.js 14+
+  // No need to specify it explicitly (removed - was causing config warning)
   // @libsql/client uses native bindings that must be externalized
   // for Vercel serverless functions to work correctly.
   serverExternalPackages: ['@libsql/client', '@prisma/adapter-libsql'],

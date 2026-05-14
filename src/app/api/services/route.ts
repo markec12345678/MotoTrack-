@@ -20,7 +20,7 @@ export async function GET(req: NextRequest) {
     const type = searchParams.get('type')
 
     // Try to get from DB first, fall back to sample data
-    let centers = await db.serviceCenter.findMany(type ? { where: { type } } : {})
+    let centers = await db.serviceCenter.findMany(type ? { where: { type } } : undefined)
 
     if (centers.length === 0) {
       // Seed sample Slovenian service centers
@@ -40,7 +40,7 @@ export async function GET(req: NextRequest) {
       for (const sc of sampleCenters) {
         await db.serviceCenter.create({ data: sc })
       }
-      centers = await db.serviceCenter.findMany(type ? { where: { type } } : {})
+      centers = await db.serviceCenter.findMany(type ? { where: { type } } : undefined)
     }
 
     const results = centers

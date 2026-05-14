@@ -68,7 +68,7 @@ export async function POST(request: NextRequest) {
     const shareUrl = `${protocol}://${host}/api/share?type=${type}&id=${id}`
 
     // Create a social activity for the share
-    let socialActivity = null
+    let socialActivity: { id: string; type: string; title: string; createdAt: Date } | null = null
     if (userId) {
       try {
         socialActivity = await db.socialActivity.create({

@@ -95,8 +95,8 @@ export default function ElevationProfile({ trackData, className = '' }: Elevatio
                 fontSize: '11px',
                 color: 'oklch(0.96 0.01 60)',
               }}
-              formatter={(value: number, name: string) => [`${value}m`, 'Nadm. viš.']}
-              labelFormatter={(label: number) => `${label} km`}
+              formatter={(value: unknown, name: unknown) => [`${value}m`, 'Nadm. viš.']}
+              labelFormatter={(label: unknown) => `${label} km`}
             />
             <Area
               type="monotone"

@@ -91,7 +91,7 @@ export async function POST(request: NextRequest) {
     const earnedTypes = new Set(earned.map(e => e.type))
 
     // Award new achievements
-    const newlyEarned = []
+    const newlyEarned: Array<{ id: string; title: string; description: string; userId: string; type: string; icon: string; earnedAt: Date }> = []
     for (const [type, condition] of Object.entries(checks)) {
       if (condition && !earnedTypes.has(type)) {
         const achievement = ALL_ACHIEVEMENTS.find(a => a.type === type)

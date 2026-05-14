@@ -19,7 +19,7 @@ export async function GET(request: NextRequest) {
     }
 
     // Get the current ride for reference if rideId provided
-    let currentRide = null
+    let currentRide: { id: string; startLat: number | null; startLng: number | null; endLat: number | null; endLng: number | null } | null = null
     if (rideId) {
       currentRide = await db.ride.findUnique({
         where: { id: rideId },

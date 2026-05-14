@@ -147,7 +147,9 @@ function ComparisonPanel({ currentRide, comparisonData, expanded, onToggleExpand
     const bestVal = getBestValue(key)
     const metric = metrics.find(m => m.key === key)
     if (!metric) return false
-    return metric.lowerIsBetter ? ride[key] <= bestVal : ride[key] >= bestVal
+    const rideVal = ride[key]
+    if (typeof rideVal !== 'number') return false
+    return metric.lowerIsBetter ? rideVal <= bestVal : rideVal >= bestVal
   }
 
   const getMaxForMetric = (key: keyof ComparableRide): number => {
@@ -511,7 +513,7 @@ export default function DetailDialog({
             )}
             <span className="flex items-center gap-1.5 text-muted-foreground">
               <Mountain className="size-3.5" />
-              <span className="font-medium text-foreground">{item.elevation} m</span>
+              <span className="font-medium text-foreground">{'elevation' in item ? (item as RideData).elevation : 0} m</span>
             </span>
             <span className="flex items-center gap-1.5 text-muted-foreground ml-auto">
               <Calendar className="size-3" />
@@ -726,7 +728,7 @@ export default function DetailDialog({
                 <div className="flex gap-3 overflow-x-auto pb-1">
                   {weather.forecast.map((f, i) => (
                     <div key={i} className="flex items-center gap-2 bg-secondary/50 rounded-lg px-3 py-1.5 text-xs shrink-0">
-                      <WeatherIcon code={i === 0 ? weather.current.weathercode : 1} className="size-3.5" />
+                      <WeatherIcon code={i === 0 ? weather.current!.weathercode : 1} className="size-3.5" />
                       <span className="text-muted-foreground">{new Date(f.date).toLocaleDateString('sl-SI', { weekday: 'short' })}</span>
                       <span className="font-medium">{f.tempMax}°/{f.tempMin}°</span>
                       {f.precipitation > 0 && (

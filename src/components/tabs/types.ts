@@ -668,6 +668,49 @@ export interface WaypointWeather {
   isWindDangerous: boolean
 }
 
+// Feature: Map Style Data (for map-style-switcher)
+export interface MapStyleData {
+  id: string
+  name: string
+  tileUrl: string
+  attribution?: string
+  preview?: string
+  isDefault?: boolean
+}
+
+// Feature: Traffic Alerts (for traffic-alerts)
+export interface TrafficAlertData {
+  id: string
+  type: string
+  title: string
+  description: string
+  road: string | null
+  lat: number
+  lng: number
+  severity: string
+  createdAt: string
+  updatedAt: string
+}
+
+// Feature: Points/Gamification (for points-panel)
+export interface PointsData {
+  totalPoints: number
+  points: number
+  level: number
+  levelName: string
+  levelProgress: number
+  currentLevelMin: number
+  nextLevelPoints: number
+  ridesPoints: number
+  socialPoints: number
+  challengePoints: number
+  streakDays: number
+  streak: { current: number; best: number }
+  history: Array<{ id: string; amount: number; reason: string; createdAt: string }>
+  leaderboard: Array<{ id: string; name: string; avatar: string | null; points: number; level: number }>
+  recentTransactions: PointsTransactionData[]
+}
+
 // Feature: Route Sharing
 export interface ShareData {
   title: string
