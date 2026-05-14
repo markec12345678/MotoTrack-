@@ -2,6 +2,8 @@ import { db } from '@/lib/db'
 import { NextRequest, NextResponse } from 'next/server'
 
 // DELETE /api/photos/[id] - Delete a photo (only owner can delete)
+export const dynamic = 'force-dynamic'
+
 export async function DELETE(
   _request: NextRequest,
   { params }: { params: Promise<{ id: string }> }

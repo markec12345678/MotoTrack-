@@ -20,6 +20,8 @@ function calculateDistance(lat1: number, lng1: number, lat2: number, lng2: numbe
   return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a))
 }
 
+export const dynamic = 'force-dynamic'
+
 export async function GET(req: NextRequest) {
   try {
     const { searchParams } = new URL(req.url)

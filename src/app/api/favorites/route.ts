@@ -2,6 +2,8 @@ import { db } from '@/lib/db'
 import { NextRequest, NextResponse } from 'next/server'
 
 // GET /api/favorites?userId=xxx&type=ride|route
+export const dynamic = 'force-dynamic'
+
 export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url)

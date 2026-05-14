@@ -15,6 +15,8 @@ const serviceCentersData = [
   { name: 'Triumph Slovenia', brand: 'Triumph', address: 'Ljubljana, Vič', lat: 46.030, lng: 14.490, phone: '+386 1 426 56 00', services: 'Servis,Delii,Olije', rating: 4.4 },
 ]
 
+export const dynamic = 'force-dynamic'
+
 export async function GET(req: NextRequest) {
   try {
     const { searchParams } = new URL(req.url)

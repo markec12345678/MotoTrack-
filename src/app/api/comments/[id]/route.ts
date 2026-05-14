@@ -2,6 +2,8 @@ import { db } from '@/lib/db'
 import { NextRequest, NextResponse } from 'next/server'
 
 // DELETE /api/comments/[id] - Delete a comment by id
+export const dynamic = 'force-dynamic'
+
 export async function DELETE(
   _request: NextRequest,
   { params }: { params: Promise<{ id: string }> }

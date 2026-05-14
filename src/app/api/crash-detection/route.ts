@@ -3,6 +3,8 @@ import { db } from '@/lib/db'
 
 const CRASH_GFORCE_THRESHOLD = 3.0
 
+export const dynamic = 'force-dynamic'
+
 export async function POST(req: NextRequest) {
   try {
     const { userId, lat, lng, gForce, speedBefore } = await req.json()

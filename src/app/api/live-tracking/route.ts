@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from 'next/server'
 import { db } from '@/lib/db'
 import crypto from 'crypto'
 
+export const dynamic = 'force-dynamic'
+
 export async function POST(req: NextRequest) {
   try {
     const { userId, lat, lng, speed, heading } = await req.json()

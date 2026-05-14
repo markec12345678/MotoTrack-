@@ -2,6 +2,8 @@ import { db } from '@/lib/db'
 import { NextResponse } from 'next/server'
 
 // GET /api/friends?userId=xxx&status=all|accepted|pending
+export const dynamic = 'force-dynamic'
+
 export async function GET(request: Request) {
   try {
     const { searchParams } = new URL(request.url)

@@ -1,6 +1,8 @@
 import { NextResponse } from 'next/server'
 
 // OBD/IoT Motorcycle Connection (simulated)
+export const dynamic = 'force-dynamic'
+
 export async function GET() {
   return NextResponse.json({ data: { connected: false, device: null, dashboard: null } })
 }

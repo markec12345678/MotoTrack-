@@ -13,6 +13,8 @@ function haversineKm(lat1: number, lon1: number, lat2: number, lon2: number): nu
   return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a))
 }
 
+export const dynamic = 'force-dynamic'
+
 export async function GET(req: NextRequest) {
   try {
     const userId = req.nextUrl.searchParams.get('userId')

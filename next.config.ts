@@ -5,6 +5,9 @@ const nextConfig: NextConfig = {
     ignoreBuildErrors: true,
   },
   reactStrictMode: false,
+  // @libsql/client uses native bindings that must be externalized
+  // for Vercel serverless functions to work correctly.
+  serverExternalPackages: ['@libsql/client', '@prisma/adapter-libsql'],
   allowedDevOrigins: [
     "preview-chat-4a0e5d7e-260f-4e68-a19b-8c7bdf46a006.space-z.ai",
   ],

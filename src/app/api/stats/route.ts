@@ -2,6 +2,8 @@ import { db } from '@/lib/db'
 import { NextResponse } from 'next/server'
 
 // GET /api/stats - Aggregate platform statistics
+export const dynamic = 'force-dynamic'
+
 export async function GET() {
   try {
     const [totalRides, totalRoutes, totalUsers, rideAggregates] = await Promise.all([

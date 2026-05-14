@@ -1,6 +1,8 @@
 import { NextResponse } from 'next/server'
 
 // Bluetooth Helmet API
+export const dynamic = 'force-dynamic'
+
 export async function GET() {
   return NextResponse.json({ data: { supported: 'bluetooth' in navigator, pairedDevices: [], connected: null } })
 }

@@ -15,6 +15,8 @@ const MAP_REGIONS = [
   { id: 'hungary', name: '🇭🇺 Madžarska', bounds: { north: 48.58, south: 45.74, east: 22.90, west: 16.11 }, zoomLevels: '6-15', estimatedSizeMB: 260 },
 ]
 
+export const dynamic = 'force-dynamic'
+
 export async function GET(req: NextRequest) {
   try {
     const { searchParams } = new URL(req.url)

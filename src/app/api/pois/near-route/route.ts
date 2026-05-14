@@ -9,6 +9,8 @@ function haversine(lat1: number, lon1: number, lat2: number, lon2: number): numb
   return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a))
 }
 
+export const dynamic = 'force-dynamic'
+
 export async function POST(req: NextRequest) {
   try {
     const { waypoints, radiusKm = 2, types } = await req.json()

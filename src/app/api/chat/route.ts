@@ -80,6 +80,8 @@ async function callZAI(messages: Array<{ role: string; content: string }>): Prom
   return completion.choices?.[0]?.message?.content || 'Oprostite, nisem mogel odgovoriti. Poskusite znova.'
 }
 
+export const dynamic = 'force-dynamic'
+
 export async function POST(request: NextRequest) {
   try {
     const { message, sessionId } = await request.json()

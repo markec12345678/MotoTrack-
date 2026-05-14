@@ -2,6 +2,8 @@ import { db } from '@/lib/db'
 import { NextRequest, NextResponse } from 'next/server'
 
 // POST /api/feed/[id]/like - Toggle like on a social activity
+export const dynamic = 'force-dynamic'
+
 export async function POST(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }

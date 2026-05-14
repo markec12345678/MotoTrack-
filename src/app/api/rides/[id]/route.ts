@@ -2,6 +2,8 @@ import { db } from '@/lib/db'
 import { NextRequest, NextResponse } from 'next/server'
 
 // GET /api/rides/[id] - Fetch single ride by ID with full trackData
+export const dynamic = 'force-dynamic'
+
 export async function GET(
   _request: NextRequest,
   { params }: { params: Promise<{ id: string }> }

@@ -405,3 +405,24 @@ Stage Summary:
 - Schema simplified (removed directUrl)
 - On Vercel, user needs: DATABASE_URL=file:./dev.db, TURSO_DATABASE_URL=libsql://..., TURSO_AUTH_TOKEN=...
 - All 4 files modified: db.ts, schema.prisma, package.json, .env.example
+
+---
+Task ID: 4
+Agent: Dynamic Export Adder
+Task: Add `export const dynamic = 'force-dynamic'` to all API route files
+
+Work Log:
+- Globbed all 75 .ts files under src/app/api/
+- Verified none already had `export const dynamic`
+- Verified all 75 files export route handlers (GET/POST/PUT/PATCH/DELETE)
+- Read sample files to understand structure (imports → blank line → optional comments → route handlers)
+- Used Python script to batch-insert `export const dynamic = 'force-dynamic'` before the first `export async function` line in all 75 files
+- Verified insertion with grep: all 75 files have exactly 1 occurrence of the dynamic export
+- Spot-checked 6 files: all have correct placement (after imports, before route handlers)
+- TypeScript compilation: no new errors introduced (pre-existing errors in unrelated files remain)
+
+Stage Summary:
+- 75 API route files updated with `export const dynamic = 'force-dynamic'`
+- Prevents Next.js from statically generating API routes at build time (fixes Vercel deployment crash when DATABASE_URL unavailable)
+- Zero duplicate insertions, zero files skipped
+- All files verified correct

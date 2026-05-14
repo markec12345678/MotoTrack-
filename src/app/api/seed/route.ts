@@ -44,6 +44,8 @@ function generateTrackData(
   return JSON.stringify(allPoints)
 }
 
+export const dynamic = 'force-dynamic'
+
 export async function POST() {
   return seedDatabase()
 }

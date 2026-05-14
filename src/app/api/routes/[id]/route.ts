@@ -2,6 +2,8 @@ import { db } from '@/lib/db'
 import { NextRequest, NextResponse } from 'next/server'
 
 // GET /api/routes/[id] - Fetch single route by ID
+export const dynamic = 'force-dynamic'
+
 export async function GET(
   _request: NextRequest,
   { params }: { params: Promise<{ id: string }> }

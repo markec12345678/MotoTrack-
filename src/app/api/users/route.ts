@@ -2,6 +2,8 @@ import { db } from '@/lib/db'
 import { NextResponse } from 'next/server'
 
 // GET /api/users - Return all users for user switcher
+export const dynamic = 'force-dynamic'
+
 export async function GET() {
   try {
     const users = await db.user.findMany({

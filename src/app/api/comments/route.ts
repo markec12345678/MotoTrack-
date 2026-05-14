@@ -3,6 +3,8 @@ import { notifyComment } from '@/lib/notifications'
 import { NextRequest, NextResponse } from 'next/server'
 
 // GET /api/comments - List comments filtered by rideId or routeId
+export const dynamic = 'force-dynamic'
+
 export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url)

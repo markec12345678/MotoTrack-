@@ -2,6 +2,8 @@ import { db } from '@/lib/db'
 import { NextResponse } from 'next/server'
 
 // PUT /api/friends/[id] - Accept or reject friend request
+export const dynamic = 'force-dynamic'
+
 export async function PUT(
   request: Request,
   { params }: { params: Promise<{ id: string }> }

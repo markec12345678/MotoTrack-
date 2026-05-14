@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from 'next/server'
 import { db } from '@/lib/db'
 
 // GET /api/road-ratings — List road ratings with optional bounding box filter
+export const dynamic = 'force-dynamic'
+
 export async function GET(req: NextRequest) {
   try {
     const { searchParams } = new URL(req.url)

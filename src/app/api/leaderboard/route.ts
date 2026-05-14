@@ -2,6 +2,8 @@ import { db } from '@/lib/db'
 import { NextResponse } from 'next/server'
 
 // GET /api/leaderboard - Return all users ranked by total distance (descending)
+export const dynamic = 'force-dynamic'
+
 export async function GET() {
   try {
     const users = await db.user.findMany({

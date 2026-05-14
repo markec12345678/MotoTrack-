@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 
+export const dynamic = 'force-dynamic'
+
 export async function POST(req: NextRequest) {
   try {
     const { startLat, startLng, endLat, endLng, curviness = 3, avoidHighways = false } = await req.json()

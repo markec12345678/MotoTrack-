@@ -16,6 +16,8 @@ const ALL_ACHIEVEMENTS = [
   { type: 'popular', title: 'Priljubljen', description: 'Dosegli ste 20 všečkov na poteh!', icon: '⭐' },
 ]
 
+export const dynamic = 'force-dynamic'
+
 export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url)
