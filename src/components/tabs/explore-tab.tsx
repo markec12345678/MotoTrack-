@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useState, useEffect, useMemo, useCallback } from 'react'
+import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react'
 import {
   Compass, Search, X, Bike, Route, TrendingUp,
   Heart, User, Clock, Star, Trophy, Crown, Medal,
@@ -19,6 +19,7 @@ import { Dialog, DialogContent, DialogTitle } from '@/components/ui/dialog'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
 import { toast } from 'sonner'
+import { useDebounce } from '@/hooks/use-debounce'
 import type { RideData, RouteData, LeaderboardUser, CommunityData, FriendshipData, GroupRideData } from '@/components/tabs/types'
 import { formatDuration, categoryLabel, categoryColor, formatDate } from '@/components/tabs/types'
 import ChallengesPanel from '@/components/challenges-panel'
@@ -62,10 +63,11 @@ interface ExploreTabProps {
   userId?: string
 }
 
-export default function ExploreTab({ rides, routes, leaderboard, onOpenDetail, onSwitchUser, userId }: ExploreTabProps) {
+const ExploreTabInner = React.memo(function ExploreTabInner({ rides, routes, leaderboard, onOpenDetail, onSwitchUser, userId }: ExploreTabProps) {
   const [exploreFilter, setExploreFilter] = useState<'all' | 'rides' | 'routes'>('all')
   const [exploreCategory, setExploreCategory] = useState<string>('all')
   const [searchQuery, setSearchQuery] = useState('')
+  const debouncedSearchQuery = useDebounce(searchQuery, 200)
   const [exploreSection, setExploreSection] = useState<'discover' | 'feed' | 'favorites' | 'communities' | 'friends' | 'grouprides' | 'challenges' | 'services' | 'fuel' | 'comparison'>('discover')
 
   // Comparison state
@@ -91,6 +93,7 @@ export default function ExploreTab({ rides, routes, leaderboard, onOpenDetail, o
   // Friends state
   const [friendships, setFriendships] = useState<FriendshipData[]>([])
   const [friendSearch, setFriendSearch] = useState('')
+  const debouncedFriendSearch = useDebounce(friendSearch, 200)
   const [allUsers, setAllUsers] = useState<Array<{ id: string; name: string; email: string; avatar: string | null; bike: string | null }>>([])
   const [addingFriend, setAddingFriend] = useState<string | null>(null)
 
@@ -197,23 +200,23 @@ export default function ExploreTab({ rides, routes, leaderboard, onOpenDetail, o
 
   // Filtered lists
   const filteredFriends = useMemo(() => {
-    if (!friendSearch) return acceptedFriends
-    const q = friendSearch.toLowerCase()
+    if (!debouncedFriendSearch) return acceptedFriends
+    const q = debouncedFriendSearch.toLowerCase()
     return acceptedFriends.filter(f =>
       f.friend.name.toLowerCase().includes(q) ||
       (f.friend.bike || '').toLowerCase().includes(q)
     )
-  }, [acceptedFriends, friendSearch])
+  }, [acceptedFriends, debouncedFriendSearch])
 
   const filteredNonFriends = useMemo(() => {
-    if (!friendSearch) return nonFriendUsers
-    const q = friendSearch.toLowerCase()
+    if (!debouncedFriendSearch) return nonFriendUsers
+    const q = debouncedFriendSearch.toLowerCase()
     return nonFriendUsers.filter(u =>
       u.name.toLowerCase().includes(q) ||
       (u.bike || '').toLowerCase().includes(q) ||
       u.email.toLowerCase().includes(q)
     )
-  }, [nonFriendUsers, friendSearch])
+  }, [nonFriendUsers, debouncedFriendSearch])
 
   // Friend actions
   const handleAddFriend = async (addresseeId: string) => {
@@ -290,15 +293,15 @@ export default function ExploreTab({ rides, routes, leaderboard, onOpenDetail, o
       if (exploreFilter === 'rides' && item.type !== 'ride') return false
       if (exploreFilter === 'routes' && item.type !== 'route') return false
       if (exploreCategory !== 'all' && item.category !== exploreCategory) return false
-      if (searchQuery) {
-        const q = searchQuery.toLowerCase()
+      if (debouncedSearchQuery) {
+        const q = debouncedSearchQuery.toLowerCase()
         const title = item.data.title.toLowerCase()
         const desc = (item.data.description || '').toLowerCase()
         if (!title.includes(q) && !desc.includes(q)) return false
       }
       return true
     })
-  }, [rides, routes, exploreFilter, exploreCategory, searchQuery])
+  }, [rides, routes, exploreFilter, exploreCategory, debouncedSearchQuery])
 
   const exploreStats = useMemo(() => ({
     totalRides: rides.length, totalRoutes: routes.length,
@@ -1651,4 +1654,8 @@ export default function ExploreTab({ rides, routes, leaderboard, onOpenDetail, o
       )}
     </div>
   )
+})
+
+export default function ExploreTab(props: ExploreTabProps) {
+  return <ExploreTabInner {...props} />
 }
