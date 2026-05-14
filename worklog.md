@@ -341,3 +341,31 @@ Stage Summary:
 - Turso integration ready: db.ts auto-detects libsql:// URLs and uses adapter
 - Environment variables configured for both local dev and production
 - All APIs verified working on local dev server
+
+---
+Task ID: 3
+Agent: Main Agent
+Task: Mobile/Android audit and fix all broken functionality
+
+Work Log:
+- Performed comprehensive mobile audit identifying 27 issues across 4 severity levels
+- CRITICAL: Fixed seed-on-every-load (was wiping DB on every page refresh)
+- CRITICAL: Added safe-area-inset CSS for Android gesture bar navigation
+- CRITICAL: Removed standalone output from next.config.ts (causes Vercel issues)
+- CRITICAL: Fixed socket.io hardcoded XTransformPort=3003 (broken in production)
+- CRITICAL: Added Suspense wrapper for useSearchParams
+- HIGH: Replaced window.open(tel/sms/mailto) with <a href> elements
+- HIGH: Fixed speechSynthesis.speak() with try-catch + optional chaining
+- HIGH: Added clipboard API fallback for insecure contexts (HTTP)
+- HIGH: Replaced window.open for GPX export with <a download>
+- MEDIUM: Added PWA URL shortcut support (?tab=plan, ?tab=track)
+- MEDIUM: Added mobile CSS: touch highlights, overflow scrolling, 44px min targets
+- MEDIUM: Added Leaflet zoom control sizing for touch
+- MEDIUM: Fixed mobile viewport height with 100dvh
+- All lint checks passing
+- Pushed to GitHub
+
+Stage Summary:
+- 10 files modified with mobile compatibility fixes
+- Root cause of "functions don't work": seed wiped data on every load, socket.io hardcoded port, window.open blocked on mobile, safe-area not defined
+- All fixes pushed to GitHub for Vercel auto-deploy
