@@ -38,6 +38,21 @@ const surfaceLabels: Record<string, string> = {
   mixed: 'Mešano',
 }
 
+interface CampMapData {
+  id: string
+  name: string
+  lat: number
+  lng: number
+  country: string
+  address: string | null
+  rating: number
+  priceRange: string | null
+  amenities: string[]
+  motoFriendly: boolean
+  openSeason: string | null
+  description: string | null
+}
+
 interface MotoMapProps {
   center?: [number, number]
   zoom?: number
@@ -91,6 +106,8 @@ interface MotoMapProps {
   showWeatherRadar?: boolean
   showHazards?: boolean
   showBalkanRoads?: boolean
+  showCamps?: boolean
+  camps?: CampMapData[]
   className?: string
 }
 
@@ -210,6 +227,8 @@ export default function MotoMap({
   showWeatherRadar = false,
   showHazards = false,
   showBalkanRoads = false,
+  showCamps = false,
+  camps = [],
   className = '',
 }: MotoMapProps) {
   const mapRef = useRef<L.Map | null>(null)
@@ -232,6 +251,7 @@ export default function MotoMap({
   const roadRatingsLayerRef = useRef<L.LayerGroup | null>(null)
   const tripLayerRef = useRef<L.LayerGroup | null>(null)
   const balkanRoadsLayerRef = useRef<L.LayerGroup | null>(null)
+  const campsLayerRef = useRef<L.LayerGroup | null>(null)
 
   // Initialize map
   useEffect(() => {
@@ -278,6 +298,8 @@ export default function MotoMap({
     tripLayerRef.current = tripLayer
     const balkanRoadsLayer = L.layerGroup().addTo(map)
     balkanRoadsLayerRef.current = balkanRoadsLayer
+    const campsLayer = L.layerGroup().addTo(map)
+    campsLayerRef.current = campsLayer
 
     layersRef.current = {
       rides: ridesLayer,
@@ -319,6 +341,7 @@ export default function MotoMap({
       if (roadRatingsLayerRef.current) { roadRatingsLayerRef.current = null }
       if (tripLayerRef.current) { tripLayerRef.current = null }
       if (balkanRoadsLayerRef.current) { balkanRoadsLayerRef.current = null }
+      if (campsLayerRef.current) { campsLayerRef.current = null }
     }
   }, [])
 
@@ -588,7 +611,7 @@ export default function MotoMap({
     }
   }, [showTwistyRoads])
 
-  // Update Balkan motorcycle roads overlay (Butler Maps equivalent - polyline routes)
+  // Update Balkan motorcycle roads overlay (Butler Maps equivalent - fetched from API)
   useEffect(() => {
     const layer = balkanRoadsLayerRef.current
     if (!layer) return
@@ -596,127 +619,136 @@ export default function MotoMap({
 
     if (!showBalkanRoads) return
 
-    // Detailed route coordinates tracing actual road paths across the Balkans
-    const balkanRoadRoutes = [
-      // Slovenia - Vršič Pass (50 hairpin turns)
-      { name: 'Vršič', difficulty: 'extreme', country: 'SI', length: 18,
-        coords: [[46.3500,13.7100],[46.3700,13.7200],[46.3900,13.7300],[46.4000,13.7280],[46.4100,13.7250],[46.4200,13.7280],[46.4300,13.7310],[46.4333,13.7333]] },
-      // Slovenia - Mangart
-      { name: 'Mangart', difficulty: 'challenging', country: 'SI', length: 12,
-        coords: [[46.4300,13.6100],[46.4350,13.6150],[46.4400,13.6200],[46.4450,13.6250],[46.4500,13.6333]] },
-      // Slovenia - Predel Pass
-      { name: 'Predel', difficulty: 'challenging', country: 'SI', length: 15,
-        coords: [[46.3600,13.5500],[46.3650,13.5550],[46.3700,13.5600],[46.3750,13.5630],[46.3800,13.5660],[46.3833,13.5667]] },
-      // Slovenia - Soča Valley
-      { name: 'Soška dolina', difficulty: 'moderate', country: 'SI', length: 40,
-        coords: [[46.1800,13.6800],[46.2000,13.6700],[46.2200,13.6600],[46.2400,13.6500],[46.2600,13.6400],[46.2800,13.6300]] },
-      // Croatia - Jadranska Magistrala (Adriatic Highway)
-      { name: 'Jadranska magistrala', difficulty: 'easy', country: 'HR', length: 180,
-        coords: [[45.3000,14.5000],[45.1000,14.6000],[44.9000,14.8000],[44.7000,15.0000],[44.4000,15.2000],[44.1000,15.4000],[43.8000,15.8000],[43.5000,16.2000],[43.3000,16.4500]] },
-      // Croatia - Mali Alan (Velebit)
-      { name: 'Mali Alan', difficulty: 'challenging', country: 'HR', length: 25,
-        coords: [[44.3500,15.4000],[44.3700,15.4300],[44.3900,15.4600],[44.4000,15.5000]] },
-      // Montenegro - Kotor Serpentine
-      { name: 'Kotor Serpentine', difficulty: 'extreme', country: 'ME', length: 16,
-        coords: [[42.4200,18.7700],[42.4100,18.7800],[42.4000,18.7900],[42.3900,18.8000],[42.3850,18.8100],[42.3800,18.8200],[42.3750,18.8300],[42.3700,18.8400],[42.3650,18.8500]] },
-      // Montenegro - Lovćen
-      { name: 'Lovćen', difficulty: 'challenging', country: 'ME', length: 20,
-        coords: [[42.3600,18.8300],[42.3700,18.8400],[42.3800,18.8500]] },
-      // Romania - Transfăgărășan
-      { name: 'Transfăgărășan', difficulty: 'extreme', country: 'RO', length: 90,
-        coords: [[45.5500,24.6000],[45.5600,24.6200],[45.5700,24.6300],[45.5800,24.6200],[45.5900,24.6200],[45.6000,24.6300],[45.6100,24.6400]] },
-      // Romania - Transalpina
-      { name: 'Transalpina', difficulty: 'extreme', country: 'RO', length: 120,
-        coords: [[45.4000,23.6000],[45.4100,23.6500],[45.4200,23.7000],[45.4300,23.7200],[45.4400,23.7500],[45.4500,23.8000]] },
-      // Albania - Llogara Pass
-      { name: 'Llogara Pass', difficulty: 'challenging', country: 'AL', length: 30,
-        coords: [[40.1500,19.5500],[40.1600,19.5600],[40.1700,19.5700],[40.1800,19.5800]] },
-      // Albania - Theth
-      { name: 'Theth', difficulty: 'extreme', country: 'AL', length: 35,
-        coords: [[42.3500,19.7300],[42.3600,19.7400],[42.3700,19.7500],[42.3800,19.7700]] },
-      // Austria - Grossglockner
-      { name: 'Grossglockner', difficulty: 'extreme', country: 'AT', length: 48,
-        coords: [[47.0500,12.8000],[47.0600,12.8100],[47.0700,12.8200],[47.0800,12.8300],[47.0900,12.8400]] },
-      // Bulgaria - Shipka Pass
-      { name: 'Shipka', difficulty: 'challenging', country: 'BG', length: 30,
-        coords: [[42.6900,25.3000],[42.7000,25.3100],[42.7100,25.3300]] },
-      // Serbia - Zlatibor
-      { name: 'Zlatibor', difficulty: 'moderate', country: 'RS', length: 25,
-        coords: [[43.7000,19.6800],[43.7100,19.6900],[43.7200,19.7000]] },
-      // Bosnia - Ivan Sedlo
-      { name: 'Ivan Sedlo', difficulty: 'moderate', country: 'BA', length: 18,
-        coords: [[43.6800,18.0300],[43.6900,18.0400],[43.7000,18.0500]] },
-      // Greece - Katara Pass
-      { name: 'Katara Pass', difficulty: 'challenging', country: 'GR', length: 40,
-        coords: [[39.7500,21.2000],[39.7600,21.2100],[39.7700,21.2300]] },
-      // Slovenia - Jezersko
-      { name: 'Jezersko', difficulty: 'moderate', country: 'SI', length: 22,
-        coords: [[46.3800,14.8200],[46.3900,14.8300],[46.4000,14.8500]] },
-      // Slovenia - Gorjanci
-      { name: 'Gorjanci', difficulty: 'moderate', country: 'SI', length: 30,
-        coords: [[45.8300,15.1400],[45.8200,15.1500],[45.8100,15.1600],[45.8000,15.1667]] },
-      // Croatia - Pelješac
-      { name: 'Pelješac', difficulty: 'easy', country: 'HR', length: 55,
-        coords: [[43.0000,17.3500],[42.9800,17.4000],[42.9600,17.4300],[42.9500,17.4500]] },
-      // Montenegro - Durmitor
-      { name: 'Durmitor', difficulty: 'challenging', country: 'ME', length: 28,
-        coords: [[43.1300,19.1000],[43.1400,19.1100],[43.1500,19.1200]] },
-    ]
+    // Fetch roads from API
+    const fetchAndRenderRoads = async () => {
+      try {
+        const res = await fetch('/api/balkan-roads')
+        if (!res.ok) return
+        const json = await res.json()
+        const roads: Array<{
+          id: string
+          name: string
+          description: string
+          lat: number
+          lng: number
+          difficulty: string
+          roadType: string
+          lengthKm: number
+          country: string
+          rating: number
+          countryName: string
+        }> = json.data || []
 
-    const difficultyConfig: Record<string, { color: string; weight: number; label: string }> = {
-      easy: { color: '#22c55e', weight: 4, label: 'Lahko' },
-      moderate: { color: '#f59e0b', weight: 5, label: 'Zmerno' },
-      challenging: { color: '#f97316', weight: 6, label: 'Zahtevno' },
-      extreme: { color: '#ef4444', weight: 7, label: 'Ekstremno' },
+        const difficultyConfig: Record<string, { color: string; weight: number; label: string }> = {
+          easy: { color: '#22c55e', weight: 4, label: 'Lahko' },
+          moderate: { color: '#f59e0b', weight: 5, label: 'Zmerno' },
+          challenging: { color: '#f97316', weight: 6, label: 'Zahtevno' },
+          extreme: { color: '#ef4444', weight: 7, label: 'Ekstremno' },
+        }
+
+        const roadTypeEmoji: Record<string, string> = {
+          asphalt: '🛣️', mixed: '🔀', gravel: '🪨',
+        }
+
+        roads.forEach(road => {
+          const config = difficultyConfig[road.difficulty] || { color: '#6b7280', weight: 4, label: road.difficulty }
+          const stars = '★'.repeat(road.rating) + '☆'.repeat(5 - road.rating)
+
+          // Marker at the road location with difficulty color
+          const marker = L.circleMarker([road.lat, road.lng], {
+            radius: 8,
+            fillColor: config.color,
+            color: '#fff',
+            weight: 2,
+            opacity: 1,
+            fillOpacity: 0.95,
+          }).addTo(layer)
+
+          marker.bindPopup(`
+            <div style="min-width:220px">
+              <strong style="font-size:14px">🗺️ ${road.name}</strong><br/>
+              <span style="color:#666;font-size:12px;display:block;margin:4px 0">${road.description}</span>
+              <div style="display:flex;gap:4px;flex-wrap:wrap;margin:4px 0">
+                <span style="background:${config.color}22;color:${config.color};padding:2px 8px;border-radius:4px;font-size:11px;display:inline-block">${config.label}</span>
+                <span style="background:#6b728022;color:#6b7280;padding:2px 8px;border-radius:4px;font-size:11px;display:inline-block">${road.countryName || road.country}</span>
+                <span style="background:#6b728022;color:#6b7280;padding:2px 8px;border-radius:4px;font-size:11px;display:inline-block">${roadTypeEmoji[road.roadType] || '🛤️'} ${road.roadType}</span>
+              </div>
+              <div style="display:flex;align-items:center;gap:6px;margin-top:4px">
+                <span style="color:#888;font-size:12px">📏 ${road.lengthKm} km</span>
+                <span style="color:#f59e0b;font-size:12px">${stars}</span>
+              </div>
+            </div>
+          `)
+
+          // Road name label at midpoint (using a divIcon)
+          const labelIcon = L.divIcon({
+            className: 'road-label',
+            html: `<div style="background:${config.color}dd;color:#fff;padding:1px 6px;border-radius:3px;font-size:10px;font-weight:700;white-space:nowrap;box-shadow:0 1px 4px rgba(0,0,0,0.3);line-height:1.4;">${road.name}</div>`,
+            iconSize: [0, 0],
+            iconAnchor: [0, -4],
+          })
+          L.marker([road.lat, road.lng], { icon: labelIcon, interactive: false }).addTo(layer)
+        })
+      } catch {
+        // ignore fetch errors
+      }
     }
 
-    balkanRoadRoutes.forEach(road => {
-      const config = difficultyConfig[road.difficulty] || { color: '#6b7280', weight: 4, label: road.difficulty }
-      const coords: L.LatLngExpression[] = road.coords.map(
-        (c: number[]) => [c[0], c[1]] as L.LatLngExpression
-      )
+    fetchAndRenderRoads()
+  }, [showBalkanRoads])
 
-      // For extreme difficulty: add glow effect (wide translucent line underneath)
-      if (road.difficulty === 'extreme') {
-        L.polyline(coords, {
-          color: config.color,
-          weight: 14,
-          opacity: 0.3,
-          lineCap: 'round',
-          lineJoin: 'round',
-        }).addTo(layer)
-      }
+  // Update camps overlay
+  useEffect(() => {
+    const layer = campsLayerRef.current
+    if (!layer) return
+    layer.clearLayers()
 
-      // Main route polyline
-      L.polyline(coords, {
-        color: config.color,
-        weight: config.weight,
-        opacity: 0.9,
-        lineCap: 'round',
-        lineJoin: 'round',
-      }).addTo(layer)
+    if (!showCamps) return
 
-      // Circle marker at the start of each road
-      const startCoord = road.coords[0]
-      const marker = L.circleMarker([startCoord[0], startCoord[1]], {
-        radius: 7,
-        fillColor: config.color,
-        color: '#fff',
-        weight: 2,
-        opacity: 1,
-        fillOpacity: 0.95,
-      }).addTo(layer)
+    const campsToRender = camps || []
+
+    const priceColors: Record<string, string> = { budget: '#22c55e', mid: '#f59e0b', premium: '#a855f7' }
+
+    campsToRender.forEach(camp => {
+      const campColor = priceColors[camp.priceRange || ''] || '#10b981'
+
+      // Camp tent icon marker
+      const campIcon = L.divIcon({
+        className: 'custom-marker',
+        html: `<div style="position:relative;display:flex;align-items:center;justify-content:center;width:28px;height:28px;">
+          <div style="position:absolute;inset:0;background:${campColor};border:2px solid #fff;border-radius:50%;box-shadow:0 2px 6px rgba(0,0,0,0.3);"></div>
+          <span style="position:relative;z-index:1;font-size:13px;line-height:1;">⛺</span>
+        </div>`,
+        iconSize: [28, 28],
+        iconAnchor: [14, 14],
+        popupAnchor: [0, -16],
+      })
+
+      const marker = L.marker([camp.lat, camp.lng], { icon: campIcon }).addTo(layer)
+
+      const stars = '★'.repeat(Math.round(camp.rating)) + '☆'.repeat(5 - Math.round(camp.rating))
+      const amenityList = (camp.amenities || []).slice(0, 5).map((a: string) => {
+        const emojiMap: Record<string, string> = { wifi: '📶', showers: '🚿', kitchen: '🍳', parking: '🅿️', electricity: '⚡', water: '💧' }
+        return `${emojiMap[a] || '•'} ${a}`
+      }).join(' ')
 
       marker.bindPopup(`
         <div style="min-width:200px">
-          <strong style="font-size:14px">🗺️ ${road.name}</strong><br/>
-          <span style="background:${config.color}22;color:${config.color};padding:2px 8px;border-radius:4px;font-size:11px;display:inline-block;margin:4px 2px">${config.label}</span>
-          <span style="background:#6b728022;color:#6b7280;padding:2px 8px;border-radius:4px;font-size:11px;display:inline-block;margin:4px 2px">${road.country}</span>
-          <span style="color:#888;font-size:12px;display:block;margin-top:4px">📏 ${road.length} km</span>
+          <strong style="font-size:14px">⛺ ${camp.name}</strong><br/>
+          ${camp.address ? `<span style="color:#666;font-size:12px;display:block;margin:2px 0">📍 ${camp.address}</span>` : ''}
+          <div style="display:flex;align-items:center;gap:6px;margin:3px 0">
+            <span style="color:#f59e0b;font-size:12px">${stars}</span>
+            <span style="color:#888;font-size:11px">${camp.rating.toFixed(1)}</span>
+          </div>
+          ${camp.motoFriendly ? '<span style="background:#10b98122;color:#10b981;padding:2px 8px;border-radius:4px;font-size:11px;display:inline-block;margin:2px 0">🏍️ Moto prijazno</span>' : ''}
+          ${camp.priceRange ? `<span style="background:${campColor}22;color:${campColor};padding:2px 8px;border-radius:4px;font-size:11px;display:inline-block;margin:2px 4px">${camp.priceRange}</span>` : ''}
+          ${camp.openSeason ? `<span style="color:#888;font-size:11px;display:block;margin:2px 0">📅 ${camp.openSeason}</span>` : ''}
+          ${amenityList ? `<span style="color:#666;font-size:11px;display:block;margin:2px 0">${amenityList}</span>` : ''}
+          ${camp.description ? `<span style="color:#888;font-size:11px;display:block;margin:4px 0;line-height:1.3">${camp.description}</span>` : ''}
         </div>
       `)
     })
-  }, [showBalkanRoads])
+  }, [showCamps, camps])
 
   // Update weather radar overlay
   useEffect(() => {

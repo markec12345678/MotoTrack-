@@ -18,156 +18,20 @@ import {
   Clock,
   XCircle,
   Layers,
+  AlertTriangle,
+  RefreshCw,
 } from 'lucide-react'
 import { toast } from 'sonner'
-
-// ─── IndexedDB helpers ────────────────────────────────────────────────────────
-
-const DB_NAME = 'mototrack-offline-maps'
-const STORE_NAME = 'tiles'
-const DB_VERSION = 1
-
-function openDB(): Promise<IDBDatabase> {
-  return new Promise((resolve, reject) => {
-    const request = indexedDB.open(DB_NAME, DB_VERSION)
-    request.onupgradeneeded = () => {
-      const db = request.result
-      if (!db.objectStoreNames.contains(STORE_NAME)) {
-        db.createObjectStore(STORE_NAME, { keyPath: 'key' })
-      }
-    }
-    request.onsuccess = () => resolve(request.result)
-    request.onerror = () => reject(request.error)
-  })
-}
-
-async function saveTile(key: string, blob: Blob): Promise<void> {
-  const db = await openDB()
-  return new Promise((resolve, reject) => {
-    const tx = db.transaction(STORE_NAME, 'readwrite')
-    tx.objectStore(STORE_NAME).put({ key, blob, timestamp: Date.now() })
-    tx.oncomplete = () => resolve()
-    tx.onerror = () => reject(tx.error)
-  })
-}
-
-async function getTile(key: string): Promise<Blob | null> {
-  const db = await openDB()
-  return new Promise((resolve, reject) => {
-    const tx = db.transaction(STORE_NAME, 'readonly')
-    const request = tx.objectStore(STORE_NAME).get(key)
-    request.onsuccess = () => resolve(request.result?.blob ?? null)
-    request.onerror = () => reject(request.error)
-  })
-}
-
-async function deleteAllTiles(): Promise<void> {
-  const db = await openDB()
-  return new Promise((resolve, reject) => {
-    const tx = db.transaction(STORE_NAME, 'readwrite')
-    tx.objectStore(STORE_NAME).clear()
-    tx.oncomplete = () => resolve()
-    tx.onerror = () => reject(tx.error)
-  })
-}
-
-async function deleteTilesByPrefix(prefix: string): Promise<void> {
-  const db = await openDB()
-  return new Promise((resolve, reject) => {
-    const tx = db.transaction(STORE_NAME, 'readwrite')
-    const store = tx.objectStore(STORE_NAME)
-    const request = store.openCursor()
-    request.onsuccess = () => {
-      const cursor = request.result
-      if (cursor) {
-        if (cursor.value.key.startsWith(prefix)) {
-          cursor.delete()
-        }
-        cursor.continue()
-      }
-    }
-    tx.oncomplete = () => resolve()
-    tx.onerror = () => reject(tx.error)
-  })
-}
-
-async function getStorageEstimate(): Promise<{ usedBytes: number; tileCount: number }> {
-  const db = await openDB()
-  return new Promise((resolve, reject) => {
-    const tx = db.transaction(STORE_NAME, 'readonly')
-    const request = tx.objectStore(STORE_NAME).getAll()
-    request.onsuccess = () => {
-      const items = request.result || []
-      let usedBytes = 0
-      items.forEach((item: any) => {
-        usedBytes += item.blob?.size || 0
-      })
-      resolve({ usedBytes, tileCount: items.length })
-    }
-    request.onerror = () => reject(request.error)
-  })
-}
-
-async function getTileCountByPrefix(prefix: string): Promise<number> {
-  const db = await openDB()
-  return new Promise((resolve, reject) => {
-    const tx = db.transaction(STORE_NAME, 'readonly')
-    const request = tx.objectStore(STORE_NAME).getAll()
-    request.onsuccess = () => {
-      const items = request.result || []
-      const count = items.filter((item: any) => item.key.startsWith(prefix)).length
-      resolve(count)
-    }
-    request.onerror = () => reject(request.error)
-  })
-}
-
-// ─── Tile URL interceptor for Leaflet ─────────────────────────────────────────
-
-/**
- * Creates a custom tile URL function that checks IndexedDB first.
- * Usage in Leaflet: L.tileLayer(createOfflineTileUrl(...)...)
- */
-export async function createOfflineTileUrl(
-  url: string,
-  z: number,
-  x: number,
-  y: number,
-): Promise<string> {
-  const key = `tile_${z}_${x}_${y}`
-  try {
-    const blob = await getTile(key)
-    if (blob) {
-      return URL.createObjectURL(blob)
-    }
-  } catch {
-    // Fall through to online URL
-  }
-  return url
-}
-
-/**
- * Hook to intercept Leaflet tile loading to use offline tiles when available.
- */
-export function useOfflineTileInterceptor() {
-  const interceptTile = useCallback(
-    async (z: number, x: number, y: number, onlineUrl: string): Promise<string> => {
-      const key = `tile_${z}_${x}_${y}`
-      try {
-        const blob = await getTile(key)
-        if (blob) {
-          return URL.createObjectURL(blob)
-        }
-      } catch {
-        // Fall through
-      }
-      return onlineUrl
-    },
-    [],
-  )
-
-  return { interceptTile }
-}
+import {
+  saveTile,
+  getTile,
+  deleteAllTiles,
+  deleteTilesByPrefix,
+  getStorageEstimate,
+  getTileCountByPrefix,
+  checkLowStorage,
+  isTileExpired,
+} from '@/lib/offline-protocol'
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -177,6 +41,7 @@ interface OfflineMapRegion {
   bounds: { north: number; south: number; east: number; west: number }
   zoomLevels: string
   estimatedSizeMB: number
+  tileSource: string
   downloaded: boolean
   downloadedAt: string | null
 }
@@ -212,6 +77,8 @@ export default function OfflineMapsManager({ userId }: Props) {
     usedBytes: 0,
     tileCount: 0,
   })
+  const [lowStorageWarning, setLowStorageWarning] = useState(false)
+  const [expiredRegions, setExpiredRegions] = useState<Set<string>>(new Set())
   const abortRef = useRef<AbortController | null>(null)
 
   const fetchRegions = useCallback(async () => {
@@ -233,15 +100,46 @@ export default function OfflineMapsManager({ userId }: Props) {
     try {
       const info = await getStorageEstimate()
       setStorageInfo(info)
+      // Check for low storage
+      const lowStorage = await checkLowStorage()
+      setLowStorageWarning(lowStorage)
     } catch {
       // IndexedDB might not be available
     }
   }, [])
 
+  // Check for expired tiles in downloaded regions
+  const checkExpiredTiles = useCallback(async () => {
+    const expired = new Set<string>()
+    for (const region of regions) {
+      if (region.downloaded) {
+        // Check a sample of tiles for expiry
+        try {
+          const count = await getTileCountByPrefix(`tile_region_${region.id}_`)
+          if (count > 0 && region.downloadedAt) {
+            const downloadedTime = new Date(region.downloadedAt).getTime()
+            if (isTileExpired(downloadedTime)) {
+              expired.add(region.id)
+            }
+          }
+        } catch {
+          // Ignore
+        }
+      }
+    }
+    setExpiredRegions(expired)
+  }, [regions])
+
   useEffect(() => {
     fetchRegions()
     refreshStorage()
   }, [fetchRegions, refreshStorage])
+
+  useEffect(() => {
+    if (regions.length > 0) {
+      checkExpiredTiles()
+    }
+  }, [regions, checkExpiredTiles])
 
   // Calculate actual region tile counts from IndexedDB
   const [regionTileCounts, setRegionTileCounts] = useState<Record<string, number>>({})
@@ -272,6 +170,13 @@ export default function OfflineMapsManager({ userId }: Props) {
     async (regionId: string) => {
       if (!userId) {
         toast.error('Prijava je potrebna za prenos')
+        return
+      }
+
+      // Check storage before download
+      const lowStorage = await checkLowStorage()
+      if (lowStorage) {
+        toast.error('Premalo prostora za prenos! Manj kot 100MB na voljo.')
         return
       }
 
@@ -323,7 +228,7 @@ export default function OfflineMapsManager({ userId }: Props) {
           const batch = tiles.slice(i, i + BATCH_SIZE)
           const results = await Promise.allSettled(
             batch.map(async tile => {
-              // Check if already in IndexedDB
+              // Check if already in IndexedDB and not expired
               const existingBlob = await getTile(`tile_region_${regionId}_${tile.z}_${tile.x}_${tile.y}`)
               if (existingBlob) {
                 return // Already downloaded
@@ -331,9 +236,6 @@ export default function OfflineMapsManager({ userId }: Props) {
 
               const tileRes = await fetch(tile.url, {
                 signal: abortController.signal,
-                headers: {
-                  'User-Agent': 'MotoTrack/1.0',
-                },
               })
 
               if (!tileRes.ok) {
@@ -387,6 +289,15 @@ export default function OfflineMapsManager({ userId }: Props) {
               ),
             )
             await refreshStorage()
+
+            // Show browser notification if supported
+            if ('Notification' in window && Notification.permission === 'granted') {
+              new Notification('MotoTrack - Prenos končan', {
+                body: `${completed}/${totalTiles} ploščic naloženih za ${regions.find(r => r.id === regionId)?.name || regionId}`,
+                icon: '/icon-192x192.png',
+              })
+            }
+
             toast.success(
               `Prenos končan! ${completed}/${totalTiles} ploščic naloženih${failed > 0 ? `, ${failed} spodletelih` : ''}`,
             )
@@ -407,7 +318,7 @@ export default function OfflineMapsManager({ userId }: Props) {
       abortRef.current = null
       await refreshStorage()
     },
-    [userId, refreshStorage],
+    [userId, refreshStorage, regions],
   )
 
   const handleCancelDownload = useCallback(() => {
@@ -463,11 +374,21 @@ export default function OfflineMapsManager({ userId }: Props) {
       await refreshStorage()
       // Reset all downloaded states
       setRegions(prev => prev.map(r => ({ ...r, downloaded: false, downloadedAt: null })))
+      setExpiredRegions(new Set())
       toast.success('Vsi offline podatki izbrisani')
     } catch {
       toast.error('Napaka pri brisanju')
     }
   }, [refreshStorage])
+
+  const handleRefreshExpired = useCallback(
+    async (regionId: string) => {
+      // Re-download the expired region
+      await handleDelete(regionId)
+      await handleDownload(regionId)
+    },
+    [handleDelete, handleDownload],
+  )
 
   const formatSize = (mb: number) => {
     if (mb >= 1000) return `${(mb / 1000).toFixed(1)} GB`
@@ -501,6 +422,18 @@ export default function OfflineMapsManager({ userId }: Props) {
         )
       : 0
 
+  // Request notification permission
+  const requestNotificationPermission = useCallback(async () => {
+    if ('Notification' in window && Notification.permission === 'default') {
+      await Notification.requestPermission()
+    }
+  }, [])
+
+  // Request permission on mount
+  useEffect(() => {
+    requestNotificationPermission()
+  }, [requestNotificationPermission])
+
   return (
     <Dialog>
       <DialogTrigger asChild>
@@ -518,6 +451,16 @@ export default function OfflineMapsManager({ userId }: Props) {
         </DialogHeader>
 
         <div className="space-y-4">
+          {/* Low storage warning */}
+          {lowStorageWarning && (
+            <div className="flex items-center gap-2 rounded-lg border border-rose-500/30 bg-rose-500/10 p-3">
+              <AlertTriangle className="h-4 w-4 text-rose-500 flex-shrink-0" />
+              <span className="text-sm text-rose-400">
+                Premalo prostora! Manj kot 100MB na voljo.
+              </span>
+            </div>
+          )}
+
           {/* Storage indicator */}
           <div className="flex items-center justify-between rounded-lg bg-muted/50 p-3">
             <div className="flex items-center gap-2">
@@ -595,17 +538,25 @@ export default function OfflineMapsManager({ userId }: Props) {
                     key={region.id}
                     className={`flex items-center justify-between rounded-lg border p-3 transition-colors ${
                       region.downloaded
-                        ? 'border-emerald-500/30 bg-emerald-500/5'
+                        ? expiredRegions.has(region.id)
+                          ? 'border-amber-500/50 bg-amber-500/5'
+                          : 'border-emerald-500/30 bg-emerald-500/5'
                         : 'border-border'
                     }`}
                   >
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2">
                         <span className="font-medium text-sm truncate">{region.name}</span>
-                        {region.downloaded && (
+                        {region.downloaded && !expiredRegions.has(region.id) && (
                           <Badge className="bg-emerald-500/20 text-emerald-400 border-emerald-500/30 text-[10px] px-1.5">
                             <Check className="h-3 w-3 mr-0.5" />
                             Nameščeno
+                          </Badge>
+                        )}
+                        {expiredRegions.has(region.id) && (
+                          <Badge className="bg-amber-500/20 text-amber-400 border-amber-500/30 text-[10px] px-1.5">
+                            <RefreshCw className="h-3 w-3 mr-0.5" />
+                            Poteklo
                           </Badge>
                         )}
                       </div>
@@ -636,7 +587,19 @@ export default function OfflineMapsManager({ userId }: Props) {
                         )}
                       </div>
                     </div>
-                    <div className="flex-shrink-0 ml-2">
+                    <div className="flex-shrink-0 ml-2 flex items-center gap-1">
+                      {expiredRegions.has(region.id) && (
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => handleRefreshExpired(region.id)}
+                          disabled={deleting !== null || downloadState !== null}
+                          className="h-8 text-amber-500 hover:text-amber-400 hover:bg-amber-500/10"
+                          title="Osveži potekle ploščice"
+                        >
+                          <RefreshCw className="h-4 w-4" />
+                        </Button>
+                      )}
                       {region.downloaded ? (
                         <Button
                           variant="ghost"
@@ -693,7 +656,8 @@ export default function OfflineMapsManager({ userId }: Props) {
           )}
 
           <p className="text-xs text-muted-foreground text-center">
-            Offline zemljevidi omogočajo navigacijo brez internetne povezave
+            Offline zemljevidi omogočajo navigacijo brez internetne povezave.
+            Ploščice se samodejno osvežijo po 30 dneh.
           </p>
         </div>
       </DialogContent>

@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useCallback } from 'react'
 import { Tent, MapPin, Star, Phone, Globe, ExternalLink, Filter, Plus } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
@@ -50,13 +50,21 @@ export default function BalkanCampsPanel({ userId: _userId }: BalkanCampsPanelPr
   const [newLng, setNewLng] = useState('15.9500')
 
   // Fetch camps on mount and when filter changes
-  useEffect(() => {
-    let cancelled = false
+  const fetchCamps = useCallback(() => {
+    setLoading(true)
     fetch(`/api/camps?limit=50${filterCountry !== 'all' ? `&country=${filterCountry}` : ''}`)
       .then(r => r.ok ? r.json() : null)
-      .then(j => { if (!cancelled) { setCamps(j?.data || []); setLoading(false) } })
-      .catch(() => { if (!cancelled) setLoading(false) })
-    return () => { cancelled = true }
+      .then(j => { setCamps(j?.data || []); setLoading(false) })
+      .catch(() => { setLoading(false) })
+  }, [filterCountry])
+
+  useEffect(() => {
+    const ac = new AbortController()
+    fetch(`/api/camps?limit=50${filterCountry !== 'all' ? `&country=${filterCountry}` : ''}`, { signal: ac.signal })
+      .then(r => r.ok ? r.json() : null)
+      .then(j => { if (j) setCamps(j?.data || []) })
+      .catch(() => {})
+    return () => ac.abort()
   }, [filterCountry])
 
   const handleCreate = async () => {

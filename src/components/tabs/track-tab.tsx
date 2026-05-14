@@ -269,6 +269,17 @@ export default function TrackTab({
                 </div>
               )}
 
+              {/* Weather alerts during ride */}
+              {trackPoints.length > 0 && (
+                <div className="mb-2">
+                  <WeatherAlertsPanel
+                    lat={trackPoints[trackPoints.length - 1].lat}
+                    lng={trackPoints[trackPoints.length - 1].lng}
+                    isTracking={true}
+                  />
+                </div>
+              )}
+
               {/* Control buttons */}
               <div className="flex items-center justify-center gap-4 pb-1">
                 {isPaused ? (
@@ -312,6 +323,10 @@ export default function TrackTab({
                   <p className="text-xl font-bold text-white/70">{displayMaxSpeed}</p>
                   <p className="text-[10px] text-white/40 uppercase tracking-wider">max</p>
                 </div>
+              </div>
+              {/* Gradient Analysis Summary */}
+              <div className="w-full max-h-48 overflow-y-auto custom-scrollbar">
+                <GradientAnalysis points={trackPoints} />
               </div>
               <Button className="w-full gap-2 rounded-full bg-primary hover:bg-primary/90" onClick={onSave}>
                 <Save className="size-4" />Shrani vožnjo

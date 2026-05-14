@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useRef, useCallback } from 'react'
 import dynamic from 'next/dynamic'
-import { Search, X, ChevronUp, ChevronDown, LocateFixed, Bike, Route as RouteIcon, Filter, MapPin, GitBranch, CloudRain, AlertTriangle, Radio, Plus, Send, Fuel, Users, Navigation, Trash2, Gauge, Star, Layers, Shield, ChevronRight, Mountain } from 'lucide-react'
+import { Search, X, ChevronUp, ChevronDown, LocateFixed, Bike, Route as RouteIcon, Filter, MapPin, GitBranch, CloudRain, AlertTriangle, Radio, Plus, Send, Fuel, Users, Navigation, Trash2, Gauge, Star, Layers, Shield, ChevronRight, Mountain, Tent } from 'lucide-react'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
@@ -15,7 +15,7 @@ import MapStyleSelector from '@/components/map-style-selector'
 import TrafficOverlay from '@/components/traffic-overlay'
 import NavigationPanel from '@/components/navigation-panel'
 import { toast } from 'sonner'
-import type { RideData, RouteData, PoiData, LiveRider, HazardData, FuelData, FriendshipData, ParkingData, RoadRatingData, NavigationRoute } from '@/components/tabs/types'
+import type { RideData, RouteData, PoiData, LiveRider, HazardData, FuelData, FriendshipData, ParkingData, RoadRatingData, NavigationRoute, CampSiteData } from '@/components/tabs/types'
 import { categoryLabel, categoryColor, poiTypeLabel, poiTypeEmoji } from '@/components/tabs/types'
 
 const MotoMap = dynamic(() => import('@/components/moto-map'), { ssr: false })
@@ -75,6 +75,8 @@ export default function MapTab({ rides, routes, onOpenDetail, userId }: MapTabPr
   // Map overlays state
   const [showTwistyRoads, setShowTwistyRoads] = useState(false)
   const [showBalkanRoads, setShowBalkanRoads] = useState(false)
+  const [showCamps, setShowCamps] = useState(false)
+  const [camps, setCamps] = useState<CampSiteData[]>([])
   const [showWeatherRadar, setShowWeatherRadar] = useState(false)
   const [showHazards, setShowHazards] = useState(false)
 
@@ -137,6 +139,15 @@ export default function MapTab({ rides, routes, onOpenDetail, userId }: MapTabPr
       .then(j => setPois(j.data || []))
       .catch(() => {})
   }, [])
+
+  // Fetch camps for map overlay
+  useEffect(() => {
+    if (!showCamps) return
+    fetch('/api/camps?limit=50')
+      .then(r => r.json())
+      .then(j => setCamps(j.data || []))
+      .catch(() => {})
+  }, [showCamps])
 
   // Fetch fuel data
   useEffect(() => {
@@ -403,8 +414,8 @@ export default function MapTab({ rides, routes, onOpenDetail, userId }: MapTabPr
 
   // Grouped button active states
   const filtersNonDefault = !filterRides || !filterRoutes || filterCategory !== 'all'
-  const layersActive = filtersNonDefault || activePoiCount > 0 || showRoadQuality || showTwistyRoads || showBalkanRoads || showTraffic
-  const layersActiveCount = [filtersNonDefault, activePoiCount > 0, showRoadQuality, showTwistyRoads, showBalkanRoads, showTraffic].filter(Boolean).length
+  const layersActive = filtersNonDefault || activePoiCount > 0 || showRoadQuality || showTwistyRoads || showBalkanRoads || showCamps || showTraffic
+  const layersActiveCount = [filtersNonDefault, activePoiCount > 0, showRoadQuality, showTwistyRoads, showBalkanRoads, showCamps, showTraffic].filter(Boolean).length
   const safetyActive = showHazards || showWeatherRadar || showLiveRide
   const safetyActiveCount = [showHazards, showWeatherRadar, showLiveRide].filter(Boolean).length
   const navActive = showNavigation || showFuelPanel || showParkingPanel || showFriendRides
@@ -433,6 +444,8 @@ export default function MapTab({ rides, routes, onOpenDetail, userId }: MapTabPr
         filterPoiTypes={activePoiTypes}
         showTwistyRoads={showTwistyRoads}
         showBalkanRoads={showBalkanRoads}
+        showCamps={showCamps}
+        camps={camps}
         showWeatherRadar={showWeatherRadar}
         showHazards={showHazards}
         roadRatings={showRoadQuality ? roadRatings : []}
@@ -492,9 +505,9 @@ export default function MapTab({ rides, routes, onOpenDetail, userId }: MapTabPr
         {/* LAYERS group */}
         <Popover>
           <PopoverTrigger asChild>
-            <Button size="icon" variant="secondary" className={`h-10 w-10 rounded-full shadow-lg backdrop-blur-md border border-border ${showFilters || showTwistyRoads || showTraffic || showRoadQuality || activePoiCount > 0 ? 'bg-primary text-primary-foreground' : 'bg-background/90 hover:bg-muted'}`} title="Plasti">
+            <Button size="icon" variant="secondary" className={`h-10 w-10 rounded-full shadow-lg backdrop-blur-md border border-border ${showFilters || showTwistyRoads || showTraffic || showRoadQuality || showCamps || activePoiCount > 0 ? 'bg-primary text-primary-foreground' : 'bg-background/90 hover:bg-muted'}`} title="Plasti">
               <Layers className="h-4 w-4" />
-              {(activePoiCount > 0 || showTwistyRoads || showTraffic || showRoadQuality) && <span className="absolute -top-1 -right-1 bg-red-500 text-white text-[8px] font-bold rounded-full size-3.5 flex items-center justify-center">!</span>}
+              {(activePoiCount > 0 || showTwistyRoads || showTraffic || showRoadQuality || showCamps) && <span className="absolute -top-1 -right-1 bg-red-500 text-white text-[8px] font-bold rounded-full size-3.5 flex items-center justify-center">!</span>}
             </Button>
           </PopoverTrigger>
           <PopoverContent side="left" align="start" className="w-56 p-3 rounded-xl border-border shadow-xl">
@@ -511,6 +524,9 @@ export default function MapTab({ rides, routes, onOpenDetail, userId }: MapTabPr
               </button>
               <button onClick={() => setShowBalkanRoads(!showBalkanRoads)} className={`w-full flex items-center gap-2 px-2.5 py-2 rounded-lg text-xs font-medium transition-colors ${showBalkanRoads ? 'bg-red-500/15 text-red-500 border border-red-500/30' : 'bg-secondary/50 text-muted-foreground hover:bg-muted'}`}>
                 <MapPin className="size-3.5" /> Balkan moto ceste
+              </button>
+              <button onClick={() => setShowCamps(!showCamps)} className={`w-full flex items-center gap-2 px-2.5 py-2 rounded-lg text-xs font-medium transition-colors ${showCamps ? 'bg-emerald-500/15 text-emerald-500 border border-emerald-500/30' : 'bg-secondary/50 text-muted-foreground hover:bg-muted'}`}>
+                <Tent className="size-3.5" /> Kampi za motoriste
               </button>
               <button onClick={() => setShowTraffic(!showTraffic)} className={`w-full flex items-center gap-2 px-2.5 py-2 rounded-lg text-xs font-medium transition-colors ${showTraffic ? 'bg-orange-500/15 text-orange-500 border border-orange-500/30' : 'bg-secondary/50 text-muted-foreground hover:bg-muted'}`}>
                 <Layers className="size-3.5" /> Promet v živo

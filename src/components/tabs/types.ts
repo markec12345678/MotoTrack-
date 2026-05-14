@@ -99,7 +99,7 @@ export interface LeaderboardUser {
 export interface PoiData {
   id: string
   name: string
-  type: string // gas_station, restaurant, biker_spot, parking, hotel, mechanic
+  type: string // gas_station, restaurant, biker_spot, parking, hotel, mechanic, camping, viewpoint, snowmobile, racetrack, first_aid, water, shelter, trailhead, scenic_drive, border_crossing, toll_booth, ferry
   lat: number
   lng: number
   description: string | null
@@ -374,7 +374,7 @@ export function formatDate(dateStr: string): string {
 }
 
 export function categoryLabel(cat: string): string {
-  const map: Record<string, string> = { scenic: 'Slikovito', twisty: 'Vijugasto', offroad: 'Terensko', city: 'Mesto', snowmobile: 'Snežni skuter', racetrack: 'Dirkališče' }
+  const map: Record<string, string> = { scenic: 'Slikovito', twisty: 'Vijugasto', offroad: 'Terensko', city: 'Mesto', snowmobile: 'Snežni skuter', racetrack: 'Dirkališče', enduro: 'Enduro', adventure: 'Pustolovščina' }
   return map[cat] || cat
 }
 
@@ -386,6 +386,8 @@ export function categoryColor(cat: string): string {
     city: 'bg-sky-500/20 text-sky-400 border-sky-500/30',
     snowmobile: 'bg-cyan-500/20 text-cyan-400 border-cyan-500/30',
     racetrack: 'bg-red-500/20 text-red-400 border-red-500/30',
+    enduro: 'bg-lime-500/20 text-lime-400 border-lime-500/30',
+    adventure: 'bg-teal-500/20 text-teal-400 border-teal-500/30',
   }
   return map[cat] || ''
 }
@@ -407,6 +409,14 @@ export function poiTypeLabel(type: string): string {
     viewpoint: 'Razgledna točka',
     snowmobile: 'Snežni skuter',
     racetrack: 'Dirkališče',
+    first_aid: 'Prva pomoč',
+    water: 'Vodni vir',
+    shelter: 'Zatočišče',
+    trailhead: 'Začetek poti',
+    scenic_drive: 'Slikovita vožnja',
+    border_crossing: 'Mejni prehod',
+    toll_booth: 'Cestnina',
+    ferry: 'Trajekt',
   }
   return map[type] || type
 }
@@ -423,6 +433,14 @@ export function poiTypeEmoji(type: string): string {
     viewpoint: '🏔️',
     snowmobile: '🛷',
     racetrack: '🏁',
+    first_aid: '🏥',
+    water: '💧',
+    shelter: '🏕️',
+    trailhead: '🚩',
+    scenic_drive: '🌄',
+    border_crossing: '🛂',
+    toll_booth: '🪙',
+    ferry: '⛴️',
   }
   return map[type] || '📍'
 }
@@ -439,6 +457,14 @@ export function poiTypeColor(type: string): string {
     viewpoint: '#0ea5e9',
     snowmobile: '#06b6d4',
     racetrack: '#dc2626',
+    first_aid: '#e11d48',
+    water: '#0284c7',
+    shelter: '#7c3aed',
+    trailhead: '#65a30d',
+    scenic_drive: '#d97706',
+    border_crossing: '#475569',
+    toll_booth: '#a16207',
+    ferry: '#0891b2',
   }
   return map[type] || '#6b7280'
 }

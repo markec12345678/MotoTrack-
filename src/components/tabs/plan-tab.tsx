@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react'
 import dynamic from 'next/dynamic'
-import { Route, Trash2, Save, MapPin, X, Upload, Plus, Calendar, Minus, Hotel, Fuel, ChevronDown, ChevronUp, Eye, Clock, RefreshCw, Navigation, ArrowLeft, ArrowRight, Cloud, Wind, AlertTriangle, Thermometer, Search, Activity, BarChart3 } from 'lucide-react'
+import { Route, Trash2, Save, MapPin, X, Upload, Plus, Calendar, Minus, Hotel, Fuel, ChevronDown, ChevronUp, Eye, Clock, RefreshCw, Navigation, ArrowLeft, ArrowRight, Cloud, Wind, AlertTriangle, Thermometer, Search, Activity, BarChart3, Mountain, TreePine } from 'lucide-react'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
 import { Switch } from '@/components/ui/switch'
@@ -697,6 +697,260 @@ function CurvatureProfile({ waypoints }: { waypoints: { lat: number; lng: number
   )
 }
 
+// Off-road route result type
+interface OffRoadResult {
+  terrainProfile: Array<{ distance: number; elevation: number; gradient: number; surface: 'dirt' | 'gravel' | 'trail' | 'forest_road' }>
+  difficulty: 'easy' | 'moderate' | 'hard' | 'extreme'
+  scenicScore: number
+  geometry: [number, number][]
+  waypoints: { lat: number; lng: number }[]
+  totalDistance: number
+  totalAscent: number
+  totalDescent: number
+  maxElevation: number
+  surfaceBreakdown: { dirt: number; gravel: number; trail: number; forest_road: number }
+}
+
+// Off-Road Terrain Planner mini-component
+function OffRoadPlanner({ waypoints, onWaypointsUpdate }: { waypoints: { lat: number; lng: number }[]; onWaypointsUpdate: (wps: { lat: number; lng: number }[]) => void }) {
+  const [maxGradient, setMaxGradient] = useState(15)
+  const [avoidWaterCrossings, setAvoidWaterCrossings] = useState(false)
+  const [preferForestRoads, setPreferForestRoads] = useState(false)
+  const [loading, setLoading] = useState(false)
+  const [result, setResult] = useState<OffRoadResult | null>(null)
+
+  const generateOffRoad = useCallback(async () => {
+    if (waypoints.length < 2) {
+      toast.error('Dodajte vsaj dve točki za terensko načrtovanje')
+      return
+    }
+    setLoading(true)
+    try {
+      const start = waypoints[0]
+      const end = waypoints[waypoints.length - 1]
+      const viaPoints = waypoints.slice(1, -1)
+
+      const res = await fetch('/api/offroad-route', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          startLat: start.lat,
+          startLng: start.lng,
+          endLat: end.lat,
+          endLng: end.lng,
+          viaPoints: viaPoints.length > 0 ? viaPoints : undefined,
+          maxGradient,
+          avoidWaterCrossings,
+          preferForestRoads,
+        }),
+      })
+
+      if (res.ok) {
+        const data = await res.json()
+        setResult(data.data)
+        if (data.data?.waypoints?.length > 0) {
+          onWaypointsUpdate(data.data.waypoints)
+        }
+        toast.success('Terenska pot generirana!')
+      } else {
+        toast.error('Napaka pri generiranju terenske poti')
+      }
+    } catch {
+      toast.error('Napaka pri povezavi')
+    }
+    setLoading(false)
+  }, [waypoints, maxGradient, avoidWaterCrossings, preferForestRoads, onWaypointsUpdate])
+
+  const difficultyColors: Record<string, { bg: string; text: string; border: string }> = {
+    easy: { bg: 'bg-green-500/10', text: 'text-green-600 dark:text-green-400', border: 'border-green-500/30' },
+    moderate: { bg: 'bg-amber-500/10', text: 'text-amber-600 dark:text-amber-400', border: 'border-amber-500/30' },
+    hard: { bg: 'bg-orange-500/10', text: 'text-orange-600 dark:text-orange-400', border: 'border-orange-500/30' },
+    extreme: { bg: 'bg-red-500/10', text: 'text-red-600 dark:text-red-400', border: 'border-red-500/30' },
+  }
+
+  const difficultyLabels: Record<string, string> = { easy: 'Lahka', moderate: 'Zmerna', hard: 'Težka', extreme: 'Ekstremna' }
+
+  const surfaceLabels: Record<string, { label: string; emoji: string; color: string }> = {
+    dirt: { label: 'Zemlja', emoji: '🟤', color: '#92400e' },
+    gravel: { label: 'Makadam', emoji: '🩶', color: '#78716c' },
+    trail: { label: 'Pot', emoji: '🟢', color: '#15803d' },
+    forest_road: { label: 'Gozdna cesta', emoji: '🌲', color: '#166534' },
+  }
+
+  return (
+    <div className="rounded-lg border border-orange-500/30 bg-orange-500/5 p-3 space-y-3">
+      <div className="flex items-center gap-1.5">
+        <Mountain className="size-4 text-orange-500" />
+        <h4 className="text-xs font-semibold text-orange-600 dark:text-orange-400">Terensko načrtovanje</h4>
+      </div>
+
+      {/* Max gradient slider */}
+      <div>
+        <div className="flex items-center justify-between mb-1">
+          <label className="text-[10px] font-medium text-muted-foreground">Največji naklon</label>
+          <span className="text-xs font-bold text-orange-500">{maxGradient}%</span>
+        </div>
+        <Slider
+          value={[maxGradient]}
+          min={5}
+          max={25}
+          step={1}
+          onValueChange={(v) => setMaxGradient(v[0])}
+          className="w-full"
+        />
+        <div className="flex justify-between text-[9px] text-muted-foreground mt-0.5">
+          <span>5% (Lahko)</span>
+          <span>15%</span>
+          <span>25% (Ekstremno)</span>
+        </div>
+      </div>
+
+      {/* Checkboxes */}
+      <div className="space-y-2">
+        <div className="flex items-center gap-2">
+          <Checkbox
+            id="avoid-water"
+            checked={avoidWaterCrossings}
+            onCheckedChange={(checked) => setAvoidWaterCrossings(checked === true)}
+            className="data-[state=checked]:bg-orange-500 data-[state=checked]:border-orange-500"
+          />
+          <label htmlFor="avoid-water" className="text-[10px] text-muted-foreground cursor-pointer flex items-center gap-1">
+            <AlertTriangle className="size-3 text-sky-500" /> Izogni se prehodom čez vodo
+          </label>
+        </div>
+        <div className="flex items-center gap-2">
+          <Checkbox
+            id="prefer-forest"
+            checked={preferForestRoads}
+            onCheckedChange={(checked) => setPreferForestRoads(checked === true)}
+            className="data-[state=checked]:bg-orange-500 data-[state=checked]:border-orange-500"
+          />
+          <label htmlFor="prefer-forest" className="text-[10px] text-muted-foreground cursor-pointer flex items-center gap-1">
+            <TreePine className="size-3 text-green-600" /> Prednostno gozdne ceste
+          </label>
+        </div>
+      </div>
+
+      {/* Generate button */}
+      <Button
+        className="w-full bg-orange-500 hover:bg-orange-600 text-white"
+        size="sm"
+        disabled={loading || waypoints.length < 2}
+        onClick={generateOffRoad}
+      >
+        {loading ? (
+          <span className="size-3.5 border-2 border-current border-t-transparent rounded-full animate-spin mr-1.5" />
+        ) : (
+          <Mountain className="size-3.5 mr-1.5" />
+        )}
+        Generiraj terensko pot
+      </Button>
+
+      {/* Results */}
+      {result && (
+        <div className="space-y-2.5 pt-1">
+          {/* Difficulty badge */}
+          <div className={`rounded-md p-2.5 border ${difficultyColors[result.difficulty].bg} ${difficultyColors[result.difficulty].border}`}>
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <Mountain className={`size-4 ${difficultyColors[result.difficulty].text}`} />
+                <div>
+                  <p className={`text-xs font-bold ${difficultyColors[result.difficulty].text}`}>
+                    Težavnost: {difficultyLabels[result.difficulty]}
+                  </p>
+                  <p className="text-[10px] text-muted-foreground">
+                    Scenska ocena: {result.scenicScore}/10
+                  </p>
+                </div>
+              </div>
+              <div className="text-right">
+                <p className="text-xs font-bold">{(result.totalDistance / 1000).toFixed(1)} km</p>
+                <p className="text-[10px] text-muted-foreground">↑{result.totalAscent}m ↓{result.totalDescent}m</p>
+              </div>
+            </div>
+          </div>
+
+          {/* Surface breakdown */}
+          <div>
+            <p className="text-[10px] font-medium text-muted-foreground mb-1.5">Vrste podlage</p>
+            <div className="space-y-1.5">
+              {(['dirt', 'gravel', 'trail', 'forest_road'] as const).map(surface => {
+                const count = result.surfaceBreakdown[surface]
+                const total = Object.values(result.surfaceBreakdown).reduce((a, b) => a + b, 0)
+                const pct = total > 0 ? Math.round((count / total) * 100) : 0
+                const info = surfaceLabels[surface]
+                return (
+                  <div key={surface} className="flex items-center gap-2">
+                    <span className="text-sm">{info.emoji}</span>
+                    <span className="text-[10px] w-20 text-muted-foreground">{info.label}</span>
+                    <div className="flex-1 h-2 bg-secondary rounded-full overflow-hidden">
+                      <div
+                        className="h-full rounded-full transition-all"
+                        style={{ width: `${pct}%`, backgroundColor: info.color }}
+                      />
+                    </div>
+                    <span className="text-[10px] font-medium w-8 text-right">{pct}%</span>
+                  </div>
+                )
+              })}
+            </div>
+          </div>
+
+          {/* Terrain profile ribbon */}
+          {result.terrainProfile.length > 0 && (
+            <div>
+              <p className="text-[10px] font-medium text-muted-foreground mb-1.5">Profil terena</p>
+              <div className="h-5 rounded-md overflow-hidden flex">
+                {result.terrainProfile.map((seg, i) => {
+                  const absGrad = Math.abs(seg.gradient)
+                  let color = '#22c55e' // green = flat
+                  if (absGrad > 12) color = '#dc2626' // red = steep
+                  else if (absGrad > 8) color = '#f97316' // orange = moderate-steep
+                  else if (absGrad > 4) color = '#f59e0b' // amber = moderate
+
+                  return (
+                    <div
+                      key={i}
+                      className="flex items-center justify-center"
+                      style={{
+                        backgroundColor: color,
+                        flex: 1,
+                        minWidth: 3,
+                        opacity: 0.85,
+                      }}
+                      title={`${seg.surface}: ${seg.gradient.toFixed(1)}%, ${Math.round(seg.elevation)}m`}
+                    >
+                      {result.terrainProfile.length < 30 && (
+                        <span className="text-[6px] font-bold text-white/80">{Math.round(seg.elevation)}</span>
+                      )}
+                    </div>
+                  )
+                })}
+              </div>
+              <div className="flex items-center gap-3 mt-1 text-[9px]">
+                <span className="flex items-center gap-0.5"><span className="size-1.5 rounded-sm bg-green-500" /> Raven</span>
+                <span className="flex items-center gap-0.5"><span className="size-1.5 rounded-sm bg-amber-500" /> Zmeren</span>
+                <span className="flex items-center gap-0.5"><span className="size-1.5 rounded-sm bg-orange-500" /> Strm</span>
+                <span className="flex items-center gap-0.5"><span className="size-1.5 rounded-sm bg-red-500" /> Zelo strm</span>
+              </div>
+            </div>
+          )}
+
+          {/* Max elevation info */}
+          <div className="flex items-center justify-between text-[10px] bg-secondary/50 rounded-md px-2.5 py-2">
+            <span className="text-muted-foreground">Najvišja točka</span>
+            <span className="font-bold">{result.maxElevation} m</span>
+          </div>
+        </div>
+      )}
+
+      {waypoints.length < 2 && (
+        <p className="text-[10px] text-muted-foreground text-center">Dodajte vsaj dve točki za terensko načrtovanje</p>
+      )}
+    </div>
+  )
+}
+
 export default function PlanTab({
   waypoints, setWaypoints, title, setTitle,
   category, setCategory, avoidHighways, setAvoidHighways,
@@ -1182,6 +1436,12 @@ export default function PlanTab({
               <label className="text-sm">Izogni se cestninam</label>
               <Switch checked={avoidTolls ?? false} onCheckedChange={setAvoidTolls ?? (() => {})} />
             </div>
+
+            {/* Off-road terrain planner - visible when offroad mode selected */}
+            {routingMode === 'offroad' && (
+              <OffRoadPlanner waypoints={waypoints} onWaypointsUpdate={setWaypoints} />
+            )}
+
             <Separator />
             <div>
               <div className="flex items-center justify-between mb-2">

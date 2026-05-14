@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useCallback } from 'react'
 import { MapPin, Star, Filter } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
@@ -37,13 +37,21 @@ export default function BalkanRoadsPanel({ onSelectRoad }: BalkanRoadsPanelProps
   const [filterDifficulty, setFilterDifficulty] = useState<string>('all')
 
   // Fetch roads on mount and when filters change
-  useEffect(() => {
-    let cancelled = false
+  const fetchRoads = useCallback(() => {
+    setLoading(true)
     fetch(`/api/balkan-roads?${filterCountry !== 'all' ? `country=${filterCountry}&` : ''}${filterDifficulty !== 'all' ? `difficulty=${filterDifficulty}&` : ''}`)
       .then(r => r.ok ? r.json() : null)
-      .then(j => { if (!cancelled) { setRoads(j?.data || []); setLoading(false) } })
-      .catch(() => { if (!cancelled) setLoading(false) })
-    return () => { cancelled = true }
+      .then(j => { setRoads(j?.data || []); setLoading(false) })
+      .catch(() => { setLoading(false) })
+  }, [filterCountry, filterDifficulty])
+
+  useEffect(() => {
+    const ac = new AbortController()
+    fetch(`/api/balkan-roads?${filterCountry !== 'all' ? `country=${filterCountry}&` : ''}${filterDifficulty !== 'all' ? `difficulty=${filterDifficulty}&` : ''}`, { signal: ac.signal })
+      .then(r => r.ok ? r.json() : null)
+      .then(j => { if (j) setRoads(j?.data || []) })
+      .catch(() => {})
+    return () => ac.abort()
   }, [filterCountry, filterDifficulty])
 
   const renderStars = (rating: number) => '★'.repeat(rating) + '☆'.repeat(5 - rating)

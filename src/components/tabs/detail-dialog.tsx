@@ -22,6 +22,7 @@ import { formatDuration, formatDate, categoryLabel, categoryColor, difficultyLab
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell } from 'recharts'
 import ElevationProfile from '@/components/tabs/elevation-profile'
 import RideReplay3D from '@/components/ride-replay-3d'
+import GradientAnalysis from '@/components/gradient-analysis'
 import { toast } from 'sonner'
 
 interface DetailDialogProps {
@@ -773,6 +774,19 @@ export default function DetailDialog({
             </div>
             {/* Elevation Profile */}
             <ElevationProfile trackData={(item as RideData).trackData} />
+
+            {/* Gradient Analysis */}
+            {(item as RideData).trackData && (() => {
+              try {
+                const parsed = typeof (item as RideData).trackData === 'string'
+                  ? JSON.parse((item as RideData).trackData)
+                  : (item as RideData).trackData
+                const gradientPoints = parsed.map((p: number[]) => ({
+                  lat: p[0], lng: p[1], alt: p[2] ?? null
+                }))
+                return gradientPoints.length >= 2 ? <GradientAnalysis points={gradientPoints} /> : null
+              } catch { return null }
+            })()}
 
             {/* 3D Ride Replay */}
             {isRide && (item as RideData).trackData && (() => {

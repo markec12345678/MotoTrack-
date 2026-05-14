@@ -27,6 +27,8 @@ import {
   Crosshair,
   Bell,
   BellRing,
+  AlertTriangle,
+  RefreshCw,
 } from 'lucide-react'
 
 interface NavigationPanelProps {
@@ -34,11 +36,30 @@ interface NavigationPanelProps {
   onStartNavigation?: () => void
   onStopNavigation?: () => void
   onUserPositionChange?: (pos: { lat: number; lng: number } | null) => void
+  onRecalculateRoute?: (from: { lat: number; lng: number }, to: { lat: number; lng: number }) => void
 }
 
-// Proximity thresholds
-const PROXIMITY_THRESHOLD = 50   // meters — auto-advance to next step
-const APPROACH_THRESHOLD = 100   // meters — play alert sound
+// Base proximity thresholds (adjusted for motorcycle speeds)
+const BASE_PROXIMITY_THRESHOLD = 80   // meters — auto-advance to next step
+const BASE_APPROACH_THRESHOLD = 200   // meters — play alert sound
+const OFF_ROUTE_THRESHOLD = 200       // meters — off-route detection
+const OFF_ROUTE_DURATION = 10000      // ms — must be off-route this long before recalculating
+
+/**
+ * Speed-adaptive proximity threshold
+ * At higher speeds, riders need more advance warning
+ */
+function getAdaptiveProximityThreshold(speedKmh: number): number {
+  if (speedKmh < 30) return 50    // City speed: 50m is sufficient
+  if (speedKmh <= 80) return 80   // Normal riding: 80m (~3.5s at 80km/h)
+  return 120                       // Highway: 120m (~5.4s at 120km/h)
+}
+
+function getAdaptiveApproachThreshold(speedKmh: number): number {
+  if (speedKmh < 30) return 120
+  if (speedKmh <= 80) return 200   // ~9s at 80km/h
+  return 300                        // ~9s at 120km/h
+}
 
 function getTurnIcon(type: string) {
   switch (type) {
@@ -97,11 +118,29 @@ function haversineDistance(
   return R * c
 }
 
+/**
+ * Find the minimum distance from a point to any step on the route
+ */
+function distanceToRoute(
+  pos: { lat: number; lng: number },
+  steps: NavigationStep[]
+): number {
+  let minDist = Infinity
+  for (const step of steps) {
+    const targetLat = step.coords ? step.coords[1] : step.lat
+    const targetLng = step.coords ? step.coords[0] : step.lng
+    const dist = haversineDistance(pos.lat, pos.lng, targetLat, targetLng)
+    if (dist < minDist) minDist = dist
+  }
+  return minDist
+}
+
 export default function NavigationPanel({
   route,
   onStartNavigation,
   onStopNavigation,
   onUserPositionChange,
+  onRecalculateRoute,
 }: NavigationPanelProps) {
   const [isMinimized, setIsMinimized] = useState(false)
   const [isNavigating, setIsNavigating] = useState(false)
@@ -117,6 +156,19 @@ export default function NavigationPanel({
   // Use ref to hold current step index for the GPS callback
   const currentStepIndexRef = useRef(0)
   const routeRef = useRef<NavigationRoute | null>(null)
+
+  // Speed tracking for adaptive proximity
+  const [currentSpeed, setCurrentSpeed] = useState(0) // km/h
+  const lastPositionRef = useRef<{ lat: number; lng: number; timestamp: number } | null>(null)
+
+  // Off-route detection
+  const [isOffRoute, setIsOffRoute] = useState(false)
+  const offRouteStartRef = useRef<number>(0)
+  const [isRecalculating, setIsRecalculating] = useState(false)
+
+  // Adaptive thresholds based on current speed
+  const proximityThreshold = useMemo(() => getAdaptiveProximityThreshold(currentSpeed), [currentSpeed])
+  const approachThreshold = useMemo(() => getAdaptiveApproachThreshold(currentSpeed), [currentSpeed])
 
   // Keep refs in sync
   useEffect(() => { currentStepIndexRef.current = currentStepIndex }, [currentStepIndex])
@@ -137,8 +189,8 @@ export default function NavigationPanel({
   // Derived: approaching alert
   const approachingAlert = useMemo(() => {
     if (distanceToNext === null) return false
-    return distanceToNext < APPROACH_THRESHOLD && distanceToNext >= PROXIMITY_THRESHOLD
-  }, [distanceToNext])
+    return distanceToNext < approachThreshold && distanceToNext >= proximityThreshold
+  }, [distanceToNext, proximityThreshold, approachThreshold])
 
   // Notify parent of position changes
   useEffect(() => {
@@ -192,6 +244,32 @@ export default function NavigationPanel({
     }
   }, [approachingAlert, isNavigating])
 
+  // Auto-recalculate when off-route for more than 10 seconds
+  useEffect(() => {
+    if (!isOffRoute || !isNavigating || !route || !onRecalculateRoute || isRecalculating) return
+
+    const timer = setTimeout(() => {
+      // Find the next waypoint (current step target)
+      const nextStep = route.steps[currentStepIndexRef.current]
+      if (userPosition && nextStep) {
+        const targetLat = nextStep.coords ? nextStep.coords[1] : nextStep.lat
+        const targetLng = nextStep.coords ? nextStep.coords[0] : nextStep.lng
+
+        setIsRecalculating(true)
+        onRecalculateRoute(userPosition, { lat: targetLat, lng: targetLng })
+
+        // Reset after a delay to avoid repeated recalculations
+        setTimeout(() => {
+          setIsRecalculating(false)
+          setIsOffRoute(false)
+          offRouteStartRef.current = 0
+        }, 5000)
+      }
+    }, OFF_ROUTE_DURATION)
+
+    return () => clearTimeout(timer)
+  }, [isOffRoute, isNavigating, route, userPosition, onRecalculateRoute, isRecalculating])
+
   // Watch GPS position when navigating, with proximity-based auto-advance
   useEffect(() => {
     if (!isNavigating || !route) return
@@ -202,15 +280,49 @@ export default function NavigationPanel({
         const newPos = { lat: pos.coords.latitude, lng: pos.coords.longitude }
         setUserPosition(newPos)
 
-        // Auto-advance when within proximity threshold
+        // Calculate speed from GPS or position delta
+        const gpsSpeed = pos.coords.speed // m/s, may be null
+        if (gpsSpeed !== null && gpsSpeed >= 0) {
+          setCurrentSpeed(gpsSpeed * 3.6) // Convert m/s to km/h
+        } else if (lastPositionRef.current) {
+          // Fallback: calculate speed from position changes
+          const dt = (Date.now() - lastPositionRef.current.timestamp) / 1000
+          if (dt > 0) {
+            const dist = haversineDistance(
+              lastPositionRef.current.lat, lastPositionRef.current.lng,
+              newPos.lat, newPos.lng
+            )
+            const speedMs = dist / dt
+            setCurrentSpeed(speedMs * 3.6) // Convert m/s to km/h
+          }
+        }
+        lastPositionRef.current = { ...newPos, timestamp: Date.now() }
+
+        // Use current adaptive threshold (from ref to avoid stale closure)
         const step = route.steps[currentStepIndexRef.current]
         if (step) {
           const targetLat = step.coords ? step.coords[1] : step.lat
           const targetLng = step.coords ? step.coords[0] : step.lng
           const distance = haversineDistance(newPos.lat, newPos.lng, targetLat, targetLng)
 
-          if (distance < PROXIMITY_THRESHOLD && currentStepIndexRef.current < route.steps.length - 1) {
+          // Get adaptive threshold (we need to compute it here with latest speed)
+          const speedKmh = gpsSpeed !== null ? gpsSpeed * 3.6 : currentSpeed
+          const adaptiveProximity = getAdaptiveProximityThreshold(speedKmh)
+
+          if (distance < adaptiveProximity && currentStepIndexRef.current < route.steps.length - 1) {
             setCurrentStepIndex(prev => prev + 1)
+          }
+
+          // Off-route detection
+          const distToRoute = distanceToRoute(newPos, route.steps)
+          if (distToRoute > OFF_ROUTE_THRESHOLD) {
+            if (!offRouteStartRef.current) {
+              offRouteStartRef.current = Date.now()
+            }
+            setIsOffRoute(true)
+          } else {
+            setIsOffRoute(false)
+            offRouteStartRef.current = 0
           }
         }
       },
@@ -221,15 +333,22 @@ export default function NavigationPanel({
     )
 
     return () => navigator.geolocation.clearWatch(watchId)
-  }, [isNavigating, route])
+  }, [isNavigating, route, currentSpeed])
 
   const handleStart = () => {
     setIsNavigating(true)
     setCurrentStepIndex(0)
     setElapsedTime(0)
     setFollowMyPosition(true)
-    lastAlertTimeRef.current = 0
+    setIsOffRoute(false)
+    setLastAlertTimeRef(0)
+    setCurrentSpeed(0)
+    offRouteStartRef.current = 0
     onStartNavigation?.()
+  }
+
+  const setLastAlertTimeRef = (val: number) => {
+    lastAlertTimeRef.current = val
   }
 
   const handleStop = () => {
@@ -237,6 +356,9 @@ export default function NavigationPanel({
     setElapsedTime(0)
     setUserPosition(null)
     setFollowMyPosition(false)
+    setIsOffRoute(false)
+    setCurrentSpeed(0)
+    offRouteStartRef.current = 0
     onStopNavigation?.()
     window.speechSynthesis?.cancel()
   }
@@ -282,6 +404,11 @@ export default function NavigationPanel({
                 GPS
               </Badge>
             )}
+            {isOffRoute && (
+              <Badge variant="outline" className="bg-red-500/20 text-red-400 border-red-500/30 text-xs animate-pulse">
+                IZVEN POTI
+              </Badge>
+            )}
           </div>
           <Button variant="ghost" size="icon" className="h-7 w-7">
             {isMinimized ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
@@ -298,6 +425,24 @@ export default function NavigationPanel({
             <span className="text-xs text-sky-500 font-medium">
               Sledim položaju: {userPosition.lat.toFixed(4)}, {userPosition.lng.toFixed(4)}
             </span>
+            {currentSpeed > 0 && (
+              <span className="text-xs text-amber-500 font-medium ml-2">
+                {Math.round(currentSpeed)} km/h
+              </span>
+            )}
+          </div>
+        )}
+
+        {/* Off-route warning banner */}
+        {isOffRoute && isNavigating && (
+          <div className="mx-3 mb-1 flex items-center gap-2 px-3 py-2 rounded-lg bg-red-500/20 border border-red-500/40">
+            <AlertTriangle className="h-4 w-4 text-red-400 animate-pulse shrink-0" />
+            <span className="text-xs font-medium text-red-400">
+              {isRecalculating ? 'Preračunavam pot...' : 'Izven poti! Prilagajanje čez nekaj sekund...'}
+            </span>
+            {isRecalculating && (
+              <RefreshCw className="h-3.5 w-3.5 text-red-400 animate-spin shrink-0" />
+            )}
           </div>
         )}
 
@@ -307,7 +452,9 @@ export default function NavigationPanel({
               <>
                 {/* Current instruction */}
                 <div className={`flex items-center gap-4 rounded-lg p-3 border ${
-                  approachingAlert
+                  isOffRoute
+                    ? 'bg-red-500/20 border-red-500/50'
+                    : approachingAlert
                     ? 'bg-amber-500/20 border-amber-500/50 animate-pulse'
                     : 'bg-amber-500/10 border-amber-500/20'
                 }`}>
@@ -329,17 +476,23 @@ export default function NavigationPanel({
                           <Bell className="h-3.5 w-3.5 text-muted-foreground" />
                         )}
                         <span className={`text-xs font-semibold ${
-                          distanceToNext < PROXIMITY_THRESHOLD
+                          distanceToNext < proximityThreshold
                             ? 'text-emerald-500'
-                            : distanceToNext < APPROACH_THRESHOLD
+                            : distanceToNext < approachThreshold
                             ? 'text-amber-500'
                             : 'text-muted-foreground'
                         }`}>
-                          {distanceToNext < PROXIMITY_THRESHOLD
+                          {distanceToNext < proximityThreshold
                             ? 'Na ciljnem koraku!'
                             : `${formatDistance(distanceToNext)} do naslednjega zavoja`
                           }
                         </span>
+                      </div>
+                    )}
+                    {/* Speed-adaptive threshold indicator */}
+                    {currentSpeed > 0 && (
+                      <div className="text-[10px] text-muted-foreground mt-1">
+                        Prilagojeno za {Math.round(currentSpeed)} km/h (±{proximityThreshold}m)
                       </div>
                     )}
                   </div>

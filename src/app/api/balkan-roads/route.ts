@@ -82,6 +82,30 @@ const BALKAN_ROADS: BalkanMotoRoad[] = [
   { id: 'aut-1', name: 'Grossglockner Hochalpenstraße', description: 'Ena najbolj znanih gorskih cest v Evropi. 48 km s 36 ovinki do 2504m.', lat: 47.0800, lng: 12.8300, difficulty: 'extreme', roadType: 'asphalt', lengthKm: 48, country: 'AT', rating: 5 },
   { id: 'aut-2', name: 'Nockalmstraße', description: 'Vijugasta alpska cesta v Koroški z razgledi na Nockberge.', lat: 46.9000, lng: 13.7000, difficulty: 'challenging', roadType: 'asphalt', lengthKm: 34, country: 'AT', rating: 4 },
   { id: 'aut-3', name: 'Villacher Alpenstraße', description: 'Alpska cesta nad Villachom z razgledi na Julijske Alpe in Karavanke.', lat: 46.6000, lng: 13.7000, difficulty: 'challenging', roadType: 'asphalt', lengthKm: 16, country: 'AT', rating: 4 },
+
+  // === NEW ROADS (10 additional) ===
+  // Slovenia - Ljubelj Pass
+  { id: 'slo-10', name: 'Prelaz Ljubelj', description: 'Zgodovinski prelaz na avstrijski meji z ozkim predorom in strmimi klanci. Najstarejši cestni prelaz v Sloveniji.', lat: 46.4320, lng: 14.2640, difficulty: 'challenging', roadType: 'asphalt', lengthKm: 14, country: 'SI', rating: 4 },
+  // Slovenia - Črni vrh
+  { id: 'slo-11', name: 'Črni vrh', description: 'Vijugasta cesta nad Idrijo z razgledi na Idrijsko hribovje in cerkvico na vrhu.', lat: 46.0500, lng: 13.9800, difficulty: 'moderate', roadType: 'asphalt', lengthKm: 20, country: 'SI', rating: 4 },
+  // Croatia - D8 Coastal Road
+  { id: 'hrv-6', name: 'D8 Obalna cesta (Senj-Zadar)', description: 'Legendarna obalna cesta D8 med Senjom in Zadrom. Razgledi na Velebit in morje.', lat: 44.1500, lng: 15.2000, difficulty: 'easy', roadType: 'asphalt', lengthKm: 110, country: 'HR', rating: 5 },
+  // Croatia - Učka Pass
+  { id: 'hrv-7', name: 'Prelaz Učka', description: 'Gorski prelaz čez Učko gorovje z osupljivimi razgledi na Kvarner in otoke.', lat: 45.3100, lng: 14.2200, difficulty: 'challenging', roadType: 'asphalt', lengthKm: 18, country: 'HR', rating: 4 },
+  // Montenegro - Piva Canyon Road
+  { id: 'mne-5', name: 'Pivska klisura', description: 'Vijugasta cesta skozi veličastno Pivsko klisuro ob modrem Pivskem jezeru. Ena najlepših cest v Črni gori.', lat: 43.0500, lng: 18.9500, difficulty: 'challenging', roadType: 'asphalt', lengthKm: 45, country: 'ME', rating: 5 },
+  // Albania - SH21 Theth-Valbona
+  { id: 'alb-5', name: 'SH21 Theth-Valbona', description: 'Novo zgrajena gorska cesta med Theth in Valbono v albanskih Alpah. Osamljenost in razgledi.', lat: 42.4000, lng: 19.8300, difficulty: 'extreme', roadType: 'mixed', lengthKm: 28, country: 'AL', rating: 5 },
+  // Romania - Bucegi Mountains Road
+  { id: 'rou-4', name: 'Bucegi gorska cesta', description: 'Gorska cesta v Bucegi gorah z razgledom na Babele in Sfinx skalne formacije.', lat: 45.3800, lng: 25.4700, difficulty: 'challenging', roadType: 'asphalt', lengthKm: 30, country: 'RO', rating: 4 },
+  // Bulgaria - Rhodope Mountains Road
+  { id: 'bgr-3', name: 'Rodopska gorska cesta', description: 'Čudovita cesta skozi Rodope z gostimi gozdovi, razgledi in tradicionalnimi vasmi.', lat: 41.6500, lng: 24.6500, difficulty: 'moderate', roadType: 'asphalt', lengthKm: 55, country: 'BG', rating: 4 },
+  // Greece - Meteora Road
+  { id: 'grc-3', name: 'Meteora cesta', description: 'Cesta do samostanov Meteora - monumentalne skale s samostani na vrhu. Enkraten prizor.', lat: 39.7200, lng: 21.6300, difficulty: 'moderate', roadType: 'asphalt', lengthKm: 15, country: 'GR', rating: 5 },
+  // Serbia - Tara National Park Road
+  { id: 'srb-4', name: 'Tara - Narodni park', description: 'Gozdna cesta skozi narodni park Tara z razgledi na Drinsko klisuro.', lat: 43.9500, lng: 19.5500, difficulty: 'moderate', roadType: 'asphalt', lengthKm: 35, country: 'RS', rating: 4 },
+  // Bosnia - Jajce-Travnik Mountain Road
+  { id: 'bih-4', name: 'Jajce - Travnik gorska cesta', description: 'Vijugasta gorska cesta med Jajce in Travnikom skozi osrednjobosansko hribovje.', lat: 44.0500, lng: 17.5500, difficulty: 'moderate', roadType: 'asphalt', lengthKm: 40, country: 'BA', rating: 4 },
 ]
 
 const countryNames: Record<string, string> = {
