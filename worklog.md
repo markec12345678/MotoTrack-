@@ -574,3 +574,95 @@ Stage Summary:
 - page.tsx now passes availableRoutes and route coordinates to RouteRoiPanel for comparison and weather features
 - PWA registration confirmed in layout.tsx
 - All features integrated and lint-clean
+
+---
+Task ID: 1
+Agent: API Route Agent
+Task: Create 3 Backend API Routes (TTS, Web Search, Ride Card)
+
+Work Log:
+- Read worklog.md for project context and existing code patterns
+- Reviewed existing API route style (navigation/route.ts) for consistency
+- Created /api/tts/route.ts:
+  - POST endpoint accepting { text, voice?, speed? }
+  - Dynamic import of z-ai-web-dev-sdk: `const ZAI = (await import('z-ai-web-dev-sdk')).default`
+  - Creates ZAI instance with `ZAI.create()`
+  - Calls `zai.audio.tts.create({ input, voice, speed, response_format: 'wav', stream: false })`
+  - Converts response to audio/wav binary via arrayBuffer → Buffer
+  - Validation: text required (max 1024 chars), speed 0.5-2.0 (default 1.0)
+  - Proper error handling with try/catch, console.error logging
+  - Exports `dynamic = 'force-dynamic'`
+- Created /api/web-search/route.ts:
+  - GET endpoint accepting ?q=query&num=5
+  - Dynamic import of z-ai-web-dev-sdk
+  - Calls `zai.functions.invoke('web_search', { query, num })`
+  - WebSearchResult interface with url, name, snippet, host_name, rank, date, favicon
+  - Validation: query required, num default 5 max 10
+  - Returns { success: true, results: [...] }
+  - Exports `dynamic = 'force-dynamic'`
+- Created /api/ride-card/route.ts:
+  - POST endpoint accepting { rideTitle, distance, duration, maxSpeed, avgSpeed, elevation, category? }
+  - RideCardBody interface for typed request body
+  - Dynamic import of z-ai-web-dev-sdk
+  - Builds descriptive prompt: motorcycle ride card with title, stats, mountain road aesthetic, orange/amber colors
+  - Calls `zai.images.generations.create({ prompt, size: '1344x768' })`
+  - Extracts base64 from `response.data[0].base64`
+  - Returns { success: true, imageBase64 }
+  - Full validation of all required numeric fields
+  - Exports `dynamic = 'force-dynamic'`
+- Ran bun run lint: passes cleanly (0 errors, 0 warnings)
+- Verified dev server log: no compilation errors
+
+Stage Summary:
+- 3 new API routes created: /api/tts (POST), /api/web-search (GET), /api/ride-card (POST)
+- All routes use dynamic import of z-ai-web-dev-sdk (backend only)
+- All routes export `dynamic = 'force-dynamic'`
+- Proper TypeScript types, input validation, error handling, and HTTP status codes
+- Lint passes cleanly
+
+---
+Task ID: AI-Features
+Agent: Main
+Task: Implement AI-powered features using z-ai-web-dev-sdk (TTS, Web Search, Ride Card, Enhanced Chat)
+
+Work Log:
+- Created 3 new API routes using z-ai-web-dev-sdk:
+  1. /api/tts/route.ts - Text-to-speech via z-ai TTS API (WAV output, supports speed/voice)
+  2. /api/web-search/route.ts - Web search via z-ai functions API (up to 10 results)
+  3. /api/ride-card/route.ts - AI image generation for shareable ride cards (1344x768)
+- Enhanced /api/chat/route.ts with web search integration:
+  - Detects search keywords (road closures, weather, events, current conditions)
+  - Builds contextual search queries for motorcycle/Balkan topics
+  - Formats search results as AI context for better responses
+  - Returns sources with clickable URLs
+  - Enhanced system prompt with detailed Balkan motorcycle route knowledge
+- Upgraded moto-chat.tsx with:
+  - TTS button on each AI message (calls /api/tts API)
+  - Web search indicator badge (🔍 Iskanje po spletu)
+  - Clickable source links when search was used
+  - Better quick prompts (road closures, weekend weather, Adriatic coast)
+  - Improved typing animation with MotoTrack branding
+- Upgraded voice-navigation.tsx with:
+  - Dual TTS engine: browser TTS (fast) + AI TTS via /api/tts (higher quality)
+  - Toggle button between engines (AI🔊 vs 🔊)
+  - Loading indicator during TTS generation
+  - Auto-fallback from AI TTS to browser TTS on error
+- Created ride-share-card.tsx component:
+  - Generates AI-powered shareable ride cards via /api/ride-card
+  - Preview, download, and share functionality
+  - Web Share API support for native sharing
+  - Stats grid display
+- Integrated RideShareCard into track-tab.tsx:
+  - "Deli kartico" button appears alongside "Shrani vožnjo"
+  - Passes ride stats (distance, duration, maxSpeed, avgSpeed, elevation)
+- All lint checks pass (0 errors)
+- Dev server running correctly
+
+Stage Summary:
+- 3 new API routes using z-ai-web-dev-sdk: TTS, Web Search, Ride Card generation
+- Chat API now supports web search for real-time road/weather info
+- MotoChat UI enhanced with TTS playback and search indicators
+- Voice Navigation supports both browser and AI TTS engines
+- Ride share cards can be generated, downloaded, and shared
+- All UI text in Slovenian
+- Lint passes cleanly

@@ -1,7 +1,7 @@
 'use client'
 
 import React, { useState, useEffect, useRef, useCallback } from 'react'
-import { Navigation2, Volume2, VolumeX, X, SkipForward } from 'lucide-react'
+import { Navigation2, Volume2, VolumeX, X, SkipForward, Loader2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Progress } from '@/components/ui/progress'
 
@@ -36,9 +36,12 @@ export default function VoiceNavigation({
 }: VoiceNavigationProps) {
   const [currentStep, setCurrentStep] = useState(0)
   const [voiceEnabled, setVoiceEnabled] = useState(true)
+  const [useTTSEngine, setUseTTSEngine] = useState(false) // false = browser TTS, true = AI TTS
+  const [ttsLoading, setTtsLoading] = useState(false)
   const spokenStepsRef = useRef<Set<number>>(new Set())
   const synthRef = useRef<SpeechSynthesis | null>(null)
   const routeRef = useRef(route)
+  const audioRef = useRef<HTMLAudioElement | null>(null)
 
   // Keep routeRef in sync
   useEffect(() => { routeRef.current = route }, [route])
@@ -49,7 +52,19 @@ export default function VoiceNavigation({
     }
   }, [])
 
-  const speak = useCallback((text: string) => {
+  // Cleanup audio on unmount
+  useEffect(() => {
+    return () => {
+      if (audioRef.current) {
+        audioRef.current.pause()
+        URL.revokeObjectURL(audioRef.current.src)
+        audioRef.current = null
+      }
+    }
+  }, [])
+
+  // Browser TTS fallback
+  const speakBrowser = useCallback((text: string) => {
     if (!synthRef.current) return
     synthRef.current.cancel()
     const utter = new SpeechSynthesisUtterance(text)
@@ -61,13 +76,61 @@ export default function VoiceNavigation({
     synthRef.current.speak(utter)
   }, [])
 
+  // AI TTS via API
+  const speakAI = useCallback(async (text: string) => {
+    // Stop any previous audio
+    if (audioRef.current) {
+      audioRef.current.pause()
+      URL.revokeObjectURL(audioRef.current.src)
+      audioRef.current = null
+    }
+
+    setTtsLoading(true)
+    try {
+      const cleanText = text.replace(/[^\w\sčšžČŠŽ.,!?:\-]/g, '').slice(0, 500)
+      const res = await fetch('/api/tts', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ text: cleanText, speed: 1.1, voice: 'tongtong' }),
+      })
+
+      if (res.ok) {
+        const audioBlob = await res.blob()
+        const audioUrl = URL.createObjectURL(audioBlob)
+        const audio = new Audio(audioUrl)
+        audioRef.current = audio
+        audio.onended = () => {
+          URL.revokeObjectURL(audioUrl)
+          audioRef.current = null
+        }
+        audio.play()
+      } else {
+        // Fallback to browser TTS
+        speakBrowser(text)
+      }
+    } catch {
+      // Fallback to browser TTS
+      speakBrowser(text)
+    } finally {
+      setTtsLoading(false)
+    }
+  }, [speakBrowser])
+
+  // Unified speak function
+  const speak = useCallback((text: string) => {
+    if (useTTSEngine) {
+      speakAI(text)
+    } else {
+      speakBrowser(text)
+    }
+  }, [useTTSEngine, speakAI, speakBrowser])
+
   // Auto-advance navigation step based on GPS proximity
   useEffect(() => {
     if (!isActive || !route || !currentLat || !currentLng) return
     const steps = route.steps
     if (steps.length === 0) return
 
-    // Find closest upcoming step using a timeout to avoid direct setState in effect
     let closestIdx = -1
     let closestDist = Infinity
 
@@ -81,7 +144,6 @@ export default function VoiceNavigation({
     }
 
     if (closestDist < 0.0005 && closestIdx >= 0) {
-      // Use setTimeout to break the synchronous setState chain
       const timer = setTimeout(() => {
         setCurrentStep(prev => {
           if (closestIdx > prev) return closestIdx
@@ -124,8 +186,17 @@ export default function VoiceNavigation({
           <div className="flex items-center gap-2">
             <Navigation2 className="size-4 text-primary animate-pulse" />
             <span className="text-xs font-bold text-primary uppercase tracking-wider">Navigacija</span>
+            {ttsLoading && <Loader2 className="size-3 text-primary animate-spin" />}
           </div>
           <div className="flex items-center gap-1">
+            {/* TTS engine toggle */}
+            <button
+              onClick={() => setUseTTSEngine(!useTTSEngine)}
+              className={`p-1 rounded transition-colors text-[9px] font-medium ${useTTSEngine ? 'bg-primary/20 text-primary' : 'hover:bg-muted text-muted-foreground'}`}
+              title={useTTSEngine ? 'AI glas (kakovostnejši)' : 'Brskalnikov glas (hitrejši)'}
+            >
+              {useTTSEngine ? 'AI🔊' : '🔊'}
+            </button>
             <button
               onClick={() => setVoiceEnabled(!voiceEnabled)}
               className="p-1 rounded hover:bg-muted transition-colors"
@@ -157,7 +228,7 @@ export default function VoiceNavigation({
               if (currentStep < steps.length - 1) {
                 const next = currentStep + 1
                 setCurrentStep(next)
-                speak(steps[next]?.instructionSlo || steps[next]?.instruction || '')
+                if (voiceEnabled) speak(steps[next]?.instructionSlo || steps[next]?.instruction || '')
               }
             }}
             disabled={currentStep >= steps.length - 1}
@@ -169,10 +240,12 @@ export default function VoiceNavigation({
             variant="outline"
             className="text-xs gap-1"
             onClick={() => {
-              if (step) speak(step.instructionSlo || step.instruction)
+              if (step && voiceEnabled) speak(step.instructionSlo || step.instruction)
             }}
+            disabled={ttsLoading}
           >
-            <Volume2 className="size-3" /> Ponovi
+            {ttsLoading ? <Loader2 className="size-3 animate-spin" /> : <Volume2 className="size-3" />}
+            Ponovi
           </Button>
         </div>
 

@@ -3,16 +3,150 @@ import { NextRequest, NextResponse } from 'next/server'
 // Simple in-memory conversation store (per session)
 const conversations = new Map<string, Array<{ role: string; content: string }>>()
 
-const SYSTEM_PROMPT = `Si MotoTrack AI asistent - strokovnjak za motociklizem in slovenske ceste. 
+const SYSTEM_PROMPT = `Si MotoTrack AI asistent - strokovnjak za motociklizem, balkanske ceste in alpske prelaze. 
 Odgovarjaš v slovenščini. Pomagaš z:
-- Načrtovanjem motociklističnih poti po Sloveniji in okolici
-- Nasveti o vožnji, varnosti in opremi
-- Informacijami o prelazih, cestah in zanimivih destinacijah
-- Vremenskimi nasveti za motoriste
-- Predlogi za izlete glede na sezono in razmere
+
+MOTOCIKLISTIČNE POTI IN PRELAZI:
+- Vršič pass (1611m): 50 serpentin, najvišji slovenski prelaz, odprt apr-okt, enosmerni režim počitkih
+- Predel pass (1156m): povezova Soške doline z Italijo, čudovita pot ob reki Soči
+- Učka pass: hrvaški prelaz z razgledom na Kvarner, zavit in slikovit
+- Mangartski sedlo (2072m): najvišja slovenska cesta, ozka, za izkušene motoriste
+- Prelaz Ljubelj (1370m): najstarejši cestni prelaz v Evropi, strmi klanci
+- Pokljuka: gozdna cesta do planote, idealna za mirno vožnjo
+- Jezersko: alpska dolina, švabski klanc iz Slovenskih Konjic
+- Črni vrh: slikovita pot nad Idrijo, zavit in razgleden
+- Pivška planota: kraška polja in mirne ceste
+
+ADRIATSKA OBALA:
+- Jadranska magistrala (HR): Senj–Zadar, ena najlepših obalnih cest v Evropi
+- D8 obalna cesta: zavoji ob morju, poleti prometna
+- Pelješki most: nova povezava, izognitev neumskemu koridorju
+- Prevlaka in Dubrovnik: južna Dalmacija, čudovite ceste
+
+BALKANSKE POTI:
+- Transfăgărășan (RO): legendarna pot čez Karpati, odprta jul-okt
+- Kotor serpentine (ME): 25 zavijovčkov do pribežališča, osupljivi razgled
+- Pivska klisura (ME): kanjon reke Pive, ozka in globoka
+- SH21 Theth-Valbona (AL): albanske Alpe, makadamske ceste, za enduro
+- Tara (RS): narodni park, kanjon, zanimiva gorska cesta
+- Meteora (GR): samostani na skalah, slikovita prilaz
+- Bucegi gorska cesta (RO): Transbucegi, druga najlepša v Romuniji
+- Rodopska gorska cesta (BG): smrekovi gozdovi, mirne ceste
+
+VARNOST IN OPREMA:
+- Adekvatna zaščitna oprema (čelada, jakna, hlače, škornji, rokavice)
+- Prilagajanje hitrosti razmeram (mokro, listje, senca, živali)
+- Preverjanje vremena pred odhodom v gore
+- Zaloga goriva na redko naseljenih poteh (Balkan, Albanija)
+- Cestnina in dokumenti za mednarodne poti
+
+SEZONSKI NASVETI:
+- Pomlad (apr-maj): prelazi se odpirajo, preveri zapored, snežni plohe
+- Poletje (jun-avg): popolne razmere, a prometne obale
+- Jesen (sep-okt): najlepše barve, hlajenje, krajši dnevi
+- Zima (nov-mar): gorski prelazi zaprti, obalne ceste še na voljo
 
 Bodi prijazen, strokoven in jedrnaten. Uporabljaj emoji-je 🏍️ pri naslovu.
-Če te vprašajo o čem, kar ni povezano z motorji ali potovanji, vljudno preusmeri pogovor nazaj na motociklizem.`
+Če te vprašajo o čem, kar ni povezano z motorji ali potovanji, vljudno preusmeri pogovor nazaj na motociklizem.
+Če si prejel rezultate spletne iskanja, jih uporabi za dopolnitev svojega znanja. Vedno navedi, če so informacije aktualne (npr. "glede na trenutne razmere...").`
+
+// Keywords that trigger web search
+const SEARCH_KEYWORDS = [
+  // Road conditions and closures
+  'zapore', 'zapora', 'zaprt', 'zaprta', 'zaprto', 'closed', 'closure',
+  'cestne razmere', 'razmere na cesti', 'stanje ceste', 'cesta zaprta',
+  'obvozi', 'obvoz', 'detour', 'prelaz zaprt', 'prelazi odprti',
+  'odprt', 'odprta', 'odprti', 'pass open', 'pass closed',
+  // Weather
+  'vreme', 'vremenska', 'napoved', 'weather', 'dež', 'sneg', 'megla',
+  'nevihta', 'toča', 'poledica', 'slippery', 'mokro',
+  'vreme za', 'vremenska napoved', 'ali bo deževalo',
+  // Events and news
+  'dogodek', 'prireditev', 'festival', 'rally', 'srečanje', 'event',
+  'novice', 'novica', 'news', 'aktualno', 'danes', 'jutri', 'ta teden',
+  'ta vikend', 'vikend', 'ta mesec',
+  // Current conditions
+  'trenutno', 'zdaj', 'trenutne', 'current', 'danes', 'jutri',
+  'ali je', 'je odprt', 'je zaprta', 'kako je',
+  // Road works
+  'delo na cesti', 'road works', 'gradnja', 'sanacija', 'obnova ceste',
+]
+
+interface SearchResult {
+  url: string
+  name: string
+  snippet: string
+  host_name?: string
+  rank?: number
+  date?: string
+  favicon?: string
+}
+
+/**
+ * Detect if a message should trigger web search
+ */
+function shouldSearch(message: string): boolean {
+  const lower = message.toLowerCase()
+  return SEARCH_KEYWORDS.some(keyword => lower.includes(keyword))
+}
+
+/**
+ * Build a search query from the user message
+ */
+function buildSearchQuery(message: string): string {
+  // Add context for better search results
+  const lower = message.toLowerCase()
+  let query = message
+
+  if (lower.includes('vreme') || lower.includes('napoved') || lower.includes('dež') || lower.includes('sneg')) {
+    query = `vremenska napoved Slovenija Balkan motoristi ${message}`
+  } else if (lower.includes('zapor') || lower.includes('zaprt') || lower.includes('cest')) {
+    query = `cestne razmere zapore Slovenija Balkan ${message}`
+  } else if (lower.includes('dogodek') || lower.includes('rally') || lower.includes('festival') || lower.includes('srečanje')) {
+    query = `motociklistični dogodki Slovenija Balkan ${message}`
+  } else {
+    query = `motoristi Slovenija Balkan ${message}`
+  }
+
+  return query.slice(0, 200)
+}
+
+/**
+ * Perform web search using z-ai-web-dev-sdk
+ */
+async function webSearch(query: string): Promise<SearchResult[]> {
+  try {
+    const ZAI = (await import('z-ai-web-dev-sdk')).default
+    const zai = await ZAI.create()
+
+    const results = await zai.functions.invoke('web_search', {
+      query,
+      num: 5,
+    })
+
+    if (Array.isArray(results)) {
+      return results.slice(0, 5) as SearchResult[]
+    }
+
+    return []
+  } catch (error: any) {
+    console.error('Web search error:', error?.message || error)
+    return []
+  }
+}
+
+/**
+ * Format search results as context for the AI
+ */
+function formatSearchContext(results: SearchResult[]): string {
+  if (results.length === 0) return ''
+
+  const formatted = results
+    .map((r, i) => `[${i + 1}] ${r.name}\n    Vir: ${r.host_name || r.url}\n    ${r.snippet}`)
+    .join('\n\n')
+
+  return `\n\n--- AKTUALNE INFORMACIJE IZ SPLETA ---\n${formatted}\n--- KONEC AKTUALNIH INFORMACIJ ---\n\nUporabi zgornje aktualne informacije za dopolnitev svojega odgovora. Če so informacije relevantne, se sklici nanje. Če niso relevantne, jih ignoriraj in odgovori na podlagi svojega znanja.`
+}
 
 const OPENROUTER_API_KEY = process.env.OPENROUTER_API_KEY
 const OPENROUTER_URL = 'https://openrouter.ai/api/v1/chat/completions'
@@ -107,8 +241,28 @@ export async function POST(request: NextRequest) {
       { role: 'system', content: SYSTEM_PROMPT }
     ]
 
-    // Add user message
-    history.push({ role: 'user', content: message })
+    // Check if web search should be triggered
+    let searchResults: SearchResult[] = []
+    let searched = false
+    let searchContext = ''
+
+    if (shouldSearch(message)) {
+      const searchQuery = buildSearchQuery(message)
+      console.log('Chat: Web search triggered for query:', searchQuery)
+      searchResults = await webSearch(searchQuery)
+      searched = searchResults.length > 0
+      searchContext = formatSearchContext(searchResults)
+      if (searched) {
+        console.log(`Chat: Found ${searchResults.length} search results`)
+      }
+    }
+
+    // Add user message with search context if available
+    const userContent = searchContext
+      ? `${message}${searchContext}`
+      : message
+
+    history.push({ role: 'user', content: userContent })
 
     // Trim history if too long (keep system prompt + last 20 messages)
     if (history.length > 22) {
@@ -128,8 +282,17 @@ export async function POST(request: NextRequest) {
       provider = 'z-ai'
     }
 
-    // Add AI response to history
+    // Add AI response to history (without search context in stored version)
     history.push({ role: 'assistant', content: aiResponse })
+
+    // But we need to replace the user message in history with the original (no search context)
+    // so future messages don't carry stale search context
+    if (searched) {
+      const lastUserIdx = history.findIndex((m, i) => i > 0 && m.role === 'user' && m.content === userContent)
+      if (lastUserIdx !== -1) {
+        history[lastUserIdx] = { role: 'user', content: message }
+      }
+    }
 
     // Save updated history
     conversations.set(sid, history)
@@ -140,11 +303,21 @@ export async function POST(request: NextRequest) {
       keys.slice(0, conversations.size - 50).forEach(k => conversations.delete(k))
     }
 
+    // Build sources array for the client
+    const sources = searched ? searchResults.map(r => ({
+      name: r.name,
+      url: r.url,
+      snippet: r.snippet,
+      hostName: r.host_name || '',
+    })) : []
+
     return NextResponse.json({
       success: true,
       response: aiResponse,
       messageCount: history.length - 1,
       provider,
+      searched,
+      sources,
     })
   } catch (error: any) {
     console.error('Chat API error:', error?.message || error)

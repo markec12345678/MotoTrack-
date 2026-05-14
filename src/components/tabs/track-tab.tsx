@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react'
 import dynamic from 'next/dynamic'
-import { Play, Pause, Square, Save, Gauge, AlertTriangle, ChevronDown, ChevronUp, Activity, Bike, Moon, Timer } from 'lucide-react'
+import { Play, Pause, Square, Save, Gauge, AlertTriangle, ChevronDown, ChevronUp, Activity, Bike, Moon, Timer, Share2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import type { TrackPoint, SpeedAlertSettings } from '@/components/tabs/types'
@@ -14,6 +14,7 @@ const LiveTrackingPanel = dynamic(() => import('@/components/live-tracking-panel
 const LeanAngleDisplay = dynamic(() => import('@/components/lean-angle-display'), { ssr: false })
 const WeatherAlertsPanel = dynamic(() => import('@/components/weather-alerts-panel'), { ssr: false })
 const GradientAnalysis = dynamic(() => import('@/components/gradient-analysis'), { ssr: false })
+const RideShareCard = dynamic(() => import('@/components/ride-share-card'), { ssr: false })
 
 const MotoMap = dynamic(() => import('@/components/moto-map'), { ssr: false })
 
@@ -56,6 +57,7 @@ export default function TrackTab({
   const audioCtxRef = useRef<AudioContext | null>(null)
   const hasPlayedBeepRef = useRef(false)
   const [showFeatures, setShowFeatures] = useState(false)
+  const [showShareCard, setShowShareCard] = useState(false)
 
   // Fetch speed alert settings
   useEffect(() => {
@@ -328,9 +330,28 @@ export default function TrackTab({
               <div className="w-full max-h-48 overflow-y-auto custom-scrollbar">
                 <GradientAnalysis points={trackPoints} />
               </div>
-              <Button className="w-full gap-2 rounded-full bg-primary hover:bg-primary/90" onClick={onSave}>
-                <Save className="size-4" />Shrani vožnjo
-              </Button>
+              <div className="flex gap-2 w-full">
+                <Button className="flex-1 gap-2 rounded-full bg-primary hover:bg-primary/90" onClick={onSave}>
+                  <Save className="size-4" />Shrani vožnjo
+                </Button>
+                <Button
+                  variant="outline"
+                  className="gap-2 rounded-full"
+                  onClick={() => setShowShareCard(true)}
+                >
+                  <Share2 className="size-4" />Deli kartico
+                </Button>
+              </div>
+              <RideShareCard
+                open={showShareCard}
+                onClose={() => setShowShareCard(false)}
+                rideTitle={`Vožnja ${new Date().toLocaleDateString('sl-SI')}`}
+                distance={distance}
+                duration={duration}
+                maxSpeed={maxSpeed}
+                avgSpeed={duration > 0 ? Math.round((distance / (duration / 3600)) * 10) / 10 : 0}
+                elevation={elevation}
+              />
             </div>
           )}
         </div>

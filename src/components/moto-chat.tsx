@@ -1,18 +1,27 @@
 'use client'
 
 import React, { useState, useRef, useEffect, useCallback } from 'react'
-import { MessageCircle, X, Send, Trash2, Bike, Bot, User } from 'lucide-react'
+import { MessageCircle, X, Send, Trash2, Bike, Bot, User, Volume2, Search, ExternalLink, Share2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { Avatar, AvatarFallback } from '@/components/ui/avatar'
 import { toast } from 'sonner'
 
+interface ChatSource {
+  name: string
+  url: string
+  snippet: string
+  hostName: string
+}
+
 interface ChatMessage {
   id: string
   role: 'user' | 'assistant'
   content: string
   timestamp: number
+  searched?: boolean
+  sources?: ChatSource[]
 }
 
 export default function MotoChat() {
@@ -21,15 +30,17 @@ export default function MotoChat() {
     {
       id: 'welcome',
       role: 'assistant',
-      content: '🏍️ Živjo! Sem MotoTrack AI asistent. Vprašaj me o motociklističnih poteh, slovenskih prelazih, varnosti ali opremi!',
+      content: '🏍️ Živjo! Sem MotoTrack AI asistent. Vprašaj me o motociklističnih poteh, slovenskih prelazih, varnosti ali opremi! Lahko tudi vprašaš o trenutnih cestnih razmerah ali vremenu — poiskal bom aktualne informacije na spletu. 🔍',
       timestamp: Date.now(),
     },
   ])
   const [input, setInput] = useState('')
   const [loading, setLoading] = useState(false)
+  const [playingAudio, setPlayingAudio] = useState<string | null>(null)
   const [sessionId] = useState(() => `chat-${Date.now()}`)
   const scrollRef = useRef<HTMLDivElement>(null)
   const inputRef = useRef<HTMLInputElement>(null)
+  const audioRef = useRef<HTMLAudioElement | null>(null)
 
   // Auto-scroll to bottom
   useEffect(() => {
@@ -44,6 +55,77 @@ export default function MotoChat() {
       setTimeout(() => inputRef.current?.focus(), 100)
     }
   }, [open])
+
+  // Cleanup audio on unmount
+  useEffect(() => {
+    return () => {
+      if (audioRef.current) {
+        audioRef.current.pause()
+        URL.revokeObjectURL(audioRef.current.src)
+      }
+    }
+  }, [])
+
+  const speakMessage = useCallback(async (messageId: string, text: string) => {
+    // If already playing, stop it
+    if (playingAudio === messageId) {
+      if (audioRef.current) {
+        audioRef.current.pause()
+        URL.revokeObjectURL(audioRef.current.src)
+        audioRef.current = null
+      }
+      setPlayingAudio(null)
+      return
+    }
+
+    // Stop any previous audio
+    if (audioRef.current) {
+      audioRef.current.pause()
+      URL.revokeObjectURL(audioRef.current.src)
+    }
+
+    setPlayingAudio(messageId)
+
+    try {
+      // Clean text for TTS - remove emojis and special chars
+      const cleanText = text
+        .replace(/[\u{1F300}-\u{1F9FF}]/gu, '')
+        .replace(/[🏗️🏍️🔍⚡🏔️🌊☀️🌧️❄️💨🛑🚗]/g, '')
+        .replace(/\[.*?\]/g, '')
+        .replace(/---.*?---/gs, '')
+        .replace(/\n{2,}/g, '. ')
+        .slice(0, 500)
+
+      const res = await fetch('/api/tts', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ text: cleanText, speed: 1.0, voice: 'tongtong' }),
+      })
+
+      if (res.ok) {
+        const audioBlob = await res.blob()
+        const audioUrl = URL.createObjectURL(audioBlob)
+        const audio = new Audio(audioUrl)
+        audioRef.current = audio
+        audio.onended = () => {
+          setPlayingAudio(null)
+          URL.revokeObjectURL(audioUrl)
+          audioRef.current = null
+        }
+        audio.onerror = () => {
+          setPlayingAudio(null)
+          toast.error('Napaka pri predvajanju')
+        }
+        audio.play()
+      } else {
+        setPlayingAudio(null)
+        toast.error('Napaka pri generiranju govora')
+      }
+    } catch {
+      setPlayingAudio(null)
+      toast.error('Napaka pri povezavi')
+    }
+  }, [playingAudio])
 
   const sendMessage = useCallback(async () => {
     if (!input.trim() || loading) return
@@ -74,11 +156,12 @@ export default function MotoChat() {
           role: 'assistant',
           content: data.response,
           timestamp: Date.now(),
+          searched: data.searched || false,
+          sources: data.sources || [],
         }
         setMessages(prev => [...prev, aiMessage])
       } else {
         toast.error(data.error || 'Napaka pri pošiljanju')
-        // Remove the user message if the API failed
         setMessages(prev => prev.filter(m => m.id !== userMessage.id))
       }
     } catch {
@@ -107,9 +190,11 @@ export default function MotoChat() {
 
   const quickPrompts = [
     'Najboljši prelazi v Sloveniji',
-    'Nasveti za začetnike',
+    'Zapore na cestah danes',
+    'Vreme za vikend vožnjo',
     'Vršič ali Predel?',
-    'Kakšno vreme za vikend?',
+    'Nasveti za začetnike',
+    'Jadranska magistrala',
   ]
 
   return (
@@ -138,7 +223,7 @@ export default function MotoChat() {
               </Avatar>
               <div>
                 <p className="text-sm font-bold">MotoTrack AI</p>
-                <p className="text-[10px] text-muted-foreground">Motociklistični asistent</p>
+                <p className="text-[10px] text-muted-foreground">Motociklistični asistent · 🔍 Iskanje po spletu</p>
               </div>
             </div>
             <div className="flex items-center gap-1">
@@ -170,14 +255,63 @@ export default function MotoChat() {
                       {msg.role === 'user' ? <User className="size-3" /> : <Bot className="size-3" />}
                     </AvatarFallback>
                   </Avatar>
-                  <div
-                    className={`max-w-[80%] rounded-2xl px-3 py-2 text-sm ${
-                      msg.role === 'user'
-                        ? 'bg-primary text-primary-foreground rounded-tr-sm'
-                        : 'bg-secondary rounded-tl-sm'
-                    }`}
-                  >
-                    <p className="whitespace-pre-wrap break-words leading-relaxed">{msg.content}</p>
+                  <div className="max-w-[80%]">
+                    <div
+                      className={`rounded-2xl px-3 py-2 text-sm ${
+                        msg.role === 'user'
+                          ? 'bg-primary text-primary-foreground rounded-tr-sm'
+                          : 'bg-secondary rounded-tl-sm'
+                      }`}
+                    >
+                      <p className="whitespace-pre-wrap break-words leading-relaxed">{msg.content}</p>
+                    </div>
+
+                    {/* AI message actions */}
+                    {msg.role === 'assistant' && msg.id !== 'welcome' && (
+                      <div className="flex items-center gap-1 mt-1 ml-1">
+                        {/* TTS button */}
+                        <button
+                          onClick={() => speakMessage(msg.id, msg.content)}
+                          className={`p-1 rounded transition-colors ${
+                            playingAudio === msg.id
+                              ? 'bg-primary/20 text-primary'
+                              : 'hover:bg-muted text-muted-foreground hover:text-foreground'
+                          }`}
+                          title={playingAudio === msg.id ? 'Ustavi' : 'Predvajaj glas'}
+                        >
+                          <Volume2 className={`size-3 ${playingAudio === msg.id ? 'animate-pulse' : ''}`} />
+                        </button>
+
+                        {/* Search indicator */}
+                        {msg.searched && (
+                          <span className="flex items-center gap-0.5 text-[10px] text-primary bg-primary/10 rounded-full px-1.5 py-0.5">
+                            <Search className="size-2.5" />
+                            Iskanje po spletu
+                          </span>
+                        )}
+                      </div>
+                    )}
+
+                    {/* Search sources */}
+                    {msg.sources && msg.sources.length > 0 && (
+                      <div className="mt-1.5 ml-1 space-y-1">
+                        <p className="text-[9px] text-muted-foreground uppercase tracking-wider">Viri</p>
+                        {msg.sources.slice(0, 3).map((source, i) => (
+                          <a
+                            key={i}
+                            href={source.url}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="flex items-center gap-1 text-[10px] text-primary/80 hover:text-primary transition-colors group"
+                          >
+                            <ExternalLink className="size-2.5 shrink-0" />
+                            <span className="truncate group-hover:underline">
+                              {source.name || source.hostName || source.url}
+                            </span>
+                          </a>
+                        ))}
+                      </div>
+                    )}
                   </div>
                 </div>
               ))}
@@ -189,10 +323,11 @@ export default function MotoChat() {
                     </AvatarFallback>
                   </Avatar>
                   <div className="bg-secondary rounded-2xl rounded-tl-sm px-4 py-3">
-                    <div className="flex gap-1">
-                      <span className="size-2 rounded-full bg-muted-foreground/50 animate-bounce [animation-delay:0ms]" />
-                      <span className="size-2 rounded-full bg-muted-foreground/50 animate-bounce [animation-delay:150ms]" />
-                      <span className="size-2 rounded-full bg-muted-foreground/50 animate-bounce [animation-delay:300ms]" />
+                    <div className="flex gap-1.5 items-center">
+                      <span className="size-2 rounded-full bg-primary/60 animate-bounce [animation-delay:0ms]" />
+                      <span className="size-2 rounded-full bg-primary/60 animate-bounce [animation-delay:150ms]" />
+                      <span className="size-2 rounded-full bg-primary/60 animate-bounce [animation-delay:300ms]" />
+                      <span className="text-[10px] text-muted-foreground ml-2">Mototrak AI razmišlja...</span>
                     </div>
                   </div>
                 </div>
@@ -210,10 +345,6 @@ export default function MotoChat() {
                     className="text-xs bg-secondary/50 hover:bg-secondary rounded-full px-3 py-1.5 transition-colors"
                     onClick={() => {
                       setInput(prompt)
-                      setTimeout(() => {
-                        const fakeEvent = { preventDefault: () => {} }
-                        // We'll just set the input and let them press send
-                      }, 0)
                     }}
                   >
                     {prompt}
@@ -228,7 +359,7 @@ export default function MotoChat() {
             <div className="flex gap-2">
               <Input
                 ref={inputRef}
-                placeholder="Vprašaj o poteh, prelazih..."
+                placeholder="Vprašaj o poteh, prelazih, vremenu..."
                 value={input}
                 onChange={e => setInput(e.target.value)}
                 onKeyDown={e => e.key === 'Enter' && !e.shiftKey && sendMessage()}
