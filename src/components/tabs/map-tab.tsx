@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useRef, useCallback } from 'react'
 import dynamic from 'next/dynamic'
-import { Search, X, ChevronUp, ChevronDown, LocateFixed, Bike, Route as RouteIcon, Filter, MapPin, GitBranch, CloudRain, AlertTriangle, Radio, Plus, Send, Fuel, Users, Navigation, Trash2, Gauge, Star, Layers, Shield, ChevronRight } from 'lucide-react'
+import { Search, X, ChevronUp, ChevronDown, LocateFixed, Bike, Route as RouteIcon, Filter, MapPin, GitBranch, CloudRain, AlertTriangle, Radio, Plus, Send, Fuel, Users, Navigation, Trash2, Gauge, Star, Layers, Shield, ChevronRight, Mountain } from 'lucide-react'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
@@ -19,6 +19,7 @@ import type { RideData, RouteData, PoiData, LiveRider, HazardData, FuelData, Fri
 import { categoryLabel, categoryColor, poiTypeLabel, poiTypeEmoji } from '@/components/tabs/types'
 
 const MotoMap = dynamic(() => import('@/components/moto-map'), { ssr: false })
+const Map3DViewer = dynamic(() => import('@/components/map-3d-viewer'), { ssr: false })
 
 const POI_TYPES = [
   { key: 'gas_station', label: 'Bencinske črpalke', emoji: '⛽' },
@@ -113,6 +114,7 @@ export default function MapTab({ rides, routes, onOpenDetail, userId }: MapTabPr
   const [navigationRoute, setNavigationRoute] = useState<NavigationRoute | null>(null)
   const [showNavigation, setShowNavigation] = useState(false)
   const [navigatingRoute, setNavigatingRoute] = useState<string | null>(null)
+  const [navUserPosition, setNavUserPosition] = useState<{ lat: number; lng: number } | null>(null)
 
   // Traffic state
   const [showTraffic, setShowTraffic] = useState(false)
@@ -124,6 +126,9 @@ export default function MapTab({ rides, routes, onOpenDetail, userId }: MapTabPr
   const [newSurface, setNewSurface] = useState('asphalt')
   const [newComment, setNewComment] = useState('')
   const [submittingRating, setSubmittingRating] = useState(false)
+
+  // 3D Map state
+  const [show3D, setShow3D] = useState(false)
 
   // Fetch POIs
   useEffect(() => {
@@ -431,6 +436,7 @@ export default function MapTab({ rides, routes, onOpenDetail, userId }: MapTabPr
         showWeatherRadar={showWeatherRadar}
         showHazards={showHazards}
         roadRatings={showRoadQuality ? roadRatings : []}
+        userPosition={navUserPosition}
         className="absolute inset-0"
       />
 
@@ -667,17 +673,57 @@ export default function MapTab({ rides, routes, onOpenDetail, userId }: MapTabPr
       {/* Locate button & Map Style */}
       <div className="absolute bottom-28 right-4 z-[1000] flex flex-col gap-2">
         <MapStyleSelector userId={userId} />
+        <Button
+          size="icon"
+          variant="secondary"
+          className={`h-10 w-10 rounded-full shadow-lg backdrop-blur-md border ${show3D ? 'bg-emerald-500/90 text-white hover:bg-emerald-600' : 'bg-background/90 hover:bg-muted'}`}
+          onClick={() => setShow3D(!show3D)}
+          title="3D pogled"
+        >
+          <Mountain className="h-5 w-5" />
+        </Button>
         <Button size="icon" variant="secondary" className="h-10 w-10 rounded-full shadow-lg bg-background/90 backdrop-blur-md border border-border hover:bg-muted" onClick={handleLocate}>
           <LocateFixed className="h-5 w-5" />
         </Button>
       </div>
+
+      {/* 3D Map Overlay */}
+      {show3D && (
+        <div className="absolute inset-0 z-[1200]">
+          <Map3DViewer
+            center={[14.99, 46.15]}
+            zoom={10}
+            trackPoints={rides.length > 0 ? (() => {
+              try {
+                const track = JSON.parse(rides[0].trackData)
+                if (Array.isArray(track)) return track.map((p: number[]) => ({ lat: p[0], lng: p[1], alt: p[2] }))
+              } catch {}
+              return []
+            })() : []}
+            routeCoords={routes.length > 0 ? (() => {
+              try {
+                const rd = JSON.parse(routes[0].routeData || '[]')
+                if (Array.isArray(rd)) return rd.map((p: number[]) => [p[1], p[0]] as [number, number])
+                const wp = JSON.parse(routes[0].waypoints)
+                if (Array.isArray(wp)) return wp.map((w: {lat: number; lng: number}) => [w.lng, w.lat] as [number, number])
+              } catch {}
+              return []
+            })() : []}
+            title="3D Pogled - Balkan"
+            onClose={() => setShow3D(false)}
+            pitch={60}
+            bearing={-20}
+          />
+        </div>
+      )}
 
       {/* Navigation Panel */}
       {showNavigation && (
         <NavigationPanel
           route={navigationRoute}
           onStartNavigation={() => setNavigatingRoute('active')}
-          onStopNavigation={() => { setNavigatingRoute(null); window.speechSynthesis?.cancel() }}
+          onStopNavigation={() => { setNavigatingRoute(null); setNavUserPosition(null); window.speechSynthesis?.cancel() }}
+          onUserPositionChange={setNavUserPosition}
         />
       )}
 

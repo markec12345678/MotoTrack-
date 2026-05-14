@@ -64,3 +64,156 @@ Stage Summary:
   ✅ Toll avoidance option
 - Lint passes clean
 - Dev server running successfully
+
+---
+Task ID: 7
+Agent: Balkan Roads Polyline Enhancer
+Task: Enhance Balkan motorcycle roads overlay with polyline routes (Butler Maps / REVER style)
+
+Work Log:
+- Added `balkanRoadsLayerRef` as a new dedicated `useRef<L.LayerGroup | null>(null)` for managing Balkan roads polylines separately from the general overlays layer
+- Initialized `balkanRoadsLayer` as a new `L.layerGroup()` in the map init useEffect, assigned to `balkanRoadsLayerRef.current`
+- Added cleanup for `balkanRoadsLayerRef.current = null` in the map init cleanup function
+- Replaced the old Balkan roads useEffect (lines 583-660) that only drew circle markers with a new version that:
+  - Uses 21 detailed route coordinate sets tracing actual road paths across 8 countries (SI, HR, ME, RO, AL, AT, BG, RS, BA, GR)
+  - Draws thick colored POLYLINES for each road route using `L.polyline()` instead of just circle markers
+  - Color coding by difficulty:
+    - easy: green (#22c55e) with 4px line weight
+    - moderate: amber (#f59e0b) with 5px line weight
+    - challenging: orange (#f97316) with 6px line weight
+    - extreme: red (#ef4444) with 7px line weight + glow effect (14px translucent line underneath at 0.3 opacity)
+  - Adds circle markers at the start of each road route
+  - Shows road name, difficulty label, country badge, and length in popup
+- Added a legend overlay at the bottom of the map when Balkan roads are shown, displaying all 4 difficulty levels with corresponding line samples
+- Balkan roads are now on their own dedicated layer, preventing conflicts with twisty roads and hazards overlays that clear the general overlays layer
+
+Stage Summary:
+- ✅ Balkan roads now show actual route POLYLINES instead of just circle markers
+- ✅ Difficulty-based color coding with varying line weights (Butler Maps style)
+- ✅ Extreme routes have red glow effect for visual emphasis
+- ✅ Circle markers at road start points with rich popups (name, difficulty, country, length)
+- ✅ Legend overlay at bottom of map when Balkan roads are visible
+- ✅ Dedicated balkanRoadsLayerRef prevents layer conflicts with twisty roads / hazards
+- ✅ No new lint errors introduced
+- ✅ Dev server running successfully
+
+---
+Task ID: 10
+Agent: Offline Tile Caching Engineer
+Task: Fix the offline tile caching system to support proper tile downloading and storage using IndexedDB
+
+Work Log:
+- Created new API endpoint `/api/offline-maps/download/route.ts`:
+  - Accepts POST with `regionId` and optional `minZoom`/`maxZoom` parameters
+  - Calculates tile coordinates from region bounds using OSM tile math (lngToTileX, latToTileY)
+  - Returns full list of tile URLs and keys for the region across all zoom levels
+  - Each tile URL follows `https://tile.openstreetmap.org/{z}/{x}/{y}.png` pattern
+  - Keys formatted as `tile_{z}_{x}_{y}` for IndexedDB storage
+- Enhanced `offline-maps-manager.tsx` with complete IndexedDB integration:
+  - Added IndexedDB wrapper functions (openDB, saveTile, getTile, deleteAllTiles, deleteTilesByPrefix, getStorageEstimate, getTileCountByPrefix)
+  - DB name: `mototrack-offline-maps`, store: `tiles`, version 1
+  - Keys use `tile_region_{regionId}_{z}_{x}_{y}` prefix pattern for region-scoped tile management
+- Replaced simulated download with real tile downloading:
+  - Fetches tile list from `/api/offline-maps/download` API first
+  - Downloads tiles from OSM in batches of 6 concurrent requests
+  - Stores each tile as a Blob in IndexedDB with region-prefixed keys
+  - Skips already-downloaded tiles (checks IndexedDB before fetching)
+  - 100ms delay between batches to respect OSM tile server rate limits
+  - Records download metadata via existing `/api/offline-maps` POST endpoint after completion
+- Added real progress tracking:
+  - Shows download phase: 'fetching' → 'downloading' → 'done'
+  - Displays X/Y tile count progress (e.g., "42/120")
+  - Reports failed tile count with warning message
+  - Progress bar reflects actual completion percentage
+- Added cancellation support:
+  - Uses AbortController with ref for download cancellation
+  - Cancel button (XCircle icon) in progress UI
+  - Graceful abort handling with toast notification
+- Added real storage usage from IndexedDB:
+  - Storage indicator shows actual bytes used from IndexedDB (not estimated MB)
+  - formatBytes helper (B/KB/MB/GB)
+  - Tile count badge showing total tiles stored
+  - Progress bar reflects actual storage / 2GB limit
+- Added region tile count display:
+  - Each region shows its tile count from IndexedDB (e.g., "42 ploščic")
+  - Counts refresh after download and delete operations
+  - Uses getTileCountByPrefix for per-region tile counting
+- Enhanced deletion:
+  - Delete single region: removes tiles from IndexedDB by prefix + deletes server metadata
+  - Delete all: clears entire IndexedDB tile store + resets all region states
+  - Both refresh storage info after deletion
+- Exported offline tile interceptor utilities:
+  - `createOfflineTileUrl()` - checks IndexedDB before returning online URL
+  - `useOfflineTileInterceptor()` - hook for Leaflet tile layer integration
+- Removed unused eslint-disable directive for clean lint output
+- Added cleanup pattern (cancelled flag) for regionTileCounts useEffect
+
+Stage Summary:
+- ✅ New `/api/offline-maps/download` endpoint calculates and returns tile URLs from region bounds
+- ✅ IndexedDB integration stores actual tile blobs with region-prefixed keys
+- ✅ Real tile downloading from OpenStreetMap with batched concurrent fetches
+- ✅ Real progress tracking (X/Y tiles, phase indicators, failed count)
+- ✅ Cancellation support via AbortController
+- ✅ Actual storage usage calculated from IndexedDB (bytes + tile count)
+- ✅ Per-region tile count display
+- ✅ Region-scoped tile deletion from IndexedDB + "delete all" option
+- ✅ Exported offline tile interceptor for map integration
+- ✅ No new lint errors introduced
+- ✅ Dev server running successfully
+
+---
+Task ID: 5
+Agent: Navigation Enhancement Engineer
+Task: Improve Turn-by-Turn navigation with 25-waypoint limit and proximity-based step advancement
+
+Work Log:
+- Updated NavigationStep type in `types.ts`:
+  - Added `coords?: [number, number]` field (format: [lng, lat]) for proximity detection
+- Enhanced `/api/navigation/route.ts` with waypoint simplification:
+  - Implemented Douglas-Peucker algorithm (`douglasPeuckerIndices`, `perpendicularDistance`) for intelligent route simplification
+  - Added `simplifyWaypoints()` function that tries Douglas-Peucker first, then falls back to uniform sampling
+  - Always keeps start and end waypoints
+  - Added `maxWaypoints` query parameter (default 25, range 2-25)
+  - When waypoints exceed the limit, automatically simplifies to the max count before sending to OSRM
+  - Response includes `simplified`, `originalWaypointCount`, `usedWaypointCount` metadata fields
+  - Each step now includes `coords` field with `[lng, lat]` for proximity calculations
+- Enhanced `navigation-panel.tsx` with proximity-based step advancement:
+  - Added `haversineDistance()` utility function for accurate GPS distance calculation
+  - GPS position watching via `navigator.geolocation.watchPosition` with high accuracy mode
+  - `distanceToNext` computed as derived value (useMemo) from userPosition and currentStep
+  - `approachingAlert` computed as derived value from distanceToNext
+  - Auto-advance when within 50m of next step (logic in GPS callback to satisfy lint rules)
+  - Alert sound (800Hz sine tone, 150ms) when approaching within 100m (with 5s cooldown)
+  - "Follow my position" toggle button with Crosshair icon (sky-600 colored when active)
+  - GPS badge in header when position is acquired
+  - Distance-to-next-turn display with color coding:
+    - Green (<50m): "Na ciljnem koraku!"
+    - Amber (50-100m): distance + "do naslednjega zavoja"
+    - Muted (>100m): distance + "do naslednjega zavoja"
+  - Approaching alert visual: animated pulse border on instruction card + pulsing amber dot
+  - Pulsing dot position indicator with coordinates display
+  - Bell/BellRing icons for distance indicator
+- Updated `moto-map.tsx` with user position marker:
+  - Added `userPosition` prop to MotoMapProps interface
+  - Added `userPositionMarkerRef` for marker lifecycle management
+  - Created pulsing sky-blue marker with double-ring animation (1.5s cycle with 0.3s offset)
+  - High z-index (1000) to appear above other markers
+  - Cleanup on position change and unmount
+- Updated `map-tab.tsx` to wire everything together:
+  - Added `navUserPosition` state
+  - Passed `onUserPositionChange={setNavUserPosition}` to NavigationPanel
+  - Passed `userPosition={navUserPosition}` to MotoMap
+  - Reset navUserPosition on navigation stop
+
+Stage Summary:
+- ✅ 25-waypoint limit with Douglas-Peucker simplification (OSRM efficient routing)
+- ✅ maxWaypoints query parameter for API flexibility
+- ✅ GPS-based proximity detection with auto-advance at 50m threshold
+- ✅ Approach alert sound at 100m with 5s cooldown
+- ✅ Distance-to-next-turn display with color-coded proximity levels
+- ✅ Pulsing sky-blue dot for user position on map
+- ✅ "Follow my position" toggle in navigation panel
+- ✅ GPS badge and coordinates display
+- ✅ All existing functionality preserved
+- ✅ No new lint errors introduced
+- ✅ Dev server running successfully

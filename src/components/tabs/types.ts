@@ -452,6 +452,7 @@ export interface NavigationStep {
   name: string           // street/road name
   lat: number
   lng: number
+  coords?: [number, number]  // [lng, lat] for proximity detection
 }
 
 export interface NavigationRoute {
