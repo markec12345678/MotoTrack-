@@ -426,3 +426,28 @@ Stage Summary:
 - Prevents Next.js from statically generating API routes at build time (fixes Vercel deployment crash when DATABASE_URL unavailable)
 - Zero duplicate insertions, zero files skipped
 - All files verified correct
+
+---
+Task ID: Vercel-Fix-Session
+Agent: Main
+Task: Fix URL_INVALID crash on Vercel deployment - comprehensive audit and fix
+
+Work Log:
+- Diagnosed root cause: `URL_INVALID: The URL 'undefined' is not in a valid format` crash
+- Problem 1: lib/db.ts used Proxy-based lazy initialization that didn't work with Prisma internals
+- Problem 2: TURSO_DATABASE_URL was set in .env but db.ts used it even in development (NODE_ENV=development)
+- Problem 3: API routes could be statically generated at build time, triggering DB init without env vars
+- Problem 4: next.config.ts didn't have serverExternalPackages for @libsql/client
+- Fix 1: Rewrote lib/db.ts - simple singleton, only uses Turso when NODE_ENV=production
+- Fix 2: Added `export const dynamic = 'force-dynamic'` to all 75 API route files
+- Fix 3: Updated next.config.ts with serverExternalPackages for @libsql/client and @prisma/adapter-libsql
+- Fix 4: Updated .env with TURSO_DATABASE_URL and TURSO_AUTH_TOKEN
+- Verified all APIs working locally: users(200), rides(200), hazards(200), pois(200), routes(200)
+- Pushed to GitHub for Vercel auto-deploy
+
+Stage Summary:
+- 4 critical fixes applied for Vercel deployment
+- Key change: db.ts only connects to Turso in production (NODE_ENV=production)
+- All API routes force-dynamic to prevent static generation crashes
+- next.config.ts properly externalizes libsql native bindings
+- Vercel needs these env vars: DATABASE_URL, TURSO_DATABASE_URL, TURSO_AUTH_TOKEN, OPENROUTER_API_KEY
