@@ -369,3 +369,39 @@ Stage Summary:
 - 10 files modified with mobile compatibility fixes
 - Root cause of "functions don't work": seed wiped data on every load, socket.io hardcoded port, window.open blocked on mobile, safe-area not defined
 - All fixes pushed to GitHub for Vercel auto-deploy
+
+---
+Task ID: 2
+Agent: Turso/Vercel DB Fix
+Task: Fix Prisma + Turso adapter compatibility for Vercel deployment
+
+Work Log:
+- ROOT CAUSE: When using @prisma/adapter-libsql with DATABASE_URL set to a libsql:// URL, Prisma's engine tries to validate the URL format and fails with "URL_INVALID: The URL 'undefined' is not in a valid format"
+- SOLUTION: Separate Turso URL from DATABASE_URL using TURSO_DATABASE_URL env var
+- Rewrote /src/lib/db.ts:
+  - Checks TURSO_DATABASE_URL (not DATABASE_URL) for libsql:// or https:// prefix
+  - Uses TURSO_DATABASE_URL for the @libsql/client connection
+  - DATABASE_URL stays as valid SQLite URL (placeholder on Vercel) for Prisma initialization
+  - Fixed PrismaLibSql → PrismaLibSQL (uppercase SQL) for correct adapter export name
+  - Kept local SQLite fallback for development
+- Updated prisma/schema.prisma:
+  - Removed directUrl = env("DIRECT_DATABASE_URL") line (not needed, causes issues)
+- Fixed package.json build script:
+  - Removed `cp -r .next/static .next/standalone/.next/ && cp -r public .next/standalone/` (standalone output was removed in earlier task)
+  - Simplified to: `prisma generate && next build`
+- Updated .env.example:
+  - Documented TURSO_DATABASE_URL approach
+  - Explained DATABASE_URL must be `file:./dev.db` placeholder on Vercel
+  - Added clear Vercel environment variable setup instructions
+- Regenerated Prisma client (v6.19.2) — warning that driverAdapters preview feature is deprecated (works fine without it too)
+- Verified all API endpoints: /api/users (200), /api/rides (200), /api/hazards (200), /api/pois (200), /api/feed (200)
+- Lint: 0 errors, 0 warnings
+- Dev server: HTTP 200 OK
+
+Stage Summary:
+- Fixed Vercel/Turso deployment issue by using TURSO_DATABASE_URL env var instead of DATABASE_URL for libsql connection
+- DATABASE_URL now serves as SQLite placeholder for Prisma initialization (adapter overrides actual connection)
+- Build script fixed (removed broken standalone copy commands)
+- Schema simplified (removed directUrl)
+- On Vercel, user needs: DATABASE_URL=file:./dev.db, TURSO_DATABASE_URL=libsql://..., TURSO_AUTH_TOKEN=...
+- All 4 files modified: db.ts, schema.prisma, package.json, .env.example

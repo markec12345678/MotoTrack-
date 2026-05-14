@@ -4,6 +4,7 @@ import "./globals.css";
 import { Toaster } from "@/components/ui/sonner";
 import { ThemeProvider } from "next-themes";
 import { PwaRegister } from "@/components/pwa-register";
+import { ErrorBoundary } from "@/components/error-boundary";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -65,7 +66,9 @@ export default function RootLayout({
           disableTransitionOnChange
         >
           <PwaRegister />
-          {children}
+          <ErrorBoundary>
+            {children}
+          </ErrorBoundary>
           <Toaster richColors position="top-center" />
         </ThemeProvider>
       </body>
