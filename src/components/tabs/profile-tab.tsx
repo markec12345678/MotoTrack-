@@ -31,6 +31,8 @@ import BluetoothPanel from '@/components/bluetooth-panel'
 import OBDPanel from '@/components/obd-panel'
 import RideReplay3D from '@/components/ride-replay-3d'
 import { toast } from 'sonner'
+import { useSettingsStore, saveSettings, type UnitSystem, formatDistance, formatElevation, distanceUnit, elevationUnit } from '@/hooks/use-settings'
+import { MapPin, Shield, Moon, Timer, Ruler, CircleDot, Trash2 as Trash2Icon } from 'lucide-react'
 
 interface ProfileTabProps {
   user: UserData | null
@@ -41,9 +43,11 @@ interface ProfileTabProps {
   onSwitchUser: (userId: string) => void
   onOpenDetail: (item: RideData | RouteData, type: 'ride' | 'route') => void
   onRefresh: () => void
+  unitSystem?: 'metric' | 'imperial'
 }
 
-export default function ProfileTab({ user, allUsers, rides, routes, loading, onSwitchUser, onOpenDetail, onRefresh }: ProfileTabProps) {
+export default function ProfileTab({ user, allUsers, rides, routes, loading, onSwitchUser, onOpenDetail, onRefresh, unitSystem: unitSystemProp }: ProfileTabProps) {
+  const { settings, privacyZones, setSettings, setPrivacyZones, addPrivacyZone, removePrivacyZone } = useSettingsStore()
   const [photos, setPhotos] = useState<PhotoData[]>([])
   const [photosLoading, setPhotosLoading] = useState(true)
   const [viewPhoto, setViewPhoto] = useState<PhotoData | null>(null)
@@ -85,7 +89,15 @@ export default function ProfileTab({ user, allUsers, rides, routes, loading, onS
     financije: false,
     mediji: false,
     dosezki: false,
+    nastavitve: false,
+    zasebnost: false,
   })
+
+  // Privacy zone creation state
+  const [newZoneName, setNewZoneName] = useState('')
+  const [newZoneRadius, setNewZoneRadius] = useState(200)
+  const [addingZone, setAddingZone] = useState(false)
+  const [settingsSaving, setSettingsSaving] = useState(false)
 
   const toggleSection = (key: string) => {
     setSectionOpen(prev => ({ ...prev, [key]: !prev[key] }))
@@ -1500,9 +1512,349 @@ export default function ProfileTab({ user, allUsers, rides, routes, loading, onS
             </TabsContent>
           </Tabs>
         </Card>
-      </div>
 
-      {/* Full-size photo overlay */}
+        {/* ════════════════════════════════════════════════════════════════
+            COLLAPSIBLE SECTION 6: ⚙️ Nastavitve
+            Units, auto-pause, wakelock, toll avoidance
+        ════════════════════════════════════════════════════════════════ */}
+        <Collapsible open={sectionOpen.nastavitve} onOpenChange={() => toggleSection('nastavitve')}>
+          <Card className="rounded-xl overflow-hidden border-l-4 border-l-violet-500/60">
+            <CollapsibleTrigger asChild>
+              <button className="w-full text-left">
+                <div className="p-4 pb-0 flex items-center gap-3">
+                  <div className="flex items-center justify-center size-8 rounded-lg bg-violet-500/15 shrink-0">
+                    <Ruler className="size-4 text-violet-500" />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2">
+                      <CardTitle className="text-sm font-semibold">Nastavitve</CardTitle>
+                      <Badge variant="secondary" className="text-[9px] px-1.5 py-0 h-4 bg-violet-500/10 text-violet-500">6 opcij</Badge>
+                    </div>
+                    <p className="text-[10px] text-muted-foreground mt-0.5">Enote, samodejni premor, zaslon</p>
+                  </div>
+                  <ChevronDown className={`size-4 text-muted-foreground transition-transform duration-200 ${sectionOpen.nastavitve ? 'rotate-180' : ''}`} />
+                </div>
+              </button>
+            </CollapsibleTrigger>
+            <CollapsibleContent>
+              <CardContent className="p-4 pt-3 space-y-4">
+
+                {/* Unit system toggle */}
+                <div className="space-y-2">
+                  <div className="flex items-center gap-2">
+                    <Ruler className="size-3.5 text-violet-500" />
+                    <span className="text-xs font-medium">Merske enote</span>
+                  </div>
+                  <div className="flex gap-2">
+                    <Button
+                      variant={settings.unitSystem === 'metric' ? 'default' : 'outline'}
+                      size="sm"
+                      className="text-xs flex-1 gap-1"
+                      onClick={() => setSettings({ unitSystem: 'metric' })}
+                    >
+                      🛣️ Kilometri
+                    </Button>
+                    <Button
+                      variant={settings.unitSystem === 'imperial' ? 'default' : 'outline'}
+                      size="sm"
+                      className="text-xs flex-1 gap-1"
+                      onClick={() => setSettings({ unitSystem: 'imperial' })}
+                    >
+                      🇺🇸 Milje
+                    </Button>
+                  </div>
+                  <p className="text-[10px] text-muted-foreground">
+                    Trenutno: {settings.unitSystem === 'metric' ? 'km, km/h, m' : 'mi, mph, ft'}
+                  </p>
+                </div>
+
+                <Separator className="opacity-30" />
+
+                {/* Auto-pause toggle */}
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <Timer className="size-3.5 text-violet-500" />
+                    <span className="text-xs font-medium">Samodejni premor</span>
+                  </div>
+                  <button
+                    onClick={() => setSettings({ autoPauseEnabled: !settings.autoPauseEnabled })}
+                    className={`relative inline-flex h-5 w-9 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${
+                      settings.autoPauseEnabled ? 'bg-violet-500' : 'bg-muted'
+                    }`}
+                    role="switch"
+                    aria-checked={settings.autoPauseEnabled}
+                  >
+                    <span className={`pointer-events-none inline-block size-4 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out ${
+                      settings.autoPauseEnabled ? 'translate-x-4' : 'translate-x-0'
+                    }`} />
+                  </button>
+                </div>
+                {settings.autoPauseEnabled && (
+                  <div className="space-y-1">
+                    <div className="flex items-center justify-between">
+                      <span className="text-[10px] text-muted-foreground">Prag hitrosti za premor</span>
+                      <span className="text-xs font-bold text-violet-500">{settings.autoPauseSpeedThreshold} km/h</span>
+                    </div>
+                    <input
+                      type="range"
+                      min={1}
+                      max={20}
+                      step={1}
+                      value={settings.autoPauseSpeedThreshold}
+                      onChange={e => setSettings({ autoPauseSpeedThreshold: Number(e.target.value) })}
+                      className="w-full h-1.5 rounded-full appearance-none cursor-pointer accent-violet-500 bg-muted"
+                    />
+                    <div className="flex justify-between text-[9px] text-muted-foreground/50">
+                      <span>1 km/h</span>
+                      <span>20 km/h</span>
+                    </div>
+                  </div>
+                )}
+
+                <Separator className="opacity-30" />
+
+                {/* WakeLock toggle */}
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <Moon className="size-3.5 text-violet-500" />
+                    <span className="text-xs font-medium">Prepreči zaklep zaslona</span>
+                  </div>
+                  <button
+                    onClick={() => setSettings({ wakelockEnabled: !settings.wakelockEnabled })}
+                    className={`relative inline-flex h-5 w-9 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${
+                      settings.wakelockEnabled ? 'bg-violet-500' : 'bg-muted'
+                    }`}
+                    role="switch"
+                    aria-checked={settings.wakelockEnabled}
+                  >
+                    <span className={`pointer-events-none inline-block size-4 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out ${
+                      settings.wakelockEnabled ? 'translate-x-4' : 'translate-x-0'
+                    }`} />
+                  </button>
+                </div>
+                <p className="text-[10px] text-muted-foreground">Zaslon ostane vklopljen med snemanjem vožnje</p>
+
+                <Separator className="opacity-30" />
+
+                {/* Avoid tolls toggle */}
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <Route className="size-3.5 text-violet-500" />
+                    <span className="text-xs font-medium">Izogibanje cestninam</span>
+                  </div>
+                  <button
+                    onClick={() => setSettings({ avoidTolls: !settings.avoidTolls })}
+                    className={`relative inline-flex h-5 w-9 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${
+                      settings.avoidTolls ? 'bg-violet-500' : 'bg-muted'
+                    }`}
+                    role="switch"
+                    aria-checked={settings.avoidTolls}
+                  >
+                    <span className={`pointer-events-none inline-block size-4 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out ${
+                      settings.avoidTolls ? 'translate-x-4' : 'translate-x-0'
+                    }`} />
+                  </button>
+                </div>
+
+                {/* Save all settings button */}
+                <Button
+                  size="sm"
+                  className="w-full text-xs gap-2 bg-violet-500 hover:bg-violet-600 text-white h-7"
+                  onClick={async () => {
+                    if (!user?.id) return
+                    setSettingsSaving(true)
+                    const ok = await saveSettings(user.id, settings)
+                    setSettingsSaving(false)
+                    if (ok) toast.success('Nastavitve shranjene')
+                    else toast.error('Napaka pri shranjevanju')
+                  }}
+                  disabled={settingsSaving}
+                >
+                  <Save className="size-3" />
+                  {settingsSaving ? 'Shranjujem...' : 'Shrani nastavitve'}
+                </Button>
+              </CardContent>
+            </CollapsibleContent>
+          </Card>
+        </Collapsible>
+
+        {/* ════════════════════════════════════════════════════════════════
+            COLLAPSIBLE SECTION 7: 🔒 Zasebnost
+            Hide start/end, privacy zones
+        ════════════════════════════════════════════════════════════════ */}
+        <Collapsible open={sectionOpen.zasebnost} onOpenChange={() => toggleSection('zasebnost')}>
+          <Card className="rounded-xl overflow-hidden border-l-4 border-l-rose-500/60">
+            <CollapsibleTrigger asChild>
+              <button className="w-full text-left">
+                <div className="p-4 pb-0 flex items-center gap-3">
+                  <div className="flex items-center justify-center size-8 rounded-lg bg-rose-500/15 shrink-0">
+                    <Shield className="size-4 text-rose-500" />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2">
+                      <CardTitle className="text-sm font-semibold">Zasebnost</CardTitle>
+                      <Badge variant="secondary" className="text-[9px] px-1.5 py-0 h-4 bg-rose-500/10 text-rose-500">{privacyZones.length + 1} nastavitve</Badge>
+                    </div>
+                    <p className="text-[10px] text-muted-foreground mt-0.5">Skrivanje lokacije, cone zasebnosti</p>
+                  </div>
+                  <ChevronDown className={`size-4 text-muted-foreground transition-transform duration-200 ${sectionOpen.zasebnost ? 'rotate-180' : ''}`} />
+                </div>
+              </button>
+            </CollapsibleTrigger>
+            <CollapsibleContent>
+              <CardContent className="p-4 pt-3 space-y-4">
+
+                {/* Hide start/end toggle */}
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <MapPin className="size-3.5 text-rose-500" />
+                    <div>
+                      <span className="text-xs font-medium block">Skrij začetno/končno točko</span>
+                      <span className="text-[10px] text-muted-foreground">Zamegli lokacijo doma v javnih vožnjah</span>
+                    </div>
+                  </div>
+                  <button
+                    onClick={() => setSettings({ hideStartEnd: !settings.hideStartEnd })}
+                    className={`relative inline-flex h-5 w-9 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${
+                      settings.hideStartEnd ? 'bg-rose-500' : 'bg-muted'
+                    }`}
+                    role="switch"
+                    aria-checked={settings.hideStartEnd}
+                  >
+                    <span className={`pointer-events-none inline-block size-4 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out ${
+                      settings.hideStartEnd ? 'translate-x-4' : 'translate-x-0'
+                    }`} />
+                  </button>
+                </div>
+
+                <Separator className="opacity-30" />
+
+                {/* Privacy Zones */}
+                <div className="space-y-2">
+                  <div className="flex items-center gap-2">
+                    <CircleDot className="size-3.5 text-rose-500" />
+                    <span className="text-xs font-medium">Cone zasebnosti ({privacyZones.length})</span>
+                  </div>
+                  <p className="text-[10px] text-muted-foreground">Območja, kjer se vaša lokacija samodejno skrije v vožnjah</p>
+
+                  {/* Existing zones */}
+                  {privacyZones.length > 0 && (
+                    <div className="space-y-1.5">
+                      {privacyZones.map(zone => (
+                        <div key={zone.id} className="flex items-center justify-between rounded-lg bg-rose-500/10 px-3 py-2">
+                          <div className="flex items-center gap-2">
+                            <MapPin className="size-3 text-rose-500" />
+                            <div>
+                              <p className="text-xs font-medium">{zone.name}</p>
+                              <p className="text-[10px] text-muted-foreground">{zone.radiusMeters}m radij</p>
+                            </div>
+                          </div>
+                          <button
+                            className="size-6 rounded-full bg-rose-500/20 text-rose-500 flex items-center justify-center hover:bg-rose-500/30 transition-colors"
+                            onClick={async () => {
+                              if (!user?.id) return
+                              try {
+                                const res = await fetch(`/api/privacy-zones?id=${zone.id}&userId=${user.id}`, { method: 'DELETE' })
+                                if (res.ok) {
+                                  removePrivacyZone(zone.id)
+                                  toast.success('Cona izbrisana')
+                                }
+                              } catch { toast.error('Napaka') }
+                            }}
+                          >
+                            <Trash2Icon className="size-3" />
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+
+                  {/* Add new zone */}
+                  <div className="space-y-2 mt-2">
+                    <Input
+                      placeholder="Ime cone (npr. Dom, Služba)"
+                      value={newZoneName}
+                      onChange={e => setNewZoneName(e.target.value)}
+                      className="h-7 text-xs"
+                    />
+                    <div className="flex items-center gap-2">
+                      <span className="text-[10px] text-muted-foreground whitespace-nowrap">Radij: {newZoneRadius}m</span>
+                      <input
+                        type="range"
+                        min={50}
+                        max={1000}
+                        step={50}
+                        value={newZoneRadius}
+                        onChange={e => setNewZoneRadius(Number(e.target.value))}
+                        className="flex-1 h-1.5 rounded-full appearance-none cursor-pointer accent-rose-500 bg-muted"
+                      />
+                    </div>
+                    <Button
+                      size="sm"
+                      className="w-full text-xs gap-2 bg-rose-500 hover:bg-rose-600 text-white h-7"
+                      disabled={addingZone || !newZoneName.trim()}
+                      onClick={async () => {
+                        if (!user?.id || !newZoneName.trim()) return
+                        setAddingZone(true)
+                        try {
+                          // Use current GPS position as zone center
+                          const pos = await new Promise<GeolocationPosition>((resolve, reject) => {
+                            navigator.geolocation.getCurrentPosition(resolve, reject, { enableHighAccuracy: true, timeout: 10000 })
+                          })
+                          const res = await fetch('/api/privacy-zones', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({
+                              userId: user.id,
+                              name: newZoneName.trim(),
+                              lat: pos.coords.latitude,
+                              lng: pos.coords.longitude,
+                              radiusMeters: newZoneRadius,
+                            }),
+                          })
+                          if (res.ok) {
+                            const j = await res.json()
+                            addPrivacyZone(j.data)
+                            setNewZoneName('')
+                            toast.success('Cona zasebnosti dodana!')
+                          } else {
+                            toast.error('Napaka pri dodajanju')
+                          }
+                        } catch {
+                          toast.error('Napaka pri pridobivanju lokacije. Omogočite GPS.')
+                        }
+                        setAddingZone(false)
+                      }}
+                    >
+                      <Plus className="size-3" />
+                      {addingZone ? 'Dodajam...' : 'Dodaj cono (trenutna lokacija)'}
+                    </Button>
+                  </div>
+                </div>
+
+                {/* Save privacy settings */}
+                <Button
+                  size="sm"
+                  className="w-full text-xs gap-2 bg-rose-500 hover:bg-rose-600 text-white h-7"
+                  onClick={async () => {
+                    if (!user?.id) return
+                    setSettingsSaving(true)
+                    const ok = await saveSettings(user.id, { hideStartEnd: settings.hideStartEnd })
+                    setSettingsSaving(false)
+                    if (ok) toast.success('Zasebnostne nastavitve shranjene')
+                    else toast.error('Napaka pri shranjevanju')
+                  }}
+                  disabled={settingsSaving}
+                >
+                  <Save className="size-3" />
+                  {settingsSaving ? 'Shranjujem...' : 'Shrani zasebnost'}
+                </Button>
+              </CardContent>
+            </CollapsibleContent>
+          </Card>
+        </Collapsible>
+
+      </div>
       {viewPhoto && (
         <Dialog open onOpenChange={(open) => { if (!open) setViewPhoto(null) }}>
           <DialogContent className="sm:max-w-2xl p-0 gap-0 overflow-hidden bg-black/95 border-border/20">

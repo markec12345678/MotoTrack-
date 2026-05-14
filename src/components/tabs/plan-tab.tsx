@@ -44,6 +44,10 @@ interface PlanTabProps {
   setCategory: React.Dispatch<React.SetStateAction<string>>
   avoidHighways: boolean
   setAvoidHighways: React.Dispatch<React.SetStateAction<boolean>>
+  avoidTolls?: boolean
+  setAvoidTolls?: React.Dispatch<React.SetStateAction<boolean>>
+  routingMode?: 'paved' | 'twisty' | 'offroad'
+  setRoutingMode?: React.Dispatch<React.SetStateAction<'paved' | 'twisty' | 'offroad'>>
   distance: number
   onMapClick: (lat: number, lng: number) => void
   onSave: () => void
@@ -696,6 +700,7 @@ function CurvatureProfile({ waypoints }: { waypoints: { lat: number; lng: number
 export default function PlanTab({
   waypoints, setWaypoints, title, setTitle,
   category, setCategory, avoidHighways, setAvoidHighways,
+  avoidTolls, setAvoidTolls, routingMode, setRoutingMode,
   distance, onMapClick, onSave, userId, onRefresh,
 }: PlanTabProps) {
   const fileInputRef = useRef<HTMLInputElement>(null)
@@ -1142,9 +1147,29 @@ export default function PlanTab({
             <div>
               <label className="text-xs font-medium text-muted-foreground mb-1 block">Kategorija</label>
               <div className="flex flex-wrap gap-2">
-                {['scenic', 'twisty', 'offroad', 'city'].map(cat => (
+                {['scenic', 'twisty', 'offroad', 'city', 'snowmobile', 'racetrack'].map(cat => (
                   <Button key={cat} variant={category === cat ? 'default' : 'outline'} size="sm" className="text-xs" onClick={() => setCategory(cat)}>
                     {categoryLabel(cat)}
+                  </Button>
+                ))}
+              </div>
+            </div>
+            <div>
+              <label className="text-xs font-medium text-muted-foreground mb-1 block">Način usmerjanja</label>
+              <div className="flex flex-wrap gap-2">
+                {[
+                  { value: 'paved', label: 'Asfalt', emoji: '🛣️' },
+                  { value: 'twisty', label: 'Vijugasto', emoji: '🔄' },
+                  { value: 'offroad', label: 'Terensko', emoji: '🏔️' },
+                ].map(m => (
+                  <Button
+                    key={m.value}
+                    variant={routingMode === m.value ? 'default' : 'outline'}
+                    size="sm"
+                    className="text-xs gap-1"
+                    onClick={() => setRoutingMode?.(m.value as 'paved' | 'twisty' | 'offroad')}
+                  >
+                    <span>{m.emoji}</span>{m.label}
                   </Button>
                 ))}
               </div>
@@ -1152,6 +1177,10 @@ export default function PlanTab({
             <div className="flex items-center justify-between">
               <label className="text-sm">Izogni se avtocestam</label>
               <Switch checked={avoidHighways} onCheckedChange={setAvoidHighways} />
+            </div>
+            <div className="flex items-center justify-between">
+              <label className="text-sm">Izogni se cestninam</label>
+              <Switch checked={avoidTolls ?? false} onCheckedChange={setAvoidTolls ?? (() => {})} />
             </div>
             <Separator />
             <div>

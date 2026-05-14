@@ -20,6 +20,7 @@ import { useSearchParams } from 'next/navigation'
 
 import type { TabId, RideData, RouteData, UserData, CommentData, WeatherData, LeaderboardUser, TrackPoint } from '@/components/tabs/types'
 import { haversine, formatDuration, formatDate, categoryLabel, categoryColor } from '@/components/tabs/types'
+import { useSettingsStore, useFetchSettings, useWakeLock, isInPrivacyZone, obfuscateCoordinate, type UnitSystem } from '@/hooks/use-settings'
 
 // Retry wrapper for dynamic imports to handle ChunkLoadError
 function withRetry<T>(importFn: () => Promise<T>, retries = 3, delay = 500): () => Promise<T> {
@@ -107,6 +108,8 @@ function Home() {
   // Plan route state
   const [planWaypoints, setPlanWaypoints] = useState<{ lat: number; lng: number }[]>([])
   const [planAvoidHighways, setPlanAvoidHighways] = useState(false)
+  const [planAvoidTolls, setPlanAvoidTolls] = useState(false)
+  const [planRoutingMode, setPlanRoutingMode] = useState<'paved' | 'twisty' | 'offroad'>('paved')
   const [planTitle, setPlanTitle] = useState('')
   const [planCategory, setPlanCategory] = useState('scenic')
   const [planDistance, setPlanDistance] = useState(0)
@@ -125,6 +128,8 @@ function Home() {
   const startTimeRef = useRef<number>(0)
   const pausedDurationRef = useRef<number>(0)
   const isPausedRef = useRef(false)
+  const autoPauseTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const autoPausedRef = useRef(false)
 
   // Detail dialog
   const [selectedItem, setSelectedItem] = useState<RideData | RouteData | null>(null)
@@ -183,6 +188,11 @@ function Home() {
     finally { setLoading(false) }
   }, [])
 
+  // Fetch settings from server
+  const { settings, privacyZones } = useSettingsStore()
+  useFetchSettings(user?.id)
+  useWakeLock(settings.wakelockEnabled, isTracking)
+
   useEffect(() => { fetchData() }, [fetchData])
 
   // Fetch leaderboard
@@ -199,10 +209,10 @@ function Home() {
     setPlanDistance(Math.round(dist * 10) / 10)
   }, [planWaypoints])
 
-  // GPS Tracking
+  // GPS Tracking with auto-pause support
   const startTracking = useCallback(() => {
     if (!navigator.geolocation) { toast.error('Geolokacija ni na voljo'); return }
-    setIsTracking(true); setIsPaused(false); isPausedRef.current = false; setTrackPoints([]); setTrackDuration(0)
+    setIsTracking(true); setIsPaused(false); isPausedRef.current = false; autoPausedRef.current = false; setTrackPoints([]); setTrackDuration(0)
     setTrackDistance(0); setTrackMaxSpeed(0); setTrackCurrentSpeed(0); setTrackElevation(0)
     startTimeRef.current = Date.now(); pausedDurationRef.current = 0
     timerRef.current = setInterval(() => { if (!isPausedRef.current) setTrackDuration(p => p + 1) }, 1000)
@@ -210,37 +220,92 @@ function Home() {
       (pos) => {
         const point: TrackPoint = { lat: pos.coords.latitude, lng: pos.coords.longitude, alt: pos.coords.altitude, timestamp: Date.now() }
         setTrackPoints(prev => {
-          if (prev.length > 0) { const lp = prev[prev.length - 1]; const d = haversine(lp.lat, lp.lng, point.lat, point.lng); setTrackDistance(dd => Math.round((dd + d) * 100) / 100) }
+          if (prev.length > 0 && !isPausedRef.current) { const lp = prev[prev.length - 1]; const d = haversine(lp.lat, lp.lng, point.lat, point.lng); setTrackDistance(dd => Math.round((dd + d) * 100) / 100) }
           return [...prev, point]
         })
         if (pos.coords.speed !== null && pos.coords.speed >= 0) {
           const kph = Math.round(pos.coords.speed * 3.6 * 10) / 10
           setTrackCurrentSpeed(kph); setTrackMaxSpeed(max => Math.max(max, kph))
+          // Auto-pause: if speed below threshold for sustained period, auto-pause
+          if (settings.autoPauseEnabled && !isPausedRef.current && kph < settings.autoPauseSpeedThreshold) {
+            if (!autoPauseTimerRef.current) {
+              autoPauseTimerRef.current = setTimeout(() => {
+                if (isPausedRef.current) return
+                autoPausedRef.current = true
+                setIsPaused(true); isPausedRef.current = true
+                pausedDurationRef.current = Date.now()
+                toast.info('🔄 Samodejni premor (nizka hitrost)')
+              }, 5000) // 5 seconds below threshold = auto-pause
+            }
+          } else {
+            // Speed is above threshold
+            if (autoPauseTimerRef.current) { clearTimeout(autoPauseTimerRef.current); autoPauseTimerRef.current = null }
+            // Auto-resume if we auto-paused
+            if (autoPausedRef.current && isPausedRef.current && kph >= settings.autoPauseSpeedThreshold) {
+              autoPausedRef.current = false
+              setIsPaused(false); isPausedRef.current = false
+              if (pausedDurationRef.current) startTimeRef.current += Date.now() - pausedDurationRef.current
+              toast.info('▶️ Nadaljevanje snemanja')
+            }
+          }
         }
       },
       () => toast.error('Napaka pri pridobivanju lokacije'),
       { enableHighAccuracy: true, maximumAge: 5000, timeout: 10000 }
     )
-  }, [])
+  }, [settings.autoPauseEnabled, settings.autoPauseSpeedThreshold])
 
   const pauseTracking = useCallback(() => { setIsPaused(true); isPausedRef.current = true; pausedDurationRef.current = Date.now() }, [])
   const resumeTracking = useCallback(() => { setIsPaused(false); isPausedRef.current = false; if (pausedDurationRef.current) startTimeRef.current += Date.now() - pausedDurationRef.current }, [])
   const stopTracking = useCallback(() => {
-    setIsTracking(false); setIsPaused(false); isPausedRef.current = false
+    setIsTracking(false); setIsPaused(false); isPausedRef.current = false; autoPausedRef.current = false
     if (watchIdRef.current !== null) { navigator.geolocation.clearWatch(watchIdRef.current); watchIdRef.current = null }
     if (timerRef.current) { clearInterval(timerRef.current); timerRef.current = null }
+    if (autoPauseTimerRef.current) { clearTimeout(autoPauseTimerRef.current); autoPauseTimerRef.current = null }
     setTrackCurrentSpeed(0)
   }, [])
 
   const saveRide = useCallback(async () => {
     if (trackPoints.length < 2) { toast.error('Premalo podatkov'); return }
     try {
-      const trackData = JSON.stringify(trackPoints.map(p => [p.lat, p.lng, p.alt, p.timestamp]))
-      const res = await fetch('/api/rides', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ title: `Vožnja ${new Date().toLocaleDateString('sl-SI')}`, distance: trackDistance, duration: trackDuration, avgSpeed: trackDuration > 0 ? Math.round((trackDistance / (trackDuration / 3600)) * 10) / 10 : 0, maxSpeed: trackMaxSpeed, elevation: Math.round(trackElevation), trackData, startLat: trackPoints[0].lat, startLng: trackPoints[0].lng, endLat: trackPoints[trackPoints.length - 1].lat, endLng: trackPoints[trackPoints.length - 1].lng, isPublic: true }) })
+      // Apply privacy: obfuscate start/end if hideStartEnd enabled or in privacy zone
+      let startLat = trackPoints[0].lat
+      let startLng = trackPoints[0].lng
+      let endLat = trackPoints[trackPoints.length - 1].lat
+      let endLng = trackPoints[trackPoints.length - 1].lng
+
+      if (settings.hideStartEnd) {
+        // Obfuscate start/end by small random offset
+        startLat += (Math.random() - 0.5) * 0.005
+        startLng += (Math.random() - 0.5) * 0.005
+        endLat += (Math.random() - 0.5) * 0.005
+        endLng += (Math.random() - 0.5) * 0.005
+      }
+
+      // Check privacy zones for start/end
+      const startObf = obfuscateCoordinate(startLat, startLng, privacyZones)
+      if (startObf) { startLat = startObf.lat; startLng = startObf.lng }
+      const endObf = obfuscateCoordinate(endLat, endLng, privacyZones)
+      if (endObf) { endLat = endObf.lat; endLng = endObf.lng }
+
+      // Filter out track points inside privacy zones from the track data
+      let filteredPoints = trackPoints
+      if (privacyZones.length > 0) {
+        filteredPoints = trackPoints.map(p => {
+          if (isInPrivacyZone(p.lat, p.lng, privacyZones)) {
+            const obf = obfuscateCoordinate(p.lat, p.lng, privacyZones)
+            return obf ? { ...p, lat: obf.lat, lng: obf.lng } : p
+          }
+          return p
+        })
+      }
+
+      const trackData = JSON.stringify(filteredPoints.map(p => [p.lat, p.lng, p.alt, p.timestamp]))
+      const res = await fetch('/api/rides', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ title: `Vožnja ${new Date().toLocaleDateString('sl-SI')}`, distance: trackDistance, duration: trackDuration, avgSpeed: trackDuration > 0 ? Math.round((trackDistance / (trackDuration / 3600)) * 10) / 10 : 0, maxSpeed: trackMaxSpeed, elevation: Math.round(trackElevation), trackData, startLat, startLng, endLat, endLng, isPublic: true }) })
       if (res.ok) { toast.success('Vožnja shranjena!'); setTrackPoints([]); setTrackDuration(0); setTrackDistance(0); setTrackMaxSpeed(0); setTrackElevation(0); fetchData(); if (user?.id) fetch('/api/achievements', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ userId: user.id }) }).then(r => r.json()).then(j => { if (j.data?.newlyEarned?.length > 0) j.data.newlyEarned.forEach((a: { title: string; icon: string }) => toast.success(`🏆 Nov dosežek: ${a.icon} ${a.title}!`)) }).catch(() => {}) }
       else toast.error('Napaka pri shranjevanju')
     } catch { toast.error('Napaka pri shranjevanju') }
-  }, [trackPoints, trackDistance, trackDuration, trackMaxSpeed, trackElevation, fetchData])
+  }, [trackPoints, trackDistance, trackDuration, trackMaxSpeed, trackElevation, fetchData, settings.hideStartEnd, privacyZones])
 
   const saveRoute = useCallback(async () => {
     if (planWaypoints.length < 2) { toast.error('Dodajte vsaj dve točki'); return }
@@ -422,6 +487,8 @@ function Home() {
               title={planTitle} setTitle={setPlanTitle}
               category={planCategory} setCategory={setPlanCategory}
               avoidHighways={planAvoidHighways} setAvoidHighways={setPlanAvoidHighways}
+              avoidTolls={planAvoidTolls} setAvoidTolls={setPlanAvoidTolls}
+              routingMode={planRoutingMode} setRoutingMode={setPlanRoutingMode}
               distance={planDistance} onMapClick={handleMapClick} onSave={saveRoute}
               userId={user?.id || ''} onRefresh={fetchData}
             />
@@ -436,6 +503,9 @@ function Home() {
               onStart={startTracking} onPause={pauseTracking}
               onResume={resumeTracking} onStop={stopTracking}
               onSave={saveRide}
+              unitSystem={settings.unitSystem}
+              autoPauseEnabled={settings.autoPauseEnabled}
+              wakelockEnabled={settings.wakelockEnabled}
             />
           )}
           {activeTab === 'explore' && (
@@ -450,6 +520,7 @@ function Home() {
               user={user} allUsers={allUsers} rides={rides} routes={routes}
               loading={loading} onSwitchUser={switchUser}
               onOpenDetail={openDetail} onRefresh={fetchData}
+              unitSystem={settings.unitSystem}
             />
           )}
         </div>

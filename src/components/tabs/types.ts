@@ -374,7 +374,7 @@ export function formatDate(dateStr: string): string {
 }
 
 export function categoryLabel(cat: string): string {
-  const map: Record<string, string> = { scenic: 'Slikovito', twisty: 'Vijugasto', offroad: 'Terensko', city: 'Mesto' }
+  const map: Record<string, string> = { scenic: 'Slikovito', twisty: 'Vijugasto', offroad: 'Terensko', city: 'Mesto', snowmobile: 'Snežni skuter', racetrack: 'Dirkališče' }
   return map[cat] || cat
 }
 
@@ -384,6 +384,8 @@ export function categoryColor(cat: string): string {
     twisty: 'bg-amber-500/20 text-amber-400 border-amber-500/30',
     offroad: 'bg-orange-500/20 text-orange-400 border-orange-500/30',
     city: 'bg-sky-500/20 text-sky-400 border-sky-500/30',
+    snowmobile: 'bg-cyan-500/20 text-cyan-400 border-cyan-500/30',
+    racetrack: 'bg-red-500/20 text-red-400 border-red-500/30',
   }
   return map[cat] || ''
 }

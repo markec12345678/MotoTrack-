@@ -1,75 +1,66 @@
 ---
 Task ID: 1
-Agent: Main Agent
-Task: Test and fix MotoTrack application, deploy to production
-
-Work Log:
-- Verified dev server and API endpoints (all 25+ endpoints return 200)
-- Ran TypeScript check (tsc --noEmit) - found 22 errors in src/
-- Fixed next.config.ts: removed invalid `instrumentationHook` option
-- Added missing type exports: MapStyleData, TrafficAlertData, PointsData in types.ts
-- Fixed API routes: bluetooth (NextRequest import), compare (type annotation), feed/like (type annotation), share (type annotation), weather-along-route (results array type), services (findMany arg), obd (NextRequest import), achievements (newlyEarned type)
-- Fixed components: detail-dialog (elevation/weather type safety), explore-tab (RouteData cast, participantCount), lean-angle-display (ticks array type), elevation-profile (formatter types), points-panel (setPrevLevel type, PointsData interface)
-- Improved seed route with try/catch for FK constraint errors
-- Fixed expense API key names (all->allTime, month->thisMonth)
-- Added null safety for toFixed calls in profile-tab
-- Deployed to Vercel: https://mototrack-gamma.vercel.app
-- Seeded production database with demo data (3 users, 10 rides, 6 routes, etc.)
-- Tested all tabs via browser: Zemljevid, Načrtuj, Raziskuj, Profil all working
-
-Stage Summary:
-- All TypeScript errors in src/ resolved (excluding shadcn/ui chart.tsx)
-- Production site fully functional at https://mototrack-gamma.vercel.app
-- All 75+ API endpoints operational
-- 5 tabs working: Zemljevid (map+search), Načrtuj (route planning), Sledi (tracking), Raziskuj (explore+feed+leaderboard), Profil (profile+stats+expenses)
-
----
-Task ID: 2
-Agent: Main Agent
-Task: Compare MotoTrack with REVER app and improve UI
-
-Work Log:
-- Analyzed REVER app screenshot using VLM - identified key design patterns
-- REVER has: orange brand color, dark map dashboard overlay, bold active tab indicators, 3D topographic map, circular play/pause button
-- Fixed ChunkLoadError crash when switching tabs: added retry wrapper for dynamic imports (withRetry) and loading states
-- Improved ErrorBoundary: added "Poskusi znova" retry button for ChunkLoadError recovery
-- Improved bottom navigation: REVER-style with orange glow, active dot indicator, shadow effects, strokeWidth variation
-- Improved header: bold brand logo with icon container, orange text, uppercase subtitle
-- Improved Track tab: REVER-style dark dashboard overlay with big orange play button, pulse animation, speed/distance/time grid
-- Improved header gradient line: thicker (2px) with orange glow shadow
-- Fixed UI performance: added 300ms debounce for search input in map-tab.tsx
-- Added --primary-rgb CSS variable for glow effects
-- Updated allowedDevOrigins in next.config.ts for dev environment CORS
-
-Stage Summary:
-- UI significantly improved with REVER-inspired design language
-- ChunkLoadError now handled with retry logic (3 retries with increasing delay)
-- Search input debounced (300ms) to fix 208ms UI blocking issue
-- Track tab redesigned with dark dashboard overlay matching REVER style
-- Bottom navigation enhanced with glow effects and active indicators
-
----
-Task ID: 3
 Agent: Main
-Task: Implement REVER-style UI improvements for MotoTrack
+Task: Implement missing REVER free-tier features in MotoTrack
 
 Work Log:
-- Analyzed REVER interface using VLM - key elements: orange primary color, dark bottom nav, FAB button, polished overlays
-- Updated globals.css with REVER-style color scheme (bolder orange primary in both light/dark modes)
-- Updated page.tsx header (h-12, bolder brand, orange icon background)
-- Added FAB (Floating Action Button) on map tab - prominent orange circle with Play icon and pulse animation
-- Redesigned bottom nav to REVER-style (dark bg-black/95, orange active indicator bar on top, white/40 inactive)
-- Updated search bar on map tab (rounded-2xl, bold shadow, white/black bg with blur)
-- Updated nearby panel on map tab (dark glass overlay, white text, REVER style)
-- Fixed all tab height calculations (104px → 120px) for new nav bar height
-- Updated loading skeleton to match new design
-- Updated scrollbar styling (thinner, transparent track)
-- All lint checks pass
+- Updated Prisma schema with new User settings fields (unitSystem, autoPauseEnabled, autoPauseSpeedThreshold, hideStartEnd, wakelockEnabled, avoidTolls) and PrivacyZone model
+- Ran `bun run db:push` to sync database
+- Created `/api/settings` API endpoint (GET + PUT) for user settings management
+- Created `/api/privacy-zones` API endpoint (GET + POST + DELETE) for privacy zone CRUD
+- Created `use-settings.ts` hook with:
+  - Zustand store for global settings state
+  - Unit conversion utilities (km/miles, kmh/mph, m/ft)
+  - Format helpers (formatDistance, formatSpeed, formatElevation)
+  - Privacy zone utilities (isInPrivacyZone, obfuscateCoordinate)
+  - useFetchSettings hook to load settings from server
+  - useWakeLock hook for WakeLock API integration
+  - saveSettings helper function
+- Updated page.tsx with:
+  - Auto-pause logic in startTracking (5s below threshold = auto-pause, auto-resume when speed increases)
+  - WakeLock integration via useWakeLock hook
+  - Privacy zone obfuscation in saveRide (hide start/end, obfuscate points in zones)
+  - New state: planAvoidTolls, planRoutingMode
+  - New props passed to TrackTab (unitSystem, autoPauseEnabled, wakelockEnabled)
+  - New props passed to PlanTab (avoidTolls, setAvoidTolls, routingMode, setRoutingMode)
+  - New props passed to ProfileTab (unitSystem)
+- Rewrote track-tab.tsx with:
+  - Unit system display (km/miles switching in dashboard)
+  - Auto-pause indicator badge on map
+  - WakeLock "Screen ON" indicator
+  - Speed limit badge shows converted units
+- Updated plan-tab.tsx with:
+  - New props: avoidTolls, setAvoidTolls, routingMode, setRoutingMode
+  - Routing mode selector UI (Asfalt/Vijugasto/Terensko)
+  - Toll avoidance toggle switch
+  - Category options now include snowmobile and racetrack
+- Updated types.ts with:
+  - New category labels (snowmobile: 'Snežni skuter', racetrack: 'Dirkališče')
+  - New category colors (cyan for snowmobile, red for racetrack)
+- Updated explore-tab.tsx with:
+  - snowmobile and racetrack filter options in category pills
+  - snowmobile and racetrack options in group ride creation
+- Updated profile-tab.tsx with:
+  - New Collapsible Section 6: Nastavitve (Settings)
+    - Unit system toggle (metric/imperial)
+    - Auto-pause toggle with speed threshold slider
+    - WakeLock toggle
+    - Toll avoidance toggle
+    - Save button
+  - New Collapsible Section 7: Zasebnost (Privacy)
+    - Hide start/end toggle
+    - Privacy Zones CRUD (list, add via GPS, delete)
+    - Radius slider for new zones
+    - Save button
 
 Stage Summary:
-- REVER-style UI overhaul completed
-- Bold orange primary color throughout the app
-- Dark bottom navigation bar with orange active indicator
-- Floating Action Button on map tab
-- Dark glass overlays on map (search, nearby panel)
-- Professional, polished REVER-like appearance
+- All 7 missing REVER features implemented:
+  ✅ Auto-pause (low speed detection + auto pause/resume)
+  ✅ WakeLock API (prevent screen lock during ride)
+  ✅ Units switching km/miles (with conversion across all displays)
+  ✅ Privacy - hide start/end points
+  ✅ Privacy Zones (geofencing with obfuscation)
+  ✅ Off-Road routing mode + snowmobile/racetrack categories
+  ✅ Toll avoidance option
+- Lint passes clean
+- Dev server running successfully

@@ -1021,9 +1021,9 @@ const ExploreTabInner = React.memo(function ExploreTabInner({ rides, routes, lea
                       <div>
                         <Label className="text-xs font-medium text-muted-foreground mb-1 block">Kategorija</Label>
                         <div className="flex gap-1 flex-wrap">
-                          {['scenic', 'twisty', 'offroad', 'city'].map(cat => (
+                          {['scenic', 'twisty', 'offroad', 'city', 'snowmobile', 'racetrack'].map(cat => (
                             <button key={cat} onClick={() => setNewGroupRideCategory(cat)} className={`px-2 py-1 rounded-md text-[10px] font-medium transition-colors ${newGroupRideCategory === cat ? 'bg-primary text-primary-foreground' : 'bg-secondary text-muted-foreground hover:bg-muted'}`}>
-                              {cat === 'scenic' ? 'Scenična' : cat === 'twisty' ? 'Vijugasta' : cat === 'offroad' ? 'Off-road' : 'Mestna'}
+                              {cat === 'scenic' ? 'Scenična' : cat === 'twisty' ? 'Vijugasta' : cat === 'offroad' ? 'Off-road' : cat === 'city' ? 'Mestna' : cat === 'snowmobile' ? 'Snežni skuter' : 'Dirkališče'}
                             </button>
                           ))}
                         </div>
@@ -1528,7 +1528,7 @@ const ExploreTabInner = React.memo(function ExploreTabInner({ rides, routes, lea
                 ))}
                 <Separator orientation="vertical" className="h-5 mx-1" />
                 {/* Category filter pills */}
-                {['all', 'scenic', 'twisty', 'offroad', 'city'].map(cat => (
+                {['all', 'scenic', 'twisty', 'offroad', 'city', 'snowmobile', 'racetrack'].map(cat => (
                   <button
                     key={cat}
                     onClick={() => setExploreCategory(cat)}

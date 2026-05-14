@@ -2,11 +2,12 @@
 
 import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react'
 import dynamic from 'next/dynamic'
-import { Play, Pause, Square, Save, Gauge, AlertTriangle, ChevronDown, ChevronUp, Activity, Bike } from 'lucide-react'
+import { Play, Pause, Square, Save, Gauge, AlertTriangle, ChevronDown, ChevronUp, Activity, Bike, Moon, Timer } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import type { TrackPoint, SpeedAlertSettings } from '@/components/tabs/types'
 import { formatDuration } from '@/components/tabs/types'
+import { type UnitSystem, convertSpeed, convertDistance, speedUnit, distanceUnit } from '@/hooks/use-settings'
 
 const CrashDetectionPanel = dynamic(() => import('@/components/crash-detection-panel'), { ssr: false })
 const LiveTrackingPanel = dynamic(() => import('@/components/live-tracking-panel'), { ssr: false })
@@ -29,6 +30,9 @@ interface TrackTabProps {
   onResume: () => void
   onStop: () => void
   onSave: () => void
+  unitSystem?: UnitSystem
+  autoPauseEnabled?: boolean
+  wakelockEnabled?: boolean
 }
 
 export default function TrackTab({
@@ -36,6 +40,9 @@ export default function TrackTab({
   distance, maxSpeed, currentSpeed, elevation,
   userId,
   onStart, onPause, onResume, onStop, onSave,
+  unitSystem = 'metric',
+  autoPauseEnabled = true,
+  wakelockEnabled = true,
 }: TrackTabProps) {
   // Speed alert state
   const [speedSettings, setSpeedSettings] = useState<SpeedAlertSettings>({
@@ -123,6 +130,13 @@ export default function TrackTab({
   const speedPct = speedSettings.speedLimit > 0 ? Math.min(100, (currentSpeed / speedSettings.speedLimit) * 100) : 0
   const speedBarColor = isOverSpeed ? 'bg-red-500' : speedPct > 80 ? 'bg-amber-500' : 'bg-primary'
 
+  // Convert values based on unit system
+  const displaySpeed = Math.round(convertSpeed(currentSpeed, unitSystem))
+  const displayMaxSpeed = Math.round(convertSpeed(maxSpeed, unitSystem))
+  const displayDistance = convertDistance(distance, unitSystem)
+  const speedUnitLabel = speedUnit(unitSystem)
+  const distanceUnitLabel = distanceUnit(unitSystem)
+
   return (
     <div className={`relative w-full h-[calc(100vh-120px)] flex flex-col transition-all duration-200 ${
       isOverSpeed && flashOn ? 'ring-4 ring-inset ring-red-500/70' : ''
@@ -160,8 +174,26 @@ export default function TrackTab({
               : 'bg-background/80 text-muted-foreground border border-border/50'
           }`}>
             <Gauge className="size-3.5" />
-            <span>{speedSettings.speedLimit} km/h</span>
+            <span>{Math.round(convertSpeed(speedSettings.speedLimit, unitSystem))} {speedUnitLabel}</span>
             {isOverSpeed && <AlertTriangle className="size-3.5 ml-0.5 animate-pulse" />}
+          </div>
+        )}
+
+        {/* Auto-pause & WakeLock indicators - top left */}
+        {isTracking && (
+          <div className="absolute top-3 left-3 z-[1001] flex items-center gap-2">
+            {autoPauseEnabled && isPaused && (
+              <div className="flex items-center gap-1 px-2 py-1 rounded-full bg-amber-500/90 text-white text-[10px] font-bold shadow-lg">
+                <Timer className="size-3" />
+                <span>AUTO-PAUSE</span>
+              </div>
+            )}
+            {wakelockEnabled && (
+              <div className="flex items-center gap-1 px-2 py-1 rounded-full bg-white/10 backdrop-blur-sm text-white/60 text-[10px] font-medium">
+                <Moon className="size-3" />
+                <span>Zaslon ON</span>
+              </div>
+            )}
           </div>
         )}
 
@@ -207,16 +239,16 @@ export default function TrackTab({
               <div className="grid grid-cols-3 gap-3 mb-3">
                 <div className="text-center">
                   <p className={`text-2xl font-bold ${isOverSpeed ? 'text-red-400' : 'text-white'}`}>
-                    {currentSpeed}
+                    {displaySpeed}
                   </p>
-                  <p className="text-[10px] text-white/40 uppercase tracking-wider">km/h</p>
+                  <p className="text-[10px] text-white/40 uppercase tracking-wider">{speedUnitLabel}</p>
                 </div>
                 <div className="text-center">
-                  <p className="text-2xl font-bold text-white">{distance.toFixed(1)}</p>
-                  <p className="text-[10px] text-white/40 uppercase tracking-wider">km</p>
+                  <p className="text-2xl font-bold text-white">{displayDistance.toFixed(1)}</p>
+                  <p className="text-[10px] text-white/40 uppercase tracking-wider">{distanceUnitLabel}</p>
                 </div>
                 <div className="text-center">
-                  <p className="text-2xl font-bold text-white/70">{maxSpeed}</p>
+                  <p className="text-2xl font-bold text-white/70">{displayMaxSpeed}</p>
                   <p className="text-[10px] text-white/40 uppercase tracking-wider">max</p>
                 </div>
               </div>
@@ -265,15 +297,15 @@ export default function TrackTab({
             <div className="px-4 py-4 flex flex-col items-center gap-2">
               <div className="grid grid-cols-3 gap-4 mb-1 w-full">
                 <div className="text-center">
-                  <p className="text-xl font-bold text-white">{distance.toFixed(1)}</p>
-                  <p className="text-[10px] text-white/40 uppercase tracking-wider">km</p>
+                  <p className="text-xl font-bold text-white">{displayDistance.toFixed(1)}</p>
+                  <p className="text-[10px] text-white/40 uppercase tracking-wider">{distanceUnitLabel}</p>
                 </div>
                 <div className="text-center">
                   <p className="text-xl font-bold text-white">{formatDuration(duration)}</p>
                   <p className="text-[10px] text-white/40 uppercase tracking-wider">čas</p>
                 </div>
                 <div className="text-center">
-                  <p className="text-xl font-bold text-white/70">{maxSpeed}</p>
+                  <p className="text-xl font-bold text-white/70">{displayMaxSpeed}</p>
                   <p className="text-[10px] text-white/40 uppercase tracking-wider">max</p>
                 </div>
               </div>

@@ -33,6 +33,13 @@ model User {
   speedAlertEnabled Boolean? @default(true)  // whether speed alerts are enabled
   speedAlertSound   Boolean? @default(true)  // whether to play sound on alert
   currentMileage   Int?     @default(0)      // odometer reading in km
+  // Settings fields
+  unitSystem       String?  @default("metric")  // metric (km) or imperial (miles)
+  autoPauseEnabled Boolean? @default(true)     // auto-pause when speed < threshold
+  autoPauseSpeedThreshold Float? @default(5.0) // km/h - below this = paused
+  hideStartEnd     Boolean? @default(false)    // privacy: hide start/end of rides
+  wakelockEnabled  Boolean? @default(true)     // keep screen on during tracking
+  avoidTolls       Boolean? @default(false)    // avoid toll roads in routing
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
   rides        Ride[]
@@ -67,6 +74,7 @@ model User {
   offlineMaps             OfflineMap[]
   favorites               Favorite[]
   socialActivities        SocialActivity[]
+  privacyZones            PrivacyZone[]
 }
 
 model Ride {
@@ -645,4 +653,19 @@ model OfflineMap {
 
   @@index([userId])
   @@map("offline_maps")
+}
+
+// Privacy Zones - geofenced areas to hide from ride tracks
+model PrivacyZone {
+  id          String   @id @default(cuid())
+  userId      String
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  name        String                      // e.g. "Dom", "Služba"
+  lat         Float                       // center latitude
+  lng         Float                       // center longitude
+  radiusMeters Int     @default(200)      // radius in meters
+  createdAt   DateTime @default(now())
+
+  @@index([userId])
+  @@map("privacy_zones")
 }
