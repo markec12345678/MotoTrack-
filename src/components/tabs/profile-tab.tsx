@@ -1854,6 +1854,17 @@ export default function ProfileTab({ user, allUsers, rides, routes, loading, onS
           </Card>
         </Collapsible>
 
+        {/* ── Made by Markec Credit ── */}
+        <div className="flex flex-col items-center gap-1.5 pt-6 pb-4">
+          <div className="flex items-center gap-2">
+            <div className="h-px w-8 bg-gradient-to-r from-transparent to-primary/30" />
+            <span className="text-[10px] text-muted-foreground/60 uppercase tracking-[0.15em] font-medium">Made by</span>
+            <div className="h-px w-8 bg-gradient-to-l from-transparent to-primary/30" />
+          </div>
+          <span className="text-sm font-bold text-primary/70 tracking-tight">Markec</span>
+          <span className="text-[9px] text-muted-foreground/40">MotoTrack v2.0</span>
+        </div>
+
       </div>
       {viewPhoto && (
         <Dialog open onOpenChange={(open) => { if (!open) setViewPhoto(null) }}>

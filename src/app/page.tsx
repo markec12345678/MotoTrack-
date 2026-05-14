@@ -427,6 +427,7 @@ function Home() {
             <div className="flex flex-col -space-y-0.5">
               <span className="font-black text-[15px] tracking-tight text-primary leading-none">MotoTrack</span>
               <span className="text-[8px] text-muted-foreground/70 uppercase tracking-[0.2em] font-semibold leading-none hidden sm:block">GPS Sledenje</span>
+              <span className="text-[8px] text-primary/50 font-semibold leading-none hidden sm:block">by Markec</span>
             </div>
           </div>
         </header>
@@ -491,6 +492,7 @@ function Home() {
           <div className="flex flex-col -space-y-0.5">
             <span className="font-black text-[15px] tracking-tight text-primary leading-none">MotoTrack</span>
             <span className="text-[8px] text-muted-foreground/70 uppercase tracking-[0.2em] font-semibold leading-none hidden sm:block">GPS Sledenje</span>
+            <span className="text-[8px] text-primary/50 font-semibold leading-none hidden sm:block">by Markec</span>
           </div>
         </div>
         {mounted && (

@@ -20,7 +20,7 @@ export const metadata: Metadata = {
   title: "MotoTrack - GPS Sledenje za Motoriste",
   description: "MotoTrack - Aplikacija za sledenje, načrtovanje in raziskovanje motociklističnih poti po Sloveniji.",
   keywords: ["MotoTrack", "motoristi", "GPS", "navigacija", "motocikel", "sledenje", "poti"],
-  authors: [{ name: "MotoTrack" }],
+  authors: [{ name: "Markec" }],
   manifest: "/manifest.json",
   applicationName: "MotoTrack",
   appleWebApp: {
