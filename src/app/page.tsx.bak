@@ -1,0 +1,94 @@
+'use client'
+
+import React, { useState, useEffect, useSyncExternalStore } from 'react'
+import dynamic from 'next/dynamic'
+import { Map as MapIcon, Route, Play, Compass, User, Bike, Sun, Moon } from 'lucide-react'
+import { Button } from '@/components/ui/button'
+import { Skeleton } from '@/components/ui/skeleton'
+import { useTheme } from 'next-themes'
+import type { TabId } from '@/components/tabs/types'
+
+// Lazy load tab components - each is self-contained
+const MapTab = dynamic(() => import('@/components/tabs/map-tab'), { ssr: false, loading: () => <TabSkeleton /> })
+const PlanTab = dynamic(() => import('@/components/tabs/plan-tab'), { ssr: false, loading: () => <TabSkeleton /> })
+const TrackTab = dynamic(() => import('@/components/tabs/track-tab'), { ssr: false, loading: () => <TabSkeleton /> })
+const ExploreTab = dynamic(() => import('@/components/tabs/explore-tab'), { ssr: false, loading: () => <TabSkeleton /> })
+const ProfileTab = dynamic(() => import('@/components/tabs/profile-tab'), { ssr: false, loading: () => <TabSkeleton /> })
+
+const tabs: { id: TabId; label: string; icon: React.ElementType }[] = [
+  { id: 'map', label: 'Zemljevid', icon: MapIcon },
+  { id: 'plan', label: 'Načrtuj', icon: Route },
+  { id: 'track', label: 'Sledi', icon: Play },
+  { id: 'explore', label: 'Raziskuj', icon: Compass },
+  { id: 'profile', label: 'Profil', icon: User },
+]
+
+function TabSkeleton() {
+  return (
+    <div className="p-4 space-y-4">
+      <Skeleton className="h-48 rounded-xl" />
+      <div className="grid grid-cols-3 gap-3">
+        <Skeleton className="h-20 rounded-lg" />
+        <Skeleton className="h-20 rounded-lg" />
+        <Skeleton className="h-20 rounded-lg" />
+      </div>
+      <Skeleton className="h-24 rounded-xl" />
+    </div>
+  )
+}
+
+export default function Home() {
+  const { theme, setTheme } = useTheme()
+  const mounted = useSyncExternalStore(() => () => {}, () => true, () => false)
+  const [activeTab, setActiveTab] = useState<TabId>('map')
+
+  return (
+    <div className="min-h-screen flex flex-col bg-background">
+      {/* Header */}
+      <header className={`fixed top-0 left-0 right-0 z-[1400] h-10 flex items-center px-4 transition-all duration-300 ${
+        activeTab === 'map' ? 'bg-background/40 backdrop-blur-sm' : 'bg-background/95 backdrop-blur-md'
+      }`}>
+        <div className="flex items-center gap-2 flex-1">
+          <Bike className="size-4 text-primary" />
+          <span className="font-bold text-sm tracking-tight bg-gradient-to-r from-foreground to-foreground/70 bg-clip-text text-transparent">MotoTrack</span>
+          <span className="text-[10px] text-muted-foreground hidden sm:inline">GPS Sledenje</span>
+        </div>
+        {mounted && (
+          <Button variant="ghost" size="icon" className="size-7" onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}>
+            {theme === 'dark' ? <Sun className="size-3.5" /> : <Moon className="size-3.5" />}
+          </Button>
+        )}
+      </header>
+      <div className={`header-gradient-line fixed top-10 left-0 right-0 z-[1400] transition-opacity duration-300 ${activeTab === 'map' ? 'opacity-40' : 'opacity-100'}`} />
+
+      {/* Main Content */}
+      <main className="flex-1 relative" style={{ paddingTop: activeTab === 'map' ? '0' : '40px', paddingBottom: '64px' }}>
+        <div key={activeTab} className="tab-transition">
+          {activeTab === 'map' && <MapTab />}
+          {activeTab === 'plan' && <PlanTab />}
+          {activeTab === 'track' && <TrackTab />}
+          {activeTab === 'explore' && <ExploreTab />}
+          {activeTab === 'profile' && <ProfileTab />}
+        </div>
+      </main>
+
+      {/* Bottom Nav */}
+      <nav className="fixed bottom-0 left-0 right-0 z-[1500] bg-background/95 backdrop-blur-md border-t border-border/50 safe-area-bottom">
+        <div className="flex items-center justify-around max-w-lg mx-auto h-16">
+          {tabs.map(tab => {
+            const isActive = activeTab === tab.id
+            return (
+              <button key={tab.id} onClick={() => setActiveTab(tab.id)} className={`relative flex flex-col items-center justify-center gap-1 px-3 py-2 rounded-lg transition-all duration-200 ${isActive ? 'text-primary' : 'text-muted-foreground hover:text-foreground'}`}>
+                <div className={isActive ? 'nav-icon-active' : ''}>
+                  <tab.icon className={`size-5 transition-transform duration-200 ${isActive ? 'text-primary scale-110' : 'scale-100'}`} />
+                </div>
+                <span className={`text-[10px] font-medium ${isActive ? 'text-primary' : ''}`}>{tab.label}</span>
+                {isActive && <span className="nav-indicator absolute -bottom-0.5 left-1/2 -translate-x-1/2 w-5 h-0.5 rounded-full bg-primary" />}
+              </button>
+            )
+          })}
+        </div>
+      </nav>
+    </div>
+  )
+}

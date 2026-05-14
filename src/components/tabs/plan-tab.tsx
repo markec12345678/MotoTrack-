@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react'
 import dynamic from 'next/dynamic'
-import { Route, Trash2, Save, MapPin, X, Upload, Plus, Calendar, Minus, Hotel, Fuel, ChevronDown, ChevronUp, Eye, Clock, RefreshCw, Navigation, ArrowLeft, ArrowRight, Cloud, Wind, AlertTriangle, Thermometer } from 'lucide-react'
+import { Route, Trash2, Save, MapPin, X, Upload, Plus, Calendar, Minus, Hotel, Fuel, ChevronDown, ChevronUp, Eye, Clock, RefreshCw, Navigation, ArrowLeft, ArrowRight, Cloud, Wind, AlertTriangle, Thermometer, Search, Activity, BarChart3 } from 'lucide-react'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
 import { Switch } from '@/components/ui/switch'
@@ -15,8 +15,8 @@ import { toast } from 'sonner'
 import TwistyRoutePlanner from '@/components/twisty-route-planner'
 import GpxManager from '@/components/gpx-manager'
 import OfflineMapsManager from '@/components/offline-maps-manager'
-import { categoryLabel, haversine } from '@/components/tabs/types'
-import type { TripData, TripDayData } from '@/components/tabs/types'
+import { categoryLabel, haversine, poiTypeEmoji, poiTypeColor, poiTypeLabel } from '@/components/tabs/types'
+import type { TripData, TripDayData, PoiData } from '@/components/tabs/types'
 
 const MotoMap = dynamic(() => import('@/components/moto-map'), { ssr: false })
 
@@ -180,6 +180,104 @@ function calculateWaypointsDistance(wps: Array<{ lat: number; lng: number }>): n
   return Math.round(dist * 10) / 10
 }
 
+// Curvature calculation: angle at point B for triplet A-B-C
+function calculateCurvature(p1: { lat: number; lng: number }, p2: { lat: number; lng: number }, p3: { lat: number; lng: number }): number {
+  const ba = { lat: p1.lat - p2.lat, lng: p1.lng - p2.lng }
+  const bc = { lat: p3.lat - p2.lat, lng: p3.lng - p2.lng }
+  const dot = ba.lat * bc.lat + ba.lng * bc.lng
+  const cross = ba.lat * bc.lng - ba.lng * bc.lat
+  const angle = Math.abs(Math.atan2(cross, dot)) * (180 / Math.PI)
+  return angle
+}
+
+// Curvature segment type
+interface CurvatureSegment {
+  index: number
+  angle: number
+  distance: number
+  color: string
+  label: string
+}
+
+// Calculate curvature profile for a set of waypoints
+function calculateCurvatureProfile(wps: Array<{ lat: number; lng: number }>): {
+  segments: CurvatureSegment[]
+  totalDistance: number
+  straightPct: number
+  moderatePct: number
+  tightPct: number
+  twistinessScore: number
+} {
+  if (wps.length < 3) {
+    const totalDist = wps.length === 2 ? haversine(wps[0].lat, wps[0].lng, wps[1].lat, wps[1].lng) : 0
+    return {
+      segments: [],
+      totalDistance: Math.round(totalDist * 10) / 10,
+      straightPct: 100,
+      moderatePct: 0,
+      tightPct: 0,
+      twistinessScore: 1,
+    }
+  }
+
+  const segments: CurvatureSegment[] = []
+  let totalDist = 0
+  let straightDist = 0
+  let moderateDist = 0
+  let tightDist = 0
+
+  // First segment (before first turn)
+  const firstSegDist = haversine(wps[0].lat, wps[0].lng, wps[1].lat, wps[1].lng)
+  straightDist += firstSegDist
+  totalDist += firstSegDist
+
+  for (let i = 1; i < wps.length - 1; i++) {
+    const angle = calculateCurvature(wps[i - 1], wps[i], wps[i + 1])
+    const nextDist = haversine(wps[i].lat, wps[i].lng, wps[i + 1].lat, wps[i + 1].lng)
+
+    let color: string
+    let label: string
+    if (angle < 15) {
+      color = '#22c55e'
+      label = 'Ravno'
+      straightDist += nextDist
+    } else if (angle < 45) {
+      color = '#f59e0b'
+      label = 'Zavoji'
+      moderateDist += nextDist
+    } else {
+      color = '#ef4444'
+      label = 'Ostri zavoji'
+      tightDist += nextDist
+    }
+
+    totalDist += nextDist
+
+    segments.push({ index: i, angle, distance: nextDist, color, label })
+  }
+
+  // Add last segment
+  const lastSegDist = haversine(wps[wps.length - 2].lat, wps[wps.length - 2].lng, wps[wps.length - 1].lat, wps[wps.length - 1].lng)
+  totalDist += lastSegDist
+  straightDist += lastSegDist
+
+  const straightPct = totalDist > 0 ? Math.round((straightDist / totalDist) * 100) : 100
+  const moderatePct = totalDist > 0 ? Math.round((moderateDist / totalDist) * 100) : 0
+  const tightPct = totalDist > 0 ? Math.round((tightDist / totalDist) * 100) : 0
+
+  const curvyPct = moderatePct + tightPct
+  const twistinessScore = Math.min(10, Math.max(1, Math.round(curvyPct / 10) + (tightPct > 20 ? 2 : tightPct > 10 ? 1 : 0)))
+
+  return {
+    segments,
+    totalDistance: Math.round(totalDist * 10) / 10,
+    straightPct,
+    moderatePct,
+    tightPct,
+    twistinessScore,
+  }
+}
+
 const curvinessOptions: { value: Curviness; label: string; emoji: string; desc: string }[] = [
   { value: 'straight', label: 'Ravna', emoji: '➡️', desc: 'Manj ovinkov, daljše ravnine' },
   { value: 'moderate', label: 'Zmerna', emoji: '↗️', desc: 'Zmerno vijugasta, uravnotežena' },
@@ -251,6 +349,345 @@ function WeatherAlongRoute({ waypoints }: { waypoints: { lat: number; lng: numbe
 
       {waypoints.length < 2 && (
         <p className="text-[10px] text-muted-foreground">Dodajte vsaj dve točki na zemljevid za vremensko napoved</p>
+      )}
+    </div>
+  )
+}
+
+// Point-to-segment distance calculation (returns approximate km)
+function pointToSegmentDistance(
+  px: number, py: number, // point (lat, lng)
+  ax: number, ay: number, // segment start (lat, lng)
+  bx: number, by: number  // segment end (lat, lng)
+): number {
+  const dx = bx - ax, dy = by - ay
+  const lenSq = dx * dx + dy * dy
+  if (lenSq === 0) {
+    const dLat = (px - ax) * 111
+    const dLng = (py - ay) * 111 * Math.cos((px * Math.PI) / 180)
+    return Math.sqrt(dLat * dLat + dLng * dLng)
+  }
+  let t = ((px - ax) * dx + (py - ay) * dy) / lenSq
+  t = Math.max(0, Math.min(1, t))
+  const nearX = ax + t * dx, nearY = ay + t * dy
+  // Convert degree difference to approximate km
+  const dLat = (px - nearX) * 111 // 1 degree lat ≈ 111km
+  const dLng = (py - nearY) * 111 * Math.cos((px * Math.PI) / 180)
+  return Math.sqrt(dLat * dLat + dLng * dLng)
+}
+
+// Find minimum distance from a point to any segment of the route
+function minDistanceToRoute(
+  poiLat: number, poiLng: number,
+  routeWaypoints: { lat: number; lng: number }[]
+): number {
+  let minDist = Infinity
+  for (let i = 1; i < routeWaypoints.length; i++) {
+    const dist = pointToSegmentDistance(
+      poiLat, poiLng,
+      routeWaypoints[i - 1].lat, routeWaypoints[i - 1].lng,
+      routeWaypoints[i].lat, routeWaypoints[i].lng
+    )
+    if (dist < minDist) minDist = dist
+  }
+  return minDist
+}
+
+// POI type options for search
+const poiSearchTypes = [
+  { type: 'gas_station', label: 'Bencinska črpalka', emoji: '⛽' },
+  { type: 'restaurant', label: 'Restavracija', emoji: '🍽️' },
+  { type: 'mechanic', label: 'Servis', emoji: '🔧' },
+  { type: 'hotel', label: 'Hotel', emoji: '🏨' },
+  { type: 'parking', label: 'Parkirišče', emoji: '🅿️' },
+  { type: 'biker_spot', label: 'Moto srečanje', emoji: '🏍️' },
+  { type: 'all', label: 'Vse', emoji: '📍' },
+] as const
+
+// Search Along Route mini-component
+function SearchAlongRoute({ waypoints }: { waypoints: { lat: number; lng: number }[] }) {
+  const [selectedType, setSelectedType] = useState<string>('all')
+  const [bufferKm, setBufferKm] = useState(5)
+  const [results, setResults] = useState<Array<PoiData & { distanceFromRoute: number }>>([])
+  const [loading, setLoading] = useState(false)
+  const [searched, setSearched] = useState(false)
+
+  const handleSearch = useCallback(async () => {
+    if (waypoints.length < 2) {
+      toast.error('Dodajte vsaj dve točki za iskanje')
+      return
+    }
+    setLoading(true)
+    try {
+      const res = await fetch('/api/pois')
+      if (res.ok) {
+        const j = await res.json()
+        const allPois: PoiData[] = j.data || []
+
+        // Filter by type if not 'all'
+        const typeFiltered = selectedType === 'all'
+          ? allPois
+          : allPois.filter((p: PoiData) => p.type === selectedType)
+
+        // Filter by distance to route
+        const nearby = typeFiltered
+          .map((p: PoiData) => {
+            const dist = minDistanceToRoute(p.lat, p.lng, waypoints)
+            return { ...p, distanceFromRoute: Math.round(dist * 10) / 10 }
+          })
+          .filter(p => p.distanceFromRoute <= bufferKm)
+          .sort((a, b) => a.distanceFromRoute - b.distanceFromRoute)
+
+        setResults(nearby)
+        setSearched(true)
+      } else {
+        toast.error('Napaka pri iskanju POI-jev')
+      }
+    } catch {
+      toast.error('Napaka pri povezavi')
+    }
+    setLoading(false)
+  }, [waypoints, selectedType, bufferKm])
+
+  if (waypoints.length < 2) return null
+
+  return (
+    <div className="rounded-lg border border-border/50 p-3 space-y-2.5">
+      <div className="flex items-center justify-between">
+        <h4 className="text-xs font-semibold flex items-center gap-1.5">
+          <Search className="size-3.5 text-primary" /> Išči ob poti
+        </h4>
+        {searched && results.length > 0 && (
+          <span className="text-[10px] font-medium bg-primary/10 text-primary px-2 py-0.5 rounded-full">
+            Najdenih: {results.length} POI-jev
+          </span>
+        )}
+      </div>
+
+      {/* POI Type selector */}
+      <div>
+        <label className="text-[10px] font-medium text-muted-foreground mb-1.5 block">Vrsta</label>
+        <div className="flex flex-wrap gap-1">
+          {poiSearchTypes.map(pt => (
+            <button
+              key={pt.type}
+              className={`inline-flex items-center gap-1 text-[10px] px-2 py-1 rounded-full border transition-all ${
+                selectedType === pt.type
+                  ? 'border-primary bg-primary/10 text-primary font-semibold'
+                  : 'border-border/50 bg-secondary/30 text-muted-foreground hover:border-primary/30 hover:bg-secondary/50'
+              }`}
+              onClick={() => setSelectedType(pt.type)}
+            >
+              <span>{pt.emoji}</span>
+              <span>{pt.label}</span>
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* Buffer distance slider */}
+      <div>
+        <div className="flex items-center justify-between mb-1">
+          <label className="text-[10px] font-medium text-muted-foreground">Razdalja od poti</label>
+          <span className="text-xs font-bold text-primary">{bufferKm} km</span>
+        </div>
+        <Slider
+          value={[bufferKm]}
+          min={1}
+          max={20}
+          step={1}
+          onValueChange={(v) => setBufferKm(v[0])}
+          className="w-full"
+        />
+        <div className="flex justify-between text-[9px] text-muted-foreground mt-0.5">
+          <span>1 km</span>
+          <span>10 km</span>
+          <span>20 km</span>
+        </div>
+      </div>
+
+      {/* Search button */}
+      <Button
+        variant="outline"
+        size="sm"
+        className="h-7 text-[10px] gap-1 w-full"
+        disabled={loading}
+        onClick={handleSearch}
+      >
+        {loading ? (
+          <span className="size-3 border-2 border-current border-t-transparent rounded-full animate-spin" />
+        ) : (
+          <Search className="size-3" />
+        )}
+        Išči
+      </Button>
+
+      {/* Results */}
+      {searched && (
+        <div className="space-y-1.5 max-h-60 overflow-y-auto custom-scrollbar">
+          {results.length === 0 ? (
+            <p className="text-[10px] text-muted-foreground text-center py-2">Brez rezultatov</p>
+          ) : (
+            results.map(poi => (
+              <div
+                key={poi.id}
+                className="flex items-center gap-2 text-xs rounded-md px-2 py-1.5 bg-secondary/50 hover:bg-secondary/70 transition-colors"
+              >
+                <span className="text-base shrink-0">{poiTypeEmoji(poi.type)}</span>
+                <div className="flex-1 min-w-0">
+                  <p className="font-medium truncate">{poi.name}</p>
+                  <span
+                    className="inline-block text-[9px] px-1.5 py-0 rounded-full font-medium"
+                    style={{
+                      backgroundColor: poiTypeColor(poi.type) + '20',
+                      color: poiTypeColor(poi.type),
+                    }}
+                  >
+                    {poiTypeLabel(poi.type)}
+                  </span>
+                </div>
+                <span
+                  className="text-[10px] font-bold shrink-0 px-1.5 py-0.5 rounded-full"
+                  style={{
+                    backgroundColor: poi.distanceFromRoute <= 2 ? '#22c55e20' : poi.distanceFromRoute <= 5 ? '#f59e0b20' : '#ef444420',
+                    color: poi.distanceFromRoute <= 2 ? '#22c55e' : poi.distanceFromRoute <= 5 ? '#f59e0b' : '#ef4444',
+                  }}
+                >
+                  {poi.distanceFromRoute} km
+                </span>
+              </div>
+            ))
+          )}
+        </div>
+      )}
+    </div>
+  )
+}
+
+// Curvature Profile mini-component
+function CurvatureProfile({ waypoints }: { waypoints: { lat: number; lng: number }[] }) {
+  const [showDetailed, setShowDetailed] = useState(false)
+
+  const profile = useMemo(() => calculateCurvatureProfile(waypoints), [waypoints])
+
+  if (waypoints.length < 2) return null
+
+  const scoreColor = profile.twistinessScore <= 3 ? 'text-green-500' : profile.twistinessScore <= 6 ? 'text-amber-500' : 'text-red-500'
+  const scoreBg = profile.twistinessScore <= 3 ? 'bg-green-500/10' : profile.twistinessScore <= 6 ? 'bg-amber-500/10' : 'bg-red-500/10'
+
+  return (
+    <div className="rounded-lg border border-border/50 p-3 space-y-3">
+      <div className="flex items-center justify-between">
+        <h4 className="text-xs font-semibold flex items-center gap-1.5">
+          <Activity className="size-3.5 text-primary" /> Profil ukrivljenosti
+        </h4>
+        <Button
+          variant="ghost"
+          size="sm"
+          className="h-6 text-[10px] gap-1 px-2"
+          onClick={() => setShowDetailed(!showDetailed)}
+        >
+          <BarChart3 className="size-3" />
+          {showDetailed ? 'Skrij' : 'Podrobno'}
+        </Button>
+      </div>
+
+      {/* Curvature Ribbon */}
+      <div className="space-y-1">
+        <div className="h-6 rounded-md overflow-hidden flex">
+          {waypoints.length === 2 ? (
+            <div className="flex-1 bg-green-500 flex items-center justify-center">
+              <span className="text-[9px] font-bold text-white">RAVNO</span>
+            </div>
+          ) : profile.segments.length > 0 ? (
+            profile.segments.map((seg, i) => (
+              <div
+                key={i}
+                className="flex items-center justify-center transition-all"
+                style={{
+                  backgroundColor: seg.color,
+                  flex: seg.distance > 0 ? seg.distance : 0.5,
+                  minWidth: 8,
+                }}
+                title={`${seg.label}: ${seg.angle.toFixed(1)}°`}
+              >
+                {seg.distance > (profile.totalDistance / profile.segments.length) * 0.8 && (
+                  <span className="text-[8px] font-bold text-white/90">{seg.angle.toFixed(0)}°</span>
+                )}
+              </div>
+            ))
+          ) : (
+            <div className="flex-1 bg-green-500" />
+          )}
+        </div>
+        <div className="flex items-center gap-3 text-[10px]">
+          <span className="flex items-center gap-1"><span className="size-2 rounded-sm bg-green-500" /> Ravno</span>
+          <span className="flex items-center gap-1"><span className="size-2 rounded-sm bg-amber-500" /> Zavoji</span>
+          <span className="flex items-center gap-1"><span className="size-2 rounded-sm bg-red-500" /> Ostri zavoji</span>
+        </div>
+      </div>
+
+      {/* Summary stats */}
+      <div className="grid grid-cols-2 gap-2">
+        <div className="bg-secondary/50 rounded-md p-2 text-center">
+          <p className="text-[10px] text-muted-foreground">Razdalja</p>
+          <p className="text-sm font-bold">{profile.totalDistance} km</p>
+        </div>
+        <div className={`${scoreBg} rounded-md p-2 text-center`}>
+          <p className="text-[10px] text-muted-foreground">Ocena vijugavosti</p>
+          <p className={`text-sm font-bold ${scoreColor}`}>{profile.twistinessScore}/10</p>
+        </div>
+      </div>
+
+      {/* Percentage bars */}
+      <div className="space-y-1.5">
+        <div className="flex items-center gap-2">
+          <span className="text-[10px] w-20 text-muted-foreground">Ravno</span>
+          <div className="flex-1 h-2 bg-secondary rounded-full overflow-hidden">
+            <div className="h-full bg-green-500 rounded-full transition-all" style={{ width: `${profile.straightPct}%` }} />
+          </div>
+          <span className="text-[10px] font-medium w-8 text-right">{profile.straightPct}%</span>
+        </div>
+        <div className="flex items-center gap-2">
+          <span className="text-[10px] w-20 text-muted-foreground">Zavoji</span>
+          <div className="flex-1 h-2 bg-secondary rounded-full overflow-hidden">
+            <div className="h-full bg-amber-500 rounded-full transition-all" style={{ width: `${profile.moderatePct}%` }} />
+          </div>
+          <span className="text-[10px] font-medium w-8 text-right">{profile.moderatePct}%</span>
+        </div>
+        <div className="flex items-center gap-2">
+          <span className="text-[10px] w-20 text-muted-foreground">Ostri zavoji</span>
+          <div className="flex-1 h-2 bg-secondary rounded-full overflow-hidden">
+            <div className="h-full bg-red-500 rounded-full transition-all" style={{ width: `${profile.tightPct}%` }} />
+          </div>
+          <span className="text-[10px] font-medium w-8 text-right">{profile.tightPct}%</span>
+        </div>
+      </div>
+
+      {/* Detailed breakdown */}
+      {showDetailed && profile.segments.length > 0 && (
+        <div className="space-y-1 max-h-40 overflow-y-auto custom-scrollbar">
+          {profile.segments.map((seg, i) => (
+            <div key={i} className="flex items-center gap-2 text-xs bg-secondary/50 rounded px-2 py-1.5">
+              <div
+                className="size-2.5 rounded-sm flex-shrink-0"
+                style={{ backgroundColor: seg.color }}
+              />
+              <span className="font-medium">Točka {seg.index + 1}</span>
+              <span className="text-muted-foreground">{seg.angle.toFixed(1)}°</span>
+              <span className="text-muted-foreground ml-auto">{seg.distance.toFixed(1)} km</span>
+              <span
+                className="text-[10px] px-1.5 py-0.5 rounded-full font-medium"
+                style={{
+                  backgroundColor: seg.color + '20',
+                  color: seg.color,
+                }}
+              >
+                {seg.label}
+              </span>
+            </div>
+          ))}
+        </div>
       )}
     </div>
   )
@@ -755,6 +1192,10 @@ export default function PlanTab({
                 </div>
               </div>
             )}
+
+            {/* Curvature Profile */}
+            <CurvatureProfile waypoints={waypoints} />
+
             <Button className="w-full" onClick={onSave} disabled={waypoints.length < 2}>
               <Save className="size-4 mr-2" />Shrani pot
             </Button>
@@ -784,6 +1225,9 @@ export default function PlanTab({
 
               {/* Weather Along Route */}
               <WeatherAlongRoute waypoints={waypoints} />
+
+              {/* Search Along Route */}
+              <SearchAlongRoute waypoints={waypoints} />
             </div>
           </div>
         ) : mode === 'roundtrip' ? (
@@ -957,11 +1401,18 @@ export default function PlanTab({
                     onChange={e => setTitle(e.target.value)}
                   />
                 </div>
+
+                {/* Curvature Profile */}
+                <CurvatureProfile waypoints={rtWaypoints} />
+
                 <Button className="w-full" onClick={saveRoundTrip}>
                   <Save className="size-4 mr-2" />Shrani krožno pot
                 </Button>
               </>
             )}
+
+            {/* Search Along Route - Roundtrip */}
+            <SearchAlongRoute waypoints={rtWaypoints.length >= 2 ? rtWaypoints : waypoints} />
           </div>
         ) : (
           /* ===== MULTI-DAY MODE ===== */
@@ -1167,6 +1618,9 @@ export default function PlanTab({
                 </Button>
               </>
             )}
+
+            {/* Search Along Route - Multi-day */}
+            <SearchAlongRoute waypoints={tripDays[activeDay]?.waypoints?.length >= 2 ? tripDays[activeDay].waypoints : waypoints} />
 
             <Separator />
 

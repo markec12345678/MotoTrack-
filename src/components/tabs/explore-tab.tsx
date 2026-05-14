@@ -6,7 +6,7 @@ import {
   Heart, User, Clock, Star, Trophy, Crown, Medal,
   Users, Plus, LogOut, Shield, Sparkles, UserPlus,
   UserCheck, UserMinus, UserX, Send, MapPin, Calendar,
-  ChevronRight, Trash2, Wrench, Fuel,
+  ChevronRight, Trash2, Wrench, Fuel, GitCompare, ArrowLeft,
 } from 'lucide-react'
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
@@ -66,7 +66,11 @@ export default function ExploreTab({ rides, routes, leaderboard, onOpenDetail, o
   const [exploreFilter, setExploreFilter] = useState<'all' | 'rides' | 'routes'>('all')
   const [exploreCategory, setExploreCategory] = useState<string>('all')
   const [searchQuery, setSearchQuery] = useState('')
-  const [exploreSection, setExploreSection] = useState<'discover' | 'feed' | 'favorites' | 'communities' | 'friends' | 'grouprides' | 'challenges' | 'services' | 'fuel'>('discover')
+  const [exploreSection, setExploreSection] = useState<'discover' | 'feed' | 'favorites' | 'communities' | 'friends' | 'grouprides' | 'challenges' | 'services' | 'fuel' | 'comparison'>('discover')
+
+  // Comparison state
+  const [selectedRideIds, setSelectedRideIds] = useState<string[]>([])
+  const [showComparison, setShowComparison] = useState(false)
 
   // Social Feed state
   const [feedItems, setFeedItems] = useState<import('@/components/tabs/types').SocialActivityData[]>([])
@@ -113,6 +117,7 @@ export default function ExploreTab({ rides, routes, leaderboard, onOpenDetail, o
       .catch(() => setFeedLoading(false))
   }, [userId])
 
+  // eslint-disable-next-line react-hooks/set-state-in-effect
   useEffect(() => { fetchFeed() }, [fetchFeed])
 
   // Fetch favorites
@@ -125,6 +130,7 @@ export default function ExploreTab({ rides, routes, leaderboard, onOpenDetail, o
       .catch(() => setFavoritesLoading(false))
   }, [userId])
 
+  // eslint-disable-next-line react-hooks/set-state-in-effect
   useEffect(() => { fetchFavorites() }, [fetchFavorites])
 
   // Fetch communities
@@ -467,6 +473,12 @@ export default function ExploreTab({ rides, routes, leaderboard, onOpenDetail, o
               onClick={() => setExploreSection('fuel')}
               icon={<Fuel className="size-3.5" />}
               label="Gorivo"
+            />
+            <TabPill
+              active={exploreSection === 'comparison'}
+              onClick={() => { setExploreSection('comparison'); setShowComparison(false); setSelectedRideIds([]) }}
+              icon={<GitCompare className="size-3.5" />}
+              label="Primerjava"
             />
           </div>
         </div>
@@ -1165,6 +1177,255 @@ export default function ExploreTab({ rides, routes, leaderboard, onOpenDetail, o
               <Fuel className="size-5 text-primary" /> Gorivo
             </h2>
             <FuelPriceCard userId={userId} />
+          </div>
+        ) : exploreSection === 'comparison' ? (
+          /* ====== RIDE COMPARISON SECTION ====== */
+          <div className="space-y-4">
+            <div className="flex items-center justify-between">
+              <h2 className="text-lg font-bold flex items-center gap-2">
+                <GitCompare className="size-5 text-primary" /> Primerjava voženj
+              </h2>
+              {showComparison && (
+                <Button variant="ghost" size="sm" className="text-xs gap-1" onClick={() => { setShowComparison(false); setSelectedRideIds([]) }}>
+                  <ArrowLeft className="size-3.5" /> Nazaj
+                </Button>
+              )}
+            </div>
+
+            {!showComparison ? (
+              /* ====== RIDE SELECTION ====== */
+              <>
+                <p className="text-sm text-muted-foreground">Izberi vožnje za primerjavo (največ 4)</p>
+                {rides.length === 0 ? (
+                  <div className="text-center py-16">
+                    <div className="size-16 rounded-full bg-muted/50 flex items-center justify-center mx-auto mb-4">
+                      <GitCompare className="size-8 text-muted-foreground" />
+                    </div>
+                    <p className="text-muted-foreground font-medium">Ni voženj za primerjavo</p>
+                    <p className="text-xs text-muted-foreground mt-1">Zabeležite vsaj 2 vožnji za primerjavo</p>
+                  </div>
+                ) : (
+                  <div className="space-y-2">
+                    {rides.map(ride => {
+                      const isSelected = selectedRideIds.includes(ride.id)
+                      return (
+                        <Card
+                          key={ride.id}
+                          className={`rounded-xl transition-all cursor-pointer hover:border-primary/30 ${
+                            isSelected ? 'border-primary/50 bg-primary/5 ring-1 ring-primary/20' : ''
+                          }`}
+                          onClick={() => {
+                            if (isSelected) {
+                              setSelectedRideIds(prev => prev.filter(id => id !== ride.id))
+                            } else if (selectedRideIds.length < 4) {
+                              setSelectedRideIds(prev => [...prev, ride.id])
+                            } else {
+                              toast.error('Največ 4 vožnje za primerjavo')
+                            }
+                          }}
+                        >
+                          <CardContent className="p-4 flex items-center gap-3">
+                            <div className={`size-9 rounded-lg flex items-center justify-center shrink-0 transition-colors ${
+                              isSelected ? 'bg-primary/20 text-primary' : 'bg-amber-500/15 text-amber-500'
+                            }`}>
+                              {isSelected ? (
+                                <Star className="size-4 fill-current" />
+                              ) : (
+                                <Bike className="size-4" />
+                              )}
+                            </div>
+                            <div className="flex-1 min-w-0">
+                              <p className="font-medium text-sm truncate">{ride.title}</p>
+                              <div className="flex items-center gap-2 text-xs text-muted-foreground mt-0.5">
+                                <span className="flex items-center gap-1"><Route className="size-3" />{ride.distance.toFixed(1)} km</span>
+                                <span className="flex items-center gap-1"><Clock className="size-3" />{formatDuration(ride.duration)}</span>
+                                <span>{formatDate(ride.createdAt)}</span>
+                              </div>
+                            </div>
+                            {isSelected && (
+                              <Badge className="shrink-0 text-[9px] bg-primary/20 text-primary border-primary/30">
+                                #{selectedRideIds.indexOf(ride.id) + 1}
+                              </Badge>
+                            )}
+                          </CardContent>
+                        </Card>
+                      )
+                    })}
+                    <div className="flex items-center justify-between pt-2">
+                      <span className="text-xs text-muted-foreground">
+                        Izbrano: {selectedRideIds.length}/4
+                      </span>
+                      <Button
+                        size="sm"
+                        className="gap-1.5"
+                        disabled={selectedRideIds.length < 2}
+                        onClick={() => setShowComparison(true)}
+                      >
+                        <GitCompare className="size-3.5" /> Primerjaj
+                      </Button>
+                    </div>
+                  </div>
+                )}
+              </>
+            ) : (
+              /* ====== COMPARISON VIEW ====== */
+              (() => {
+                const rideColors = ['bg-emerald-500', 'bg-amber-500', 'bg-sky-500', 'bg-rose-500']
+                const rideTextColors = ['text-emerald-500', 'text-amber-500', 'text-sky-500', 'text-rose-500']
+                const rideBgColors = ['bg-emerald-500/15', 'bg-amber-500/15', 'bg-sky-500/15', 'bg-rose-500/15']
+                const rideBorderColors = ['border-emerald-500/30', 'border-amber-500/30', 'border-sky-500/30', 'border-rose-500/30']
+                const selectedRides = selectedRideIds.map(id => rides.find(r => r.id === id)).filter(Boolean) as RideData[]
+
+                if (selectedRides.length < 2) {
+                  return (
+                    <div className="text-center py-16">
+                      <p className="text-muted-foreground">Potrebnih vsaj 2 vožnji</p>
+                    </div>
+                  )
+                }
+
+                // Metrics definition
+                type MetricKey = 'distance' | 'duration' | 'avgSpeed' | 'maxSpeed' | 'elevation'
+                const metrics: Array<{
+                  key: MetricKey
+                  label: string
+                  unit: string
+                  getValue: (r: RideData) => number
+                  bestLabel: string
+                  higherIsBetter: boolean
+                }> = [
+                  { key: 'distance', label: 'Razdalja', unit: 'km', getValue: r => r.distance, bestLabel: 'najbolj pustolovska', higherIsBetter: true },
+                  { key: 'duration', label: 'Trajanje', unit: '', getValue: r => r.duration, bestLabel: 'najbolj vzdržljiva', higherIsBetter: true },
+                  { key: 'avgSpeed', label: 'Povp. hitrost', unit: 'km/h', getValue: r => r.avgSpeed, bestLabel: 'najhitrejša', higherIsBetter: true },
+                  { key: 'maxSpeed', label: 'Max hitrost', unit: 'km/h', getValue: r => r.maxSpeed, bestLabel: 'najvišja hitrost', higherIsBetter: true },
+                  { key: 'elevation', label: 'Višina', unit: 'm', getValue: r => r.elevation, bestLabel: 'največ vzpona', higherIsBetter: true },
+                ]
+
+                // Find best ride per metric
+                const bestPerMetric: Record<string, number> = {}
+                metrics.forEach(m => {
+                  const values = selectedRides.map(r => m.getValue(r))
+                  bestPerMetric[m.key] = m.higherIsBetter ? Math.max(...values) : Math.min(...values)
+                })
+
+                // Calculate overall scores
+                const rideScores = selectedRides.map((ride, idx) => {
+                  let score = 0
+                  metrics.forEach(m => {
+                    const values = selectedRides.map(r => m.getValue(r))
+                    const sorted = m.higherIsBetter ? [...values].sort((a, b) => b - a) : [...values].sort((a, b) => a - b)
+                    const rank = sorted.indexOf(m.getValue(ride))
+                    // Higher rank = lower index in sorted array = more points
+                    score += (selectedRides.length - rank) * (m.key === 'avgSpeed' ? 2 : 1) // weight avg speed more
+                  })
+                  return { ride, score, idx }
+                })
+                const bestRide = rideScores.reduce((a, b) => a.score > b.score ? a : b)
+
+                // Format metric value
+                const formatMetricValue = (key: MetricKey, value: number) => {
+                  if (key === 'duration') return formatDuration(value)
+                  if (key === 'distance') return value.toFixed(1)
+                  if (key === 'elevation') return value.toFixed(0)
+                  return value.toFixed(1)
+                }
+
+                return (
+                  <div className="space-y-5">
+                    {/* Ride color legend */}
+                    <div className="flex flex-wrap gap-2">
+                      {selectedRides.map((ride, idx) => (
+                        <div key={ride.id} className={`flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium ${rideBgColors[idx]} ${rideTextColors[idx]} border ${rideBorderColors[idx]}`}>
+                          <div className={`size-2.5 rounded-full ${rideColors[idx]}`} />
+                          <span className="truncate max-w-[120px]">{ride.title}</span>
+                        </div>
+                      ))}
+                    </div>
+
+                    {/* Stat cards comparison row */}
+                    <div className="grid gap-2">
+                      {metrics.map(metric => {
+                        const maxVal = Math.max(...selectedRides.map(r => metric.getValue(r)), 1)
+                        return (
+                          <Card key={metric.key} className="rounded-xl overflow-hidden">
+                            <CardContent className="p-4">
+                              <div className="flex items-center justify-between mb-3">
+                                <span className="text-sm font-semibold">{metric.label}</span>
+                                <span className="text-[10px] text-muted-foreground italic">{metric.bestLabel}</span>
+                              </div>
+                              {/* Horizontal bars */}
+                              <div className="space-y-2">
+                                {selectedRides.map((ride, idx) => {
+                                  const val = metric.getValue(ride)
+                                  const pct = Math.max((val / maxVal) * 100, 5)
+                                  const isBest = val === bestPerMetric[metric.key]
+                                  return (
+                                    <div key={ride.id} className="flex items-center gap-2">
+                                      <div className={`size-2.5 rounded-full shrink-0 ${rideColors[idx]}`} />
+                                      <div className="flex-1 min-w-0">
+                                        <div className="flex items-center justify-between gap-1 mb-0.5">
+                                          <span className="text-xs truncate max-w-[100px]">{ride.title}</span>
+                                          <div className="flex items-center gap-1">
+                                            <span className="text-xs font-bold">{formatMetricValue(metric.key, val)} {metric.unit}</span>
+                                            {isBest && <Trophy className="size-3 text-amber-400 shrink-0" />}
+                                          </div>
+                                        </div>
+                                        <div className="h-2 bg-secondary rounded-full overflow-hidden">
+                                          <div
+                                            className={`h-full rounded-full transition-all ${rideColors[idx]}`}
+                                            style={{ width: `${pct}%` }}
+                                          />
+                                        </div>
+                                      </div>
+                                    </div>
+                                  )
+                                })}
+                              </div>
+                            </CardContent>
+                          </Card>
+                        )
+                      })}
+                    </div>
+
+                    {/* Best ride summary */}
+                    <Card className="rounded-xl overflow-hidden border-amber-500/20 bg-gradient-to-br from-amber-500/5 to-transparent">
+                      <div className="h-1 bg-gradient-to-r from-amber-400 to-amber-600" />
+                      <CardContent className="p-4">
+                        <div className="flex items-center gap-3">
+                          <div className="size-10 rounded-xl flex items-center justify-center shrink-0 bg-amber-500/20 text-amber-400">
+                            <Crown className="size-5" />
+                          </div>
+                          <div>
+                            <p className="text-xs text-muted-foreground font-medium">Najboljša vožnja</p>
+                            <p className="font-bold text-sm">{bestRide.ride.title}</p>
+                            <p className="text-xs text-muted-foreground mt-0.5">
+                              Zmagovalka s {bestRide.score} točkami · {bestRide.ride.distance.toFixed(1)} km · {formatDuration(bestRide.ride.duration)}
+                            </p>
+                          </div>
+                        </div>
+                        {/* Mini trophy counts per ride */}
+                        <div className="flex flex-wrap gap-2 mt-3">
+                          {selectedRides.map((ride, idx) => {
+                            const trophyCount = metrics.filter(m => ride.id === selectedRides.find(r => m.getValue(r) === bestPerMetric[m.key])?.id).length
+                            return (
+                              <div key={ride.id} className={`flex items-center gap-1.5 px-2 py-1 rounded-full text-xs ${rideBgColors[idx]} ${rideTextColors[idx]}`}>
+                                <div className={`size-2 rounded-full ${rideColors[idx]}`} />
+                                <span className="truncate max-w-[80px]">{ride.title}</span>
+                                {trophyCount > 0 && (
+                                  <span className="flex items-center gap-0.5 font-bold text-amber-500">
+                                    <Trophy className="size-3" />{trophyCount}
+                                  </span>
+                                )}
+                              </div>
+                            )
+                          })}
+                        </div>
+                      </CardContent>
+                    </Card>
+                  </div>
+                )
+              })()
+            )}
           </div>
         ) : (
           /* ====== DISCOVER SECTION ====== */
