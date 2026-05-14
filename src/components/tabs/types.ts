@@ -557,6 +557,7 @@ export interface FuelStation {
     '95': number | null
     '98': number | null
     diesel: number | null
+    lpg?: number | null
   }
   brand: string | null
   address: string | null
@@ -648,6 +649,8 @@ export interface ServiceCenterData {
   website: string | null
   rating: number
   services: string[]
+  live?: boolean
+  source?: 'web' | 'database'
 }
 
 // Feature 17: Gamification

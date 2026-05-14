@@ -721,3 +721,27 @@ Stage Summary:
 - All changes pushed to https://github.com/markec12345678/MotoTrack-.git
 - Vercel deployment accessible at https://mototrack-gamma.vercel.app/
 - Application is fully functional on Vercel with Turso database
+
+---
+Task ID: 2-5
+Agent: main
+Task: Implement 3 features: Real fuel prices from web, Service finder via web search, Smart fuel consumption calculator
+
+Work Log:
+- Reviewed existing fuel-prices API - already well-implemented with web search, national prices, LPG support, and price trends
+- Enhanced FuelPriceCard component to display: national regulated prices banner, LPG fuel type option, price trend indicators (up/down/stable arrows), comparison with national prices per station
+- Updated FuelStation type to include optional lpg price field
+- Rewrote ServiceLocator component to use /api/service-centers/live endpoint (web search API) instead of /api/services (database only)
+- Added "Išči na spletu" (Search on web) button with loading state
+- Added source badges (Splet/Baza) for each service center result
+- Added web result count indicators
+- Created new /api/smart-consumption API endpoint with calculation engine based on: bike category, riding style, engine displacement, speed, elevation
+- Created SmartConsumptionPanel component with: input selectors, consumption gauge, stats grid, comparison chart, tips in Slovenian
+- Added "Poraba" (Consumption) tab to the Explore section
+- All linter errors fixed
+
+Stage Summary:
+- FuelPriceCard now shows national prices, LPG, and trend arrows ✓
+- ServiceLocator now uses live web search API ✓
+- Smart Consumption calculator with full API + UI component ✓
+- All three features integrated into the Explore tab ✓

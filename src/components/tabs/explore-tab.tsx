@@ -7,6 +7,7 @@ import {
   Users, Plus, LogOut, Shield, Sparkles, UserPlus,
   UserCheck, UserMinus, UserX, Send, MapPin, Calendar,
   ChevronRight, Trash2, Wrench, Fuel, GitCompare, ArrowLeft, Tent,
+  Gauge,
 } from 'lucide-react'
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
@@ -25,6 +26,7 @@ import { formatDuration, categoryLabel, categoryColor, formatDate } from '@/comp
 import ChallengesPanel from '@/components/challenges-panel'
 import ServiceLocator from '@/components/service-locator'
 import FuelPriceCard from '@/components/fuel-price-card'
+import SmartConsumptionPanel from '@/components/smart-consumption-panel'
 import BalkanEventsPanel from '@/components/balkan-events-panel'
 import BalkanCampsPanel from '@/components/balkan-camps-panel'
 import BalkanRoadsPanel from '@/components/balkan-roads-panel'
@@ -71,7 +73,7 @@ const ExploreTabInner = React.memo(function ExploreTabInner({ rides, routes, lea
   const [exploreCategory, setExploreCategory] = useState<string>('all')
   const [searchQuery, setSearchQuery] = useState('')
   const debouncedSearchQuery = useDebounce(searchQuery, 200)
-  const [exploreSection, setExploreSection] = useState<'discover' | 'feed' | 'favorites' | 'communities' | 'friends' | 'grouprides' | 'challenges' | 'services' | 'fuel' | 'comparison' | 'events' | 'camps' | 'balkanroads'>('discover')
+  const [exploreSection, setExploreSection] = useState<'discover' | 'feed' | 'favorites' | 'communities' | 'friends' | 'grouprides' | 'challenges' | 'services' | 'fuel' | 'consumption' | 'comparison' | 'events' | 'camps' | 'balkanroads'>('discover')
 
   // Comparison state
   const [selectedRideIds, setSelectedRideIds] = useState<string[]>([])
@@ -479,6 +481,12 @@ const ExploreTabInner = React.memo(function ExploreTabInner({ rides, routes, lea
               onClick={() => setExploreSection('fuel')}
               icon={<Fuel className="size-3.5" />}
               label="Gorivo"
+            />
+            <TabPill
+              active={exploreSection === 'consumption'}
+              onClick={() => setExploreSection('consumption')}
+              icon={<Gauge className="size-3.5" />}
+              label="Poraba"
             />
             <TabPill
               active={exploreSection === 'comparison'}
@@ -1201,6 +1209,14 @@ const ExploreTabInner = React.memo(function ExploreTabInner({ rides, routes, lea
               <Fuel className="size-5 text-primary" /> Gorivo
             </h2>
             <FuelPriceCard userId={userId} />
+          </div>
+        ) : exploreSection === 'consumption' ? (
+          /* ====== SMART CONSUMPTION SECTION ====== */
+          <div className="space-y-4">
+            <h2 className="text-lg font-bold flex items-center gap-2">
+              <Gauge className="size-5 text-primary" /> Pametna poraba
+            </h2>
+            <SmartConsumptionPanel userId={userId} />
           </div>
         ) : exploreSection === 'comparison' ? (
           /* ====== RIDE COMPARISON SECTION ====== */

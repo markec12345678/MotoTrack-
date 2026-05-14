@@ -40,6 +40,8 @@ model User {
   hideStartEnd     Boolean? @default(false)    // privacy: hide start/end of rides
   wakelockEnabled  Boolean? @default(true)     // keep screen on during tracking
   avoidTolls       Boolean? @default(false)    // avoid toll roads in routing
+  bikeCategory     String?  @default("naked")   // naked, sport, touring, adventure, cruiser, scooter
+  ridingStyle      String?  @default("normal")  // calm, normal, sporty, aggressive
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
   rides        Ride[]
