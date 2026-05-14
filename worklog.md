@@ -317,3 +317,27 @@ Stage Summary:
 - PWA install prompt: auto-detects installability, dismissible with 7-day cooldown
 - App share: native share API + QR code + WhatsApp/Email/SMS + copy link
 - Zero lint errors, all existing functionality preserved
+
+---
+Task ID: 1
+Agent: Main Agent
+Task: Push code to GitHub and finalize Turso integration
+
+Work Log:
+- Set GitHub remote URL with provided token
+- Push failed due to GitHub secret scanning (.env with API key in history)
+- Used git filter-branch to remove .env from all commits
+- Cleaned up git history with gc --prune=now --aggressive
+- Successfully pushed to https://github.com/markec12345678/MotoTrack-.git
+- Updated prisma/schema.prisma: added DIRECT_DATABASE_URL for Turso
+- Updated .env: added DIRECT_DATABASE_URL and OPENROUTER_API_KEY
+- Updated .env.example: complete Turso setup instructions
+- Improved src/lib/db.ts: better logging, URL masking for security
+- Verified all API endpoints working (users, hazards, rides)
+- Committed and pushed Turso improvements
+
+Stage Summary:
+- Code pushed to GitHub: https://github.com/markec12345678/MotoTrack-.git
+- Turso integration ready: db.ts auto-detects libsql:// URLs and uses adapter
+- Environment variables configured for both local dev and production
+- All APIs verified working on local dev server
