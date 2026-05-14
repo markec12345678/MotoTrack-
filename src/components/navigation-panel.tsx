@@ -83,10 +83,12 @@ export default function NavigationPanel({ route, onStartNavigation, onStopNaviga
 
   const speak = useCallback((text: string) => {
     if (!voiceEnabled || typeof window === 'undefined') return
-    const utterance = new SpeechSynthesisUtterance(text)
-    utterance.lang = 'sl-SI'
-    utterance.rate = 0.9
-    window.speechSynthesis.speak(utterance)
+    try {
+      const utterance = new SpeechSynthesisUtterance(text)
+      utterance.lang = 'sl-SI'
+      utterance.rate = 0.9
+      window.speechSynthesis?.speak(utterance)
+    } catch { /* speechSynthesis not available on some mobile browsers */ }
   }, [voiceEnabled])
 
   useEffect(() => {

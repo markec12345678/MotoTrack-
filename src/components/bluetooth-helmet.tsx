@@ -311,7 +311,7 @@ export default function BluetoothHelmet({ userId, open, onClose }: BluetoothHelm
         const utterance = new SpeechSynthesisUtterance(text)
         utterance.lang = 'sl-SI'
         utterance.volume = volume / 100
-        speechSynthesis.speak(utterance)
+        speechSynthesis?.speak(utterance)
       }
     } catch {
       // Speech synthesis not available

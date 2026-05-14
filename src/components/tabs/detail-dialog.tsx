@@ -521,13 +521,12 @@ export default function DetailDialog({
               variant="ghost"
               size="sm"
               className="h-7 gap-1 text-xs text-muted-foreground hover:text-foreground"
-              onClick={() => {
-                const param = isRide ? 'rideId' : 'routeId'
-                window.open('/api/gpx/export?' + param + '=' + item.id)
-              }}
+              asChild
             >
+              <a href={`/api/gpx/export?${isRide ? 'rideId' : 'routeId'}=${item.id}`} download>
               <Download className="size-3" />
               GPX
+              </a>
             </Button>
             {user && (
               <Button

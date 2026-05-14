@@ -96,18 +96,18 @@ export default function ServiceLocator({ userId }: { userId?: string }) {
                   )}
                   <div className="flex gap-2 mt-2">
                     {c.phone && (
-                      <Button size="sm" variant="outline" className="h-6 text-xs px-2" onClick={() => window.open(`tel:${c.phone}`)}>
+                      <a href={`tel:${c.phone}`} className="inline-flex items-center justify-center h-6 px-2 text-xs border rounded-md hover:bg-accent">
                         <Phone className="size-3 mr-1" /> Klic
-                      </Button>
+                      </a>
                     )}
                     {c.website && (
-                      <Button size="sm" variant="outline" className="h-6 text-xs px-2" onClick={() => window.open(c.website!, '_blank')}>
+                      <a href={c.website} target="_blank" rel="noopener noreferrer" className="inline-flex items-center justify-center h-6 px-2 text-xs border rounded-md hover:bg-accent">
                         <Globe className="size-3 mr-1" /> Spletna
-                      </Button>
+                      </a>
                     )}
-                    <Button size="sm" variant="outline" className="h-6 text-xs px-2" onClick={() => window.open(`https://maps.google.com/?q=${c.lat},${c.lng}`, '_blank')}>
+                    <a href={`https://maps.google.com/?q=${c.lat},${c.lng}`} target="_blank" rel="noopener noreferrer" className="inline-flex items-center justify-center h-6 px-2 text-xs border rounded-md hover:bg-accent">
                       <MapPin className="size-3 mr-1" /> Zemljevid
-                    </Button>
+                    </a>
                   </div>
                 </div>
               </div>

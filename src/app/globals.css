@@ -252,3 +252,53 @@ html {
   font-size: 13px !important;
   line-height: 1.5 !important;
 }
+
+/* ===== Mobile Compatibility ===== */
+
+/* Safe area support for devices with gesture bars */
+.safe-area-bottom {
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+}
+
+.safe-area-top {
+  padding-top: env(safe-area-inset-top, 0px);
+}
+
+/* Prevent tap highlight on mobile */
+* {
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* Smooth touch scrolling on mobile */
+.overflow-y-auto,
+.custom-scrollbar {
+  -webkit-overflow-scrolling: touch;
+}
+
+/* Prevent text selection on interactive elements */
+button, nav, [role="button"] {
+  -webkit-user-select: none;
+  user-select: none;
+}
+
+/* Mobile viewport height fix (100vh issue on mobile browsers) */
+.min-h-screen {
+  min-height: 100vh;
+  min-height: 100dvh;
+}
+
+/* Larger Leaflet controls for touch on mobile */
+.leaflet-control-zoom a {
+  width: 36px !important;
+  height: 36px !important;
+  line-height: 36px !important;
+  font-size: 18px !important;
+}
+
+/* Ensure minimum touch target sizes */
+@media (pointer: coarse) {
+  button, [role="button"], a {
+    min-height: 44px;
+    min-width: 44px;
+  }
+}

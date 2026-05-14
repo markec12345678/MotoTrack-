@@ -34,7 +34,20 @@ export function AppShareButton({ variant = 'icon', className = '' }: AppShareBut
 
   const handleCopyLink = useCallback(async () => {
     try {
-      await navigator.clipboard.writeText(appUrl)
+      if (navigator.clipboard && window.isSecureContext) {
+        await navigator.clipboard.writeText(appUrl)
+      } else {
+        // Fallback for non-HTTPS (insecure context)
+        const textArea = document.createElement('textarea')
+        textArea.value = appUrl
+        textArea.style.position = 'fixed'
+        textArea.style.left = '-9999px'
+        document.body.appendChild(textArea)
+        textArea.focus()
+        textArea.select()
+        document.execCommand('copy')
+        document.body.removeChild(textArea)
+      }
       setCopied(true)
       toast.success('Povezava kopirana!')
       setTimeout(() => setCopied(false), 2000)
@@ -56,13 +69,13 @@ export function AppShareButton({ variant = 'icon', className = '' }: AppShareBut
   }, [appUrl, qrGenerated])
 
   const shareWhatsApp = () => {
-    window.open(`https://wa.me/?text=${encodeURIComponent(shareText)}`, '_blank')
+    window.location.href = `https://wa.me/?text=${encodeURIComponent(shareText)}`
   }
   const shareEmail = () => {
-    window.open(`mailto:?subject=${encodeURIComponent(shareTitle)}&body=${encodeURIComponent(shareText)}`, '_blank')
+    window.location.href = `mailto:?subject=${encodeURIComponent(shareTitle)}&body=${encodeURIComponent(shareText)}`
   }
   const shareSMS = () => {
-    window.open(`sms:?body=${encodeURIComponent(shareText)}`, '_blank')
+    window.location.href = `sms:?body=${encodeURIComponent(shareText)}`
   }
 
   return (

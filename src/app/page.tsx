@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react'
+import React, { useState, useEffect, useCallback, useRef, useMemo, Suspense } from 'react'
 import dynamic from 'next/dynamic'
 import {
   Map as MapIcon,
@@ -16,6 +16,7 @@ import { Button } from '@/components/ui/button'
 import { Skeleton } from '@/components/ui/skeleton'
 import { toast } from 'sonner'
 import { useTheme } from 'next-themes'
+import { useSearchParams } from 'next/navigation'
 
 import type { TabId, RideData, RouteData, UserData, CommentData, WeatherData, LeaderboardUser, TrackPoint } from '@/components/tabs/types'
 import { haversine, formatDuration, formatDate, categoryLabel, categoryColor } from '@/components/tabs/types'
@@ -41,17 +42,39 @@ const tabs: { id: TabId; label: string; icon: React.ElementType }[] = [
   { id: 'profile', label: 'Profil', icon: User },
 ]
 
-export default function Home() {
+export default function HomePage() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen flex flex-col bg-background">
+        <header className="fixed top-0 left-0 right-0 z-[1400] h-10 flex items-center px-4 bg-background/95 backdrop-blur-md">
+          <div className="flex items-center gap-2">
+            <Bike className="size-4 text-primary" />
+            <span className="font-bold text-sm tracking-tight">MotoTrack</span>
+          </div>
+        </header>
+        <main className="flex-1 pt-10 pb-20 px-4 max-w-lg mx-auto w-full">
+          <div className="py-6 space-y-6">
+            <Skeleton className="w-full h-48 rounded-xl" />
+            <Skeleton className="h-24 rounded-xl" />
+          </div>
+        </main>
+      </div>
+    }>
+      <Home />
+    </Suspense>
+  )
+}
+
+function Home() {
   const { theme, setTheme } = useTheme()
   const [mounted, setMounted] = useState(false)
   useEffect(() => setMounted(true), [])
-  const [activeTab, setActiveTab] = useState<TabId>('map')
   const [rides, setRides] = useState<RideData[]>([])
   const [routes, setRoutes] = useState<RouteData[]>([])
   const [user, setUser] = useState<UserData | null>(null)
   const [allUsers, setAllUsers] = useState<Array<{ id: string; name: string; email: string; avatar: string | null; bike: string | null; bio: string | null }>>([])
   const [loading, setLoading] = useState(true)
-  const [seeded, setSeeded] = useState(false)
+  const seedChecked = useRef(false)
 
   // Plan route state
   const [planWaypoints, setPlanWaypoints] = useState<{ lat: number; lng: number }[]>([])
@@ -92,12 +115,31 @@ export default function Home() {
   // Leaderboard
   const [leaderboard, setLeaderboard] = useState<LeaderboardUser[]>([])
 
-  // Fetch data
+  // PWA shortcut support - read ?tab= from URL on first load
+  const searchParams = useSearchParams()
+  const initialTab = useMemo(() => {
+    const tab = searchParams.get('tab')
+    if (tab === 'plan' || tab === 'track' || tab === 'explore' || tab === 'profile') return tab
+    return 'map' as TabId
+  }, [])
+  const [activeTab, setActiveTab] = useState<TabId>(initialTab)
+
+  // Fetch data - only seed if database is empty
   const fetchData = useCallback(async () => {
     try {
-      if (!seeded) {
-        await fetch('/api/seed', { method: 'POST' })
-        setSeeded(true)
+      // Only seed if database has no users (first time)
+      if (!seedChecked.current) {
+        seedChecked.current = true
+        try {
+          const checkRes = await fetch('/api/users')
+          if (checkRes.ok) {
+            const checkData = await checkRes.json()
+            const existingUsers = checkData.data || checkData
+            if (!existingUsers || existingUsers.length === 0) {
+              await fetch('/api/seed', { method: 'POST' })
+            }
+          }
+        } catch { /* ignore seed check errors */ }
       }
       const [ridesRes, routesRes, userRes, usersRes] = await Promise.all([
         fetch('/api/rides?public=true'),
@@ -111,7 +153,7 @@ export default function Home() {
       if (usersRes.ok) { const j = await usersRes.json(); setAllUsers(j.data || j) }
     } catch (err) { console.error('Fetch error:', err) }
     finally { setLoading(false) }
-  }, [seeded])
+  }, [])
 
   useEffect(() => { fetchData() }, [fetchData])
 
@@ -285,7 +327,7 @@ export default function Home() {
         </main>
 
         {/* Bottom nav skeleton */}
-        <nav className="fixed bottom-0 left-0 right-0 z-[1500] bg-background/95 backdrop-blur-md border-t border-border/50 safe-area-bottom">
+        <nav className="fixed bottom-0 left-0 right-0 z-[1500] bg-background/95 backdrop-blur-md border-t border-border/50" style={{ paddingBottom: 'env(safe-area-inset-bottom, 0px)' }}>
           <div className="flex items-center justify-around max-w-lg mx-auto h-16">
             {[1,2,3,4,5].map(i => (
               <div key={i} className="flex flex-col items-center gap-1 px-3 py-2">
@@ -333,7 +375,7 @@ export default function Home() {
         activeTab === 'map' ? 'opacity-40' : 'opacity-100'
       }`} />
 
-      <main className="flex-1 relative" style={{ paddingTop: activeTab === 'map' ? '0' : '40px', paddingBottom: '64px' }}>
+      <main className="flex-1 relative" style={{ paddingTop: activeTab === 'map' ? '0' : '40px', paddingBottom: 'calc(64px + env(safe-area-inset-bottom, 0px))' }}>
         <div key={activeTab} className="tab-transition">
           {activeTab === 'map' && (
             <MapTab rides={rides} routes={routes} onOpenDetail={openDetail} userId={user?.id} />
@@ -401,7 +443,7 @@ export default function Home() {
       <PwaInstallPrompt />
 
       {/* Bottom Nav */}
-      <nav className="fixed bottom-0 left-0 right-0 z-[1500] bg-background/95 backdrop-blur-md border-t border-border/50 safe-area-bottom">
+      <nav className="fixed bottom-0 left-0 right-0 z-[1500] bg-background/95 backdrop-blur-md border-t border-border/50" style={{ paddingBottom: 'env(safe-area-inset-bottom, 0px)' }}>
         <div className="flex items-center justify-around max-w-lg mx-auto h-16">
           {tabs.map(tab => {
             const isActive = activeTab === tab.id
