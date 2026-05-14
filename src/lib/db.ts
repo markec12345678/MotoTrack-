@@ -5,18 +5,26 @@ const globalForPrisma = globalThis as unknown as {
 }
 
 /**
- * Lazy PrismaClient initializer — never called at module scope.
- * Only creates a client when the first DB query is actually made.
+ * Create a PrismaClient with the appropriate connection method:
+ * - Turso (libsql) adapter on Vercel/production (when TURSO_DATABASE_URL is set)
+ * - Local SQLite in development
+ *
+ * IMPORTANT: DATABASE_URL must always be a valid URL for Prisma's internal
+ * initialization. When using the Turso adapter, DATABASE_URL is just a
+ * placeholder — the actual connection goes through the adapter.
  */
 function createPrismaClient(): PrismaClient {
-  // DATABASE_URL is required by Prisma's schema — provide a sensible default
-  // so the client can initialize even if the env var is missing (e.g. during build).
-  // When using the Turso adapter, DATABASE_URL is just a placeholder;
-  // the actual connection goes through the libsql adapter.
+  // DATABASE_URL is required by Prisma schema (url = env("DATABASE_URL")).
+  // Provide a sensible default so Prisma can initialize even if the env var
+  // is missing (e.g. during Vercel build or Edge runtime).
   const databaseUrl = process.env.DATABASE_URL || 'file:./db/custom.db'
-  const tursoUrl = process.env.TURSO_DATABASE_URL || process.env.DATABASE_URL || ''
+  const tursoUrl = process.env.TURSO_DATABASE_URL || ''
   const tursoAuthToken = process.env.TURSO_AUTH_TOKEN || ''
-  const isTurso = tursoUrl.startsWith('libsql://') || tursoUrl.startsWith('https://')
+  // Only use Turso when both URL and token are provided AND we're in production
+  // In local development, always use SQLite even if Turso vars are in .env
+  const isTurso = tursoUrl.startsWith('libsql://') &&
+                  tursoAuthToken.length > 0 &&
+                  process.env.NODE_ENV === 'production'
 
   // ── Turso (libsql) path — used on Vercel / production ──────────────
   if (isTurso && typeof window === 'undefined') {
@@ -35,10 +43,9 @@ function createPrismaClient(): PrismaClient {
       console.log('[DB] Connected to Turso:', tursoUrl.replace(/\/\/.*@/, '//***@'))
 
       // When using adapter, DATABASE_URL is just a placeholder for Prisma init.
-      // The adapter overrides the actual connection.
       return new PrismaClient({
         adapter,
-        log: process.env.NODE_ENV === 'development' ? ['error', 'warn'] : ['error'],
+        log: ['error'],
       })
     } catch (e) {
       console.error('[DB] Failed to initialize Turso connection, falling back to SQLite:', e)
@@ -58,29 +65,10 @@ function createPrismaClient(): PrismaClient {
   })
 }
 
-/**
- * Lazy singleton — the PrismaClient is only created on first access.
- * This prevents crashes during Next.js build / static generation
- * where environment variables may not be available.
- */
-let _db: PrismaClient | undefined
+// Singleton: reuse client in development to avoid connection pool exhaustion
+// In production, create a new client each time (serverless functions are isolated)
+export const db = globalForPrisma.prisma ?? createPrismaClient()
 
-export function getDb(): PrismaClient {
-  if (!_db) {
-    _db = globalForPrisma.prisma ?? createPrismaClient()
-    if (process.env.NODE_ENV !== 'production') globalForPrisma.prisma = _db
-  }
-  return _db
+if (process.env.NODE_ENV !== 'production') {
+  globalForPrisma.prisma = db
 }
-
-/** Convenience default export — lazily evaluated via Proxy */
-export const db = new Proxy({} as PrismaClient, {
-  get(_target, prop, receiver) {
-    const real = getDb()
-    const value = Reflect.get(real, prop, receiver)
-    if (typeof value === 'function') {
-      return value.bind(real)
-    }
-    return value
-  },
-})
