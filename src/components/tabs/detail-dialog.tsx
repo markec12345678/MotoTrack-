@@ -7,6 +7,7 @@ import {
   Cloud, Sun, CloudRain, CloudSnow, CloudFog, CloudLightning,
   Send, Calendar, Download, Camera, ImageIcon, Trash2,
   GitCompare, TrendingUp, TrendingDown, Minus, ChevronDown, ChevronUp,
+  Star, Share2,
 } from 'lucide-react'
 import { Dialog, DialogContent, DialogTitle } from '@/components/ui/dialog'
 import { Badge } from '@/components/ui/badge'
@@ -340,6 +341,26 @@ export default function DetailDialog({
   const [comparisonLoading, setComparisonLoading] = useState(false)
   const [comparisonExpanded, setComparisonExpanded] = useState(true)
 
+  // Favorite state
+  const [isFavorite, setIsFavorite] = useState(false)
+  const [favoriteLoading, setFavoriteLoading] = useState(false)
+
+  // Check if item is favorited
+  useEffect(() => {
+    if (!user) { setIsFavorite(false); return }
+    const type = isRide ? 'ride' : 'route'
+    fetch(`/api/favorites?userId=${user.id}&type=${type}`)
+      .then(r => r.json())
+      .then(j => {
+        const favs: Array<{ rideId: string | null; routeId: string | null }> = j.data || []
+        const isFav = isRide
+          ? favs.some(f => f.rideId === item.id)
+          : favs.some(f => f.routeId === item.id)
+        setIsFavorite(isFav)
+      })
+      .catch(() => setIsFavorite(false))
+  }, [user, item.id, isRide])
+
   // Fetch photos for this ride/route
   useEffect(() => {
     setPhotosLoading(true)
@@ -506,7 +527,66 @@ export default function DetailDialog({
               }}
             >
               <Download className="size-3" />
-              Izvozi GPX
+              GPX
+            </Button>
+            {user && (
+              <Button
+                variant="ghost"
+                size="sm"
+                className={`h-7 gap-1 text-xs ${isFavorite ? 'text-amber-400 hover:text-amber-300' : 'text-muted-foreground hover:text-amber-400'}`}
+                disabled={favoriteLoading}
+                onClick={async () => {
+                  setFavoriteLoading(true)
+                  try {
+                    if (isFavorite) {
+                      const body: Record<string, string> = { userId: user.id }
+                      if (isRide) body.rideId = item.id; else body.routeId = item.id
+                      await fetch('/api/favorites', { method: 'DELETE', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) })
+                      setIsFavorite(false)
+                      toast.success('Odstranjeno iz priljubljenih')
+                    } else {
+                      const body: Record<string, string> = { userId: user.id }
+                      if (isRide) body.rideId = item.id; else body.routeId = item.id
+                      await fetch('/api/favorites', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) })
+                      setIsFavorite(true)
+                      toast.success('Dodano med priljubljene ★')
+                    }
+                  } catch { toast.error('Napaka') }
+                  setFavoriteLoading(false)
+                }}
+              >
+                <Star className={`size-3 ${isFavorite ? 'fill-current' : ''}`} />
+                {isFavorite ? 'Priljubljena' : 'Priljubi'}
+              </Button>
+            )}
+            <Button
+              variant="ghost"
+              size="sm"
+              className="h-7 gap-1 text-xs text-muted-foreground hover:text-foreground"
+              onClick={async () => {
+                try {
+                  const type = isRide ? 'ride' : 'route'
+                  const res = await fetch('/api/share', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ type, id: item.id, userId: user?.id, platform: 'clipboard' }),
+                  })
+                  if (res.ok) {
+                    const j = await res.json()
+                    await navigator.clipboard.writeText(j.shareUrl)
+                    toast.success('Povezava kopirana!')
+                  }
+                } catch {
+                  // Fallback: just copy a simple share text
+                  try {
+                    await navigator.clipboard.writeText(`${item.title} — ${item.distance} km`)
+                    toast.success('Kopirano!')
+                  } catch { toast.error('Napaka pri deljenju') }
+                }
+              }}
+            >
+              <Share2 className="size-3" />
+              Deli
             </Button>
           </div>
 

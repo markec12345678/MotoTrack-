@@ -626,3 +626,55 @@ export interface PointsTransactionData {
   reason: string
   createdAt: string
 }
+
+// Feature: Favorites/Bookmarks
+export interface FavoriteData {
+  id: string
+  userId: string
+  rideId: string | null
+  routeId: string | null
+  ride?: RideData | null
+  route?: RouteData | null
+  createdAt: string
+}
+
+// Feature: Social Feed
+export interface SocialActivityData {
+  id: string
+  userId: string
+  type: 'ride_completed' | 'route_shared' | 'achievement_earned' | 'challenge_joined' | 'community_joined' | 'group_ride_created' | 'comment_posted' | 'photo_uploaded'
+  title: string
+  description: string | null
+  icon: string
+  targetId: string | null
+  targetType: 'ride' | 'route' | 'achievement' | 'challenge' | 'community' | 'group_ride' | null
+  isPublic: boolean
+  createdAt: string
+  user: { id: string; name: string; avatar: string | null }
+  likes: number
+  userLiked: boolean
+}
+
+// Feature: Weather Along Route
+export interface WaypointWeather {
+  lat: number
+  lng: number
+  temperature: number
+  windspeed: number
+  weathercode: number
+  description: string
+  windDirection: number
+  precipitation: number
+  isWindDangerous: boolean
+}
+
+// Feature: Route Sharing
+export interface ShareData {
+  title: string
+  distance: number
+  elevation: number
+  category?: string
+  user: { name: string; avatar: string | null }
+  createdAt: string
+  shareUrl: string
+}

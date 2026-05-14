@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react'
 import dynamic from 'next/dynamic'
-import { Route, Trash2, Save, MapPin, X, Upload, Plus, Calendar, Minus, Hotel, Fuel, ChevronDown, ChevronUp, Eye, Clock, RefreshCw, Navigation, ArrowLeft, ArrowRight } from 'lucide-react'
+import { Route, Trash2, Save, MapPin, X, Upload, Plus, Calendar, Minus, Hotel, Fuel, ChevronDown, ChevronUp, Eye, Clock, RefreshCw, Navigation, ArrowLeft, ArrowRight, Cloud, Wind, AlertTriangle, Thermometer } from 'lucide-react'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
 import { Switch } from '@/components/ui/switch'
@@ -185,6 +185,76 @@ const curvinessOptions: { value: Curviness; label: string; emoji: string; desc: 
   { value: 'moderate', label: 'Zmerna', emoji: '↗️', desc: 'Zmerno vijugasta, uravnotežena' },
   { value: 'twisty', label: 'Vijugasta', emoji: '🔄', desc: 'Veliko ovinkov, vijugasta' },
 ]
+
+// Weather Along Route mini-component
+function WeatherAlongRoute({ waypoints }: { waypoints: { lat: number; lng: number }[] }) {
+  const [weatherData, setWeatherData] = useState<Array<{
+    lat: number; lng: number; temperature: number | null; windspeed: number | null;
+    description: string; isWindDangerous: boolean; precipitation: number | null;
+  }> | null>(null)
+  const [loading, setLoading] = useState(false)
+  const [expanded, setExpanded] = useState(false)
+
+  const fetchWeather = useCallback(async () => {
+    if (waypoints.length < 2) { toast.error('Dodajte vsaj dve točki za vremensko napoved'); return }
+    setLoading(true)
+    try {
+      const res = await fetch(`/api/weather-along-route?waypoints=${encodeURIComponent(JSON.stringify(waypoints))}`)
+      if (res.ok) {
+        const j = await res.json()
+        setWeatherData(j.data)
+        setExpanded(true)
+      } else { toast.error('Napaka pri pridobivanju vremena') }
+    } catch { toast.error('Napaka pri povezavi') }
+    setLoading(false)
+  }, [waypoints])
+
+  const hasWindDanger = weatherData?.some(w => w.isWindDangerous)
+
+  return (
+    <div className="rounded-lg border border-border/50 p-3 space-y-2">
+      <div className="flex items-center justify-between">
+        <h4 className="text-xs font-semibold flex items-center gap-1.5">
+          <Cloud className="size-3.5 text-primary" /> Vreme ob poti
+          {hasWindDanger && (
+            <span className="flex items-center gap-0.5 text-red-400 text-[10px] font-bold">
+              <AlertTriangle className="size-3" /> Močan veter!
+            </span>
+          )}
+        </h4>
+        <Button variant="outline" size="sm" className="h-6 text-[10px] gap-1" disabled={loading || waypoints.length < 2} onClick={fetchWeather}>
+          {loading ? <span className="size-3 border-2 border-current border-t-transparent rounded-full animate-spin" /> : <Cloud className="size-3" />}
+          Preveri vreme
+        </Button>
+      </div>
+
+      {expanded && weatherData && (
+        <div className="space-y-1.5 max-h-48 overflow-y-auto custom-scrollbar">
+          {weatherData.map((w, i) => (
+            <div key={i} className={`flex items-center gap-2 text-xs rounded-md px-2 py-1.5 ${w.isWindDangerous ? 'bg-red-500/10 border border-red-500/20' : 'bg-secondary/50'}`}>
+              <Thermometer className="size-3 text-muted-foreground shrink-0" />
+              <span className="font-medium">{w.temperature !== null ? `${w.temperature}°C` : '—'}</span>
+              <span className="text-muted-foreground">{w.description}</span>
+              <Wind className={`size-3 ml-auto shrink-0 ${w.isWindDangerous ? 'text-red-400' : 'text-muted-foreground'}`} />
+              <span className={w.isWindDangerous ? 'text-red-400 font-bold' : 'text-muted-foreground'}>
+                {w.windspeed !== null ? `${w.windspeed} km/h` : '—'}
+              </span>
+              {w.precipitation !== null && w.precipitation > 0 && (
+                <span className="text-sky-400 flex items-center gap-0.5">
+                  💧{w.precipitation}mm
+                </span>
+              )}
+            </div>
+          ))}
+        </div>
+      )}
+
+      {waypoints.length < 2 && (
+        <p className="text-[10px] text-muted-foreground">Dodajte vsaj dve točki na zemljevid za vremensko napoved</p>
+      )}
+    </div>
+  )
+}
 
 export default function PlanTab({
   waypoints, setWaypoints, title, setTitle,
@@ -708,6 +778,9 @@ export default function PlanTab({
               <TwistyRoutePlanner userId={userId} onRouteGenerated={(wps) => { setWaypoints(wps) }} />
               <OfflineMapsManager userId={userId} />
               <GpxManager userId={userId} onRefresh={onRefresh} />
+
+              {/* Weather Along Route */}
+              <WeatherAlongRoute waypoints={waypoints} />
             </div>
           </div>
         ) : mode === 'roundtrip' ? (

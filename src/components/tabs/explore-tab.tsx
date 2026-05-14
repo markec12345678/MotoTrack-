@@ -38,7 +38,15 @@ export default function ExploreTab({ rides, routes, leaderboard, onOpenDetail, o
   const [exploreFilter, setExploreFilter] = useState<'all' | 'rides' | 'routes'>('all')
   const [exploreCategory, setExploreCategory] = useState<string>('all')
   const [searchQuery, setSearchQuery] = useState('')
-  const [exploreSection, setExploreSection] = useState<'discover' | 'communities' | 'friends' | 'grouprides' | 'challenges' | 'services' | 'fuel'>('discover')
+  const [exploreSection, setExploreSection] = useState<'discover' | 'feed' | 'favorites' | 'communities' | 'friends' | 'grouprides' | 'challenges' | 'services' | 'fuel'>('discover')
+
+  // Social Feed state
+  const [feedItems, setFeedItems] = useState<import('@/components/tabs/types').SocialActivityData[]>([])
+  const [feedLoading, setFeedLoading] = useState(false)
+
+  // Favorites state
+  const [favoriteItems, setFavoriteItems] = useState<import('@/components/tabs/types').FavoriteData[]>([])
+  const [favoritesLoading, setFavoritesLoading] = useState(false)
 
   // Communities state
   const [communities, setCommunities] = useState<CommunityData[]>([])
@@ -66,6 +74,30 @@ export default function ExploreTab({ rides, routes, leaderboard, onOpenDetail, o
   const [newGroupRideCategory, setNewGroupRideCategory] = useState('scenic')
   const [creatingGroupRide, setCreatingGroupRide] = useState(false)
   const [groupRideFilter, setGroupRideFilter] = useState<string>('all')
+
+  // Fetch social feed
+  const fetchFeed = useCallback(() => {
+    setFeedLoading(true)
+    const url = userId ? `/api/feed?userId=${userId}&limit=30` : '/api/feed?limit=30'
+    fetch(url)
+      .then(r => r.json())
+      .then(j => { setFeedItems(j.data || []); setFeedLoading(false) })
+      .catch(() => setFeedLoading(false))
+  }, [userId])
+
+  useEffect(() => { fetchFeed() }, [fetchFeed])
+
+  // Fetch favorites
+  const fetchFavorites = useCallback(() => {
+    if (!userId) return
+    setFavoritesLoading(true)
+    fetch(`/api/favorites?userId=${userId}`)
+      .then(r => r.json())
+      .then(j => { setFavoriteItems(j.data || []); setFavoritesLoading(false) })
+      .catch(() => setFavoritesLoading(false))
+  }, [userId])
+
+  useEffect(() => { fetchFavorites() }, [fetchFavorites])
 
   // Fetch communities
   useEffect(() => {
@@ -311,6 +343,13 @@ export default function ExploreTab({ rides, routes, leaderboard, onOpenDetail, o
           <Button variant={exploreSection === 'discover' ? 'default' : 'ghost'} size="sm" className="text-xs" onClick={() => setExploreSection('discover')}>
             <Compass className="size-3.5 mr-1" /> Odkrij
           </Button>
+          <Button variant={exploreSection === 'feed' ? 'default' : 'ghost'} size="sm" className="text-xs gap-1" onClick={() => { setExploreSection('feed'); fetchFeed() }}>
+            <Sparkles className="size-3.5" /> Novice
+          </Button>
+          <Button variant={exploreSection === 'favorites' ? 'default' : 'ghost'} size="sm" className="text-xs gap-1" onClick={() => { setExploreSection('favorites'); fetchFavorites() }}>
+            <Star className="size-3.5" /> Priljubljene
+            {favoriteItems.length > 0 && <span className="text-[10px] opacity-70">({favoriteItems.length})</span>}
+          </Button>
           <Button variant={exploreSection === 'communities' ? 'default' : 'ghost'} size="sm" className="text-xs gap-1" onClick={() => setExploreSection('communities')}>
             <Users className="size-3.5" /> Skupnosti
             {communities.length > 0 && <span className="text-[10px] opacity-70">({communities.length})</span>}
@@ -337,7 +376,190 @@ export default function ExploreTab({ rides, routes, leaderboard, onOpenDetail, o
           </Button>
         </div>
 
-        {exploreSection === 'friends' ? (
+        {exploreSection === 'feed' ? (
+          /* ====== SOCIAL FEED SECTION ====== */
+          <div className="space-y-4">
+            <div className="flex items-center justify-between">
+              <h2 className="text-lg font-bold flex items-center gap-2">
+                <Sparkles className="size-5 text-primary" /> Novice
+              </h2>
+              <Button variant="ghost" size="sm" className="text-xs gap-1" onClick={fetchFeed}>
+                <TrendingUp className="size-3.5" /> Osveži
+              </Button>
+            </div>
+
+            {feedLoading ? (
+              <div className="space-y-3">
+                {[1,2,3].map(i => (
+                  <Card key={i} className="animate-pulse">
+                    <CardContent className="p-4">
+                      <div className="flex gap-3">
+                        <div className="size-10 rounded-full bg-muted" />
+                        <div className="flex-1 space-y-2">
+                          <div className="h-4 bg-muted rounded w-3/4" />
+                          <div className="h-3 bg-muted rounded w-1/2" />
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+            ) : feedItems.length === 0 ? (
+              <div className="text-center py-12">
+                <Sparkles className="size-12 text-muted-foreground mx-auto mb-4" />
+                <p className="text-muted-foreground">Ni aktivnosti. Začnite z vožnjo!</p>
+              </div>
+            ) : (
+              <div className="space-y-3">
+                {feedItems.map(item => {
+                  const typeIcon = item.type === 'ride_completed' ? '🏍️' : item.type === 'route_shared' ? '🗺️' : item.type === 'achievement_earned' ? '🏆' : item.type === 'challenge_joined' ? '⚔️' : item.type === 'community_joined' ? '👥' : item.type === 'group_ride_created' ? '🚀' : item.type === 'photo_uploaded' ? '📸' : '💬'
+                  const typeLabel = item.type === 'ride_completed' ? 'zaključil vožnjo' : item.type === 'route_shared' ? 'delil pot' : item.type === 'achievement_earned' ? 'pridobil dosežek' : item.type === 'challenge_joined' ? 'se pridružil izzivu' : item.type === 'community_joined' ? 'se pridružil skupnosti' : item.type === 'group_ride_created' ? 'ustvaril skupinsko vožnjo' : item.type === 'photo_uploaded' ? 'dodal fotografijo' : 'komentiral'
+                  return (
+                    <Card key={item.id} className="hover:border-primary/30 transition-all group">
+                      <CardContent className="p-4">
+                        <div className="flex gap-3">
+                          <div className="size-10 rounded-full bg-primary/15 flex items-center justify-center text-lg shrink-0">
+                            {typeIcon}
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center gap-2">
+                              <Avatar className="size-5">
+                                <AvatarFallback className="text-[8px] bg-primary/20 text-primary">{item.user?.name?.charAt(0) || '?'}</AvatarFallback>
+                              </Avatar>
+                              <span className="text-sm font-medium">{item.user?.name || 'Neznan'}</span>
+                              <span className="text-xs text-muted-foreground">{typeLabel}</span>
+                            </div>
+                            <p className="text-sm font-semibold mt-1">{item.title}</p>
+                            {item.description && (
+                              <p className="text-xs text-muted-foreground mt-0.5">{item.description}</p>
+                            )}
+                            <div className="flex items-center gap-3 mt-2">
+                              <button
+                                className="flex items-center gap-1 text-xs text-muted-foreground hover:text-red-400 transition-colors"
+                                onClick={async () => {
+                                  if (!userId) { toast.error('Izberite uporabnika'); return }
+                                  try {
+                                    const res = await fetch(`/api/feed/${item.id}/like`, {
+                                      method: 'POST',
+                                      headers: { 'Content-Type': 'application/json' },
+                                      body: JSON.stringify({ userId }),
+                                    })
+                                    if (res.ok) {
+                                      const j = await res.json()
+                                      setFeedItems(prev => prev.map(f => f.id === item.id ? { ...f, userLiked: j.data.liked, likes: j.data.likesCount } : f))
+                                    }
+                                  } catch { /* ignore */ }
+                                }}
+                              >
+                                <Heart className={`size-3 ${item.userLiked ? 'fill-red-400 text-red-400' : ''}`} />
+                                {item.likes > 0 && item.likes}
+                              </button>
+                              <span className="text-[10px] text-muted-foreground">{formatDate(item.createdAt)}</span>
+                              {item.targetType && (
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  className="h-5 text-[10px] gap-1 px-1.5"
+                                  onClick={() => {
+                                    if (item.targetType === 'ride') {
+                                      const ride = rides.find(r => r.id === item.targetId)
+                                      if (ride) onOpenDetail(ride, 'ride')
+                                    } else if (item.targetType === 'route') {
+                                      const route = routes.find(r => r.id === item.targetId)
+                                      if (route) onOpenDetail(route, 'route')
+                                    }
+                                  }}
+                                >
+                                  <ChevronRight className="size-2.5" /> Odpri
+                                </Button>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  )
+                })}
+              </div>
+            )}
+          </div>
+        ) : exploreSection === 'favorites' ? (
+          /* ====== FAVORITES SECTION ====== */
+          <div className="space-y-4">
+            <h2 className="text-lg font-bold flex items-center gap-2">
+              <Star className="size-5 text-primary" /> Priljubljene
+            </h2>
+
+            {!userId ? (
+              <div className="text-center py-12">
+                <Star className="size-12 text-muted-foreground mx-auto mb-4" />
+                <p className="text-muted-foreground">Izberite uporabnika za ogled priljubljenih</p>
+              </div>
+            ) : favoritesLoading ? (
+              <div className="space-y-3">
+                {[1,2,3].map(i => (
+                  <Card key={i} className="animate-pulse">
+                    <CardContent className="p-4">
+                      <div className="h-4 bg-muted rounded w-3/4" />
+                      <div className="h-3 bg-muted rounded w-1/2 mt-2" />
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+            ) : favoriteItems.length === 0 ? (
+              <div className="text-center py-12">
+                <Star className="size-12 text-muted-foreground mx-auto mb-4" />
+                <p className="text-muted-foreground">Ni priljubljenih. Dodajte vožnje ali poti!</p>
+                <p className="text-xs text-muted-foreground mt-1">Kliknite ★ v podrobnostih vožnje/poti</p>
+              </div>
+            ) : (
+              <div className="space-y-2">
+                {favoriteItems.map(fav => {
+                  const isRide = !!fav.ride
+                  const item = fav.ride || fav.route
+                  if (!item) return null
+                  return (
+                    <Card key={fav.id} className="hover:border-primary/30 transition-all group cursor-pointer" onClick={() => {
+                      if (fav.ride) onOpenDetail(fav.ride as unknown as RideData, 'ride')
+                      else if (fav.route) onOpenDetail(fav.route as unknown as RouteData, 'route')
+                    }}>
+                      <CardContent className="p-3 flex items-center gap-3">
+                        <div className={`size-10 rounded-xl flex items-center justify-center shrink-0 ${isRide ? 'bg-amber-500/20 text-amber-400' : 'bg-emerald-500/20 text-emerald-400'}`}>
+                          {isRide ? <Bike className="size-5" /> : <Route className="size-5" />}
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <p className="font-medium text-sm truncate group-hover:text-primary transition-colors">{item.title}</p>
+                          <div className="flex items-center gap-2 text-xs text-muted-foreground mt-0.5">
+                            <span>{item.distance?.toFixed(1)} km</span>
+                            {!isRide && 'category' in item && <Badge variant="outline" className="text-[9px] px-1 py-0">{categoryLabel((item as Record<string, unknown>).category as string)}</Badge>}
+                          </div>
+                        </div>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="shrink-0 text-amber-400 hover:text-amber-300"
+                          onClick={async (e) => {
+                            e.stopPropagation()
+                            try {
+                              const body: Record<string, string> = { userId }
+                              if (fav.rideId) body.rideId = fav.rideId
+                              if (fav.routeId) body.routeId = fav.routeId
+                              await fetch('/api/favorites', { method: 'DELETE', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) })
+                              toast.success('Odstranjeno iz priljubljenih')
+                              fetchFavorites()
+                            } catch { toast.error('Napaka') }
+                          }}
+                        >
+                          <Star className="size-4 fill-current" />
+                        </Button>
+                      </CardContent>
+                    </Card>
+                  )
+                })}
+              </div>
+            )}
+          </div>
+        ) : exploreSection === 'friends' ? (
           /* ====== FRIENDS SECTION ====== */
           <div className="space-y-6">
             {/* Header */}

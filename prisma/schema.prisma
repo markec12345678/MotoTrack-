@@ -64,6 +64,8 @@ model User {
   userPoints              UserPoints?
   pointsTransactions      PointsTransaction[]
   offlineMaps             OfflineMap[]
+  favorites               Favorite[]
+  socialActivities        SocialActivity[]
 }
 
 model Ride {
@@ -90,6 +92,7 @@ model Ride {
   communityId String?
   community   Community? @relation(fields: [communityId], references: [id])
   photos      Photo[]
+  favorites   Favorite[]
 }
 
 model Route {
@@ -110,6 +113,7 @@ model Route {
   comments    Comment[]
   likesRel    Like[]
   photos      Photo[]
+  favorites   Favorite[]
 }
 
 model Comment {
@@ -580,6 +584,54 @@ model PointsTransaction {
 
   @@index([userId, createdAt])
   @@map("points_transactions")
+}
+
+// Feature: Favorites/Bookmarks - save routes & rides for later
+model Favorite {
+  id         String   @id @default(cuid())
+  userId     String
+  user       User     @relation(fields: [userId], references: [id])
+  rideId     String?
+  ride       Ride?    @relation(fields: [rideId], references: [id], onDelete: Cascade)
+  routeId    String?
+  route      Route?   @relation(fields: [routeId], references: [id], onDelete: Cascade)
+  createdAt  DateTime @default(now())
+
+  @@unique([userId, rideId, routeId])
+  @@index([userId])
+  @@map("favorites")
+}
+
+// Feature: Social Feed - activity stream
+model SocialActivity {
+  id          String   @id @default(cuid())
+  userId      String
+  user        User     @relation(fields: [userId], references: [id])
+  type        String   // ride_completed, route_shared, achievement_earned, challenge_joined, community_joined, group_ride_created, comment_posted, photo_uploaded
+  title       String
+  description String?
+  icon        String   @default("🏍️")
+  targetId    String?  // ID of the related entity
+  targetType  String?  // ride, route, achievement, challenge, community, group_ride
+  isPublic    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+
+  likes       ActivityLike[]
+
+  @@index([userId, createdAt])
+  @@index([createdAt])
+  @@map("social_activities")
+}
+
+model ActivityLike {
+  id           String   @id @default(cuid())
+  userId       String
+  activityId   String
+  activity     SocialActivity @relation(fields: [activityId], references: [id], onDelete: Cascade)
+  createdAt    DateTime @default(now())
+
+  @@unique([userId, activityId])
+  @@map("activity_likes")
 }
 
 // Feature 2: Offline Maps - persisted download status
