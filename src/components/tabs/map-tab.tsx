@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useState, useEffect, useRef } from 'react'
+import React, { useState, useEffect, useRef, useCallback } from 'react'
 import dynamic from 'next/dynamic'
 import { Search, X, ChevronUp, ChevronDown, LocateFixed, Bike, Route as RouteIcon, Filter, MapPin, GitBranch, CloudRain, AlertTriangle, Radio, Plus, Send, Fuel, Users, Navigation, Trash2, Gauge, Star, Layers, Shield, ChevronRight } from 'lucide-react'
 import { Input } from '@/components/ui/input'
@@ -46,7 +46,8 @@ interface MapTabProps {
 }
 
 export default function MapTab({ rides, routes, onOpenDetail, userId }: MapTabProps) {
-  const [searchQuery, setSearchQuery] = useState('')
+  const [searchInput, setSearchInput] = useState('') // Immediate input value
+  const [searchQuery, setSearchQuery] = useState('') // Debounced value for filtering
   const [showSearch, setShowSearch] = useState(false)
   const [nearbyExpanded, setNearbyExpanded] = useState(false)
   const [filterRides, setFilterRides] = useState(true)
@@ -54,6 +55,12 @@ export default function MapTab({ rides, routes, onOpenDetail, userId }: MapTabPr
   const [filterCategory, setFilterCategory] = useState('all')
   const [showFilters, setShowFilters] = useState(false)
   const [activePopover, setActivePopover] = useState<'layers' | 'safety' | 'navigation' | null>(null)
+
+  // Debounce search query - only update after 300ms of inactivity
+  useEffect(() => {
+    const timer = setTimeout(() => setSearchQuery(searchInput), 300)
+    return () => clearTimeout(timer)
+  }, [searchInput])
 
   // POI state
   const [pois, setPois] = useState<PoiData[]>([])
@@ -427,17 +434,17 @@ export default function MapTab({ rides, routes, onOpenDetail, userId }: MapTabPr
           <div className="flex items-center gap-2 bg-background/90 backdrop-blur-md border border-border rounded-xl shadow-lg px-3 py-2">
             <Search className="h-4 w-4 text-muted-foreground shrink-0" />
             <Input
-              value={searchQuery}
+              value={searchInput}
               onChange={(e) => {
-                setSearchQuery(e.target.value)
+                setSearchInput(e.target.value)
                 if (e.target.value) setShowSearch(true)
               }}
               onFocus={() => setShowSearch(true)}
               placeholder="Išči vožnje in poti..."
               className="border-0 bg-transparent shadow-none focus-visible:ring-0 px-0 py-0 h-7 text-sm placeholder:text-muted-foreground"
             />
-            {searchQuery && (
-              <button onClick={() => { setSearchQuery(''); setShowSearch(false) }} className="shrink-0 p-0.5 rounded-full hover:bg-muted transition-colors">
+            {searchInput && (
+              <button onClick={() => { setSearchInput(''); setSearchQuery(''); setShowSearch(false) }} className="shrink-0 p-0.5 rounded-full hover:bg-muted transition-colors">
                 <X className="h-3.5 w-3.5 text-muted-foreground" />
               </button>
             )}
@@ -449,14 +456,14 @@ export default function MapTab({ rides, routes, onOpenDetail, userId }: MapTabPr
               <ScrollArea className="max-h-72">
                 {!hasResults && <div className="px-4 py-6 text-center text-sm text-muted-foreground">Ni zadetkov</div>}
                 {filteredRides.map((ride) => (
-                  <button key={`ride-${ride.id}`} onClick={() => { onOpenDetail(ride, 'ride'); setShowSearch(false); setSearchQuery('') }} className="w-full flex items-center gap-3 px-4 py-2.5 hover:bg-muted/50 transition-colors text-left">
+                  <button key={`ride-${ride.id}`} onClick={() => { onOpenDetail(ride, 'ride'); setShowSearch(false); setSearchInput(''); setSearchQuery('') }} className="w-full flex items-center gap-3 px-4 py-2.5 hover:bg-muted/50 transition-colors text-left">
                     <Badge variant="outline" className="bg-amber-500/20 text-amber-400 border-amber-500/30 shrink-0 text-[10px] px-1.5 py-0">Vožnja</Badge>
                     <span className="text-sm text-foreground truncate flex-1">{ride.title}</span>
                     <span className="text-xs text-muted-foreground shrink-0">{ride.distance} km</span>
                   </button>
                 ))}
                 {filteredRoutes.map((route) => (
-                  <button key={`route-${route.id}`} onClick={() => { onOpenDetail(route, 'route'); setShowSearch(false); setSearchQuery('') }} className="w-full flex items-center gap-3 px-4 py-2.5 hover:bg-muted/50 transition-colors text-left">
+                  <button key={`route-${route.id}`} onClick={() => { onOpenDetail(route, 'route'); setShowSearch(false); setSearchInput(''); setSearchQuery('') }} className="w-full flex items-center gap-3 px-4 py-2.5 hover:bg-muted/50 transition-colors text-left">
                     <Badge variant="outline" className={`${categoryColor(route.category)} shrink-0 text-[10px] px-1.5 py-0`}>Pot</Badge>
                     <span className="text-sm text-foreground truncate flex-1">{route.title}</span>
                     <span className="text-xs text-muted-foreground shrink-0">{route.distance} km</span>

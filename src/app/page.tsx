@@ -21,18 +21,43 @@ import { useSearchParams } from 'next/navigation'
 import type { TabId, RideData, RouteData, UserData, CommentData, WeatherData, LeaderboardUser, TrackPoint } from '@/components/tabs/types'
 import { haversine, formatDuration, formatDate, categoryLabel, categoryColor } from '@/components/tabs/types'
 
-// Lazy load heavy tab components
-const MapTab = dynamic(() => import('@/components/tabs/map-tab'), { ssr: false })
-const PlanTab = dynamic(() => import('@/components/tabs/plan-tab'), { ssr: false })
-const TrackTab = dynamic(() => import('@/components/tabs/track-tab'), { ssr: false })
-const ExploreTab = dynamic(() => import('@/components/tabs/explore-tab'), { ssr: false })
-const ProfileTab = dynamic(() => import('@/components/tabs/profile-tab'), { ssr: false })
-const MotoChat = dynamic(() => import('@/components/moto-chat'), { ssr: false })
-const DetailDialog = dynamic(() => import('@/components/tabs/detail-dialog'), { ssr: false })
-const NotificationBell = dynamic(() => import('@/components/notification-bell'), { ssr: false })
-const SosButton = dynamic(() => import('@/components/sos-button'), { ssr: false })
-const PwaInstallPrompt = dynamic(() => import('@/components/pwa-install-prompt').then(m => ({ default: m.PwaInstallPrompt })), { ssr: false })
-const AppShareButton = dynamic(() => import('@/components/app-share-button').then(m => ({ default: m.AppShareButton })), { ssr: false })
+// Retry wrapper for dynamic imports to handle ChunkLoadError
+function withRetry<T>(importFn: () => Promise<T>, retries = 3, delay = 500): () => Promise<T> {
+  return async () => {
+    for (let i = 0; i < retries; i++) {
+      try {
+        return await importFn()
+      } catch (err) {
+        if (i === retries - 1) throw err
+        // Wait before retrying
+        await new Promise(r => setTimeout(r, delay * (i + 1)))
+      }
+    }
+    throw new Error('Failed to load component')
+  }
+}
+
+const DynamicLoading = () => (
+  <div className="flex items-center justify-center py-12">
+    <div className="flex flex-col items-center gap-3">
+      <div className="size-8 border-2 border-primary border-t-transparent rounded-full animate-spin" />
+      <span className="text-xs text-muted-foreground">Nalaganje...</span>
+    </div>
+  </div>
+)
+
+// Lazy load heavy tab components with retry and loading states
+const MapTab = dynamic(withRetry(() => import('@/components/tabs/map-tab')), { ssr: false, loading: DynamicLoading })
+const PlanTab = dynamic(withRetry(() => import('@/components/tabs/plan-tab')), { ssr: false, loading: DynamicLoading })
+const TrackTab = dynamic(withRetry(() => import('@/components/tabs/track-tab')), { ssr: false, loading: DynamicLoading })
+const ExploreTab = dynamic(withRetry(() => import('@/components/tabs/explore-tab')), { ssr: false, loading: DynamicLoading })
+const ProfileTab = dynamic(withRetry(() => import('@/components/tabs/profile-tab')), { ssr: false, loading: DynamicLoading })
+const MotoChat = dynamic(withRetry(() => import('@/components/moto-chat')), { ssr: false, loading: () => null })
+const DetailDialog = dynamic(withRetry(() => import('@/components/tabs/detail-dialog')), { ssr: false, loading: () => null })
+const NotificationBell = dynamic(withRetry(() => import('@/components/notification-bell')), { ssr: false, loading: () => null })
+const SosButton = dynamic(withRetry(() => import('@/components/sos-button')), { ssr: false, loading: () => null })
+const PwaInstallPrompt = dynamic(withRetry(() => import('@/components/pwa-install-prompt').then(m => ({ default: m.PwaInstallPrompt }))), { ssr: false, loading: () => null })
+const AppShareButton = dynamic(withRetry(() => import('@/components/app-share-button').then(m => ({ default: m.AppShareButton }))), { ssr: false, loading: () => null })
 
 const tabs: { id: TabId; label: string; icon: React.ElementType }[] = [
   { id: 'map', label: 'Zemljevid', icon: MapIcon },
@@ -52,7 +77,7 @@ export default function HomePage() {
             <span className="font-bold text-sm tracking-tight">MotoTrack</span>
           </div>
         </header>
-        <main className="flex-1 pt-10 pb-20 px-4 max-w-lg mx-auto w-full">
+        <main className="flex-1 pt-11 pb-20 px-4 max-w-lg mx-auto w-full">
           <div className="py-6 space-y-6">
             <Skeleton className="w-full h-48 rounded-xl" />
             <Skeleton className="h-24 rounded-xl" />
@@ -288,14 +313,16 @@ function Home() {
     return (
       <div className="min-h-screen flex flex-col bg-background">
         {/* Header skeleton */}
-        <header className="fixed top-0 left-0 right-0 z-[1400] h-10 flex items-center px-4 bg-background/95 backdrop-blur-md">
-          <div className="flex items-center gap-2">
-            <Bike className="size-4 text-primary" />
-            <span className="font-bold text-sm tracking-tight">MotoTrack</span>
-            <span className="text-[10px] text-muted-foreground hidden sm:inline">GPS Sledenje</span>
+        <header className="fixed top-0 left-0 right-0 z-[1400] h-11 flex items-center px-4 bg-background/95 backdrop-blur-md">
+          <div className="flex items-center gap-2.5 flex-1">
+            <div className="flex items-center justify-center size-7 rounded-lg bg-primary/15">
+              <Bike className="size-4 text-primary" strokeWidth={2.2} />
+            </div>
+            <span className="font-extrabold text-sm tracking-tight text-primary">MotoTrack</span>
+            <span className="text-[9px] text-muted-foreground/60 hidden sm:inline uppercase tracking-widest">GPS Sledenje</span>
           </div>
         </header>
-        <div className="header-gradient-line fixed top-10 left-0 right-0 z-[1400]" />
+        <div className="header-gradient-line fixed top-11 left-0 right-0 z-[1400]" />
 
         <main className="flex-1 pt-10 pb-16 px-4 max-w-lg mx-auto w-full">
           <div className="py-6 space-y-6">
@@ -343,16 +370,18 @@ function Home() {
 
   return (
     <div className="min-h-screen flex flex-col bg-background">
-      {/* Header */}
-      <header className={`fixed top-0 left-0 right-0 z-[1400] h-10 flex items-center px-4 transition-all duration-300 ${
+      {/* Header - REVER-inspired with bold brand */}
+      <header className={`fixed top-0 left-0 right-0 z-[1400] h-11 flex items-center px-4 transition-all duration-300 ${
         activeTab === 'map'
-          ? 'bg-background/40 backdrop-blur-sm'
+          ? 'bg-black/30 backdrop-blur-sm'
           : 'bg-background/95 backdrop-blur-md'
       }`}>
-        <div className="flex items-center gap-2 flex-1">
-          <Bike className="size-4 text-primary" />
-          <span className="font-bold text-sm tracking-tight bg-gradient-to-r from-foreground to-foreground/70 bg-clip-text text-transparent">MotoTrack</span>
-          <span className="text-[10px] text-muted-foreground hidden sm:inline">GPS Sledenje</span>
+        <div className="flex items-center gap-2.5 flex-1">
+          <div className="flex items-center justify-center size-7 rounded-lg bg-primary/15">
+            <Bike className="size-4 text-primary" strokeWidth={2.2} />
+          </div>
+          <span className="font-extrabold text-sm tracking-tight text-primary">MotoTrack</span>
+          <span className="text-[9px] text-muted-foreground/60 hidden sm:inline uppercase tracking-widest">GPS Sledenje</span>
         </div>
         {mounted && (
           <div className="flex items-center gap-1">
@@ -371,11 +400,11 @@ function Home() {
         )}
       </header>
       {/* Header gradient accent line */}
-      <div className={`header-gradient-line fixed top-10 left-0 right-0 z-[1400] transition-opacity duration-300 ${
+      <div className={`header-gradient-line fixed top-11 left-0 right-0 z-[1400] transition-opacity duration-300 ${
         activeTab === 'map' ? 'opacity-40' : 'opacity-100'
       }`} />
 
-      <main className="flex-1 relative" style={{ paddingTop: activeTab === 'map' ? '0' : '40px', paddingBottom: 'calc(64px + env(safe-area-inset-bottom, 0px))' }}>
+      <main className="flex-1 relative" style={{ paddingTop: activeTab === 'map' ? '0' : '44px', paddingBottom: 'calc(64px + env(safe-area-inset-bottom, 0px))' }}>
         <div key={activeTab} className="tab-transition">
           {activeTab === 'map' && (
             <MapTab rides={rides} routes={routes} onOpenDetail={openDetail} userId={user?.id} />
@@ -442,17 +471,25 @@ function Home() {
       {/* PWA Install Prompt */}
       <PwaInstallPrompt />
 
-      {/* Bottom Nav */}
-      <nav className="fixed bottom-0 left-0 right-0 z-[1500] bg-background/95 backdrop-blur-md border-t border-border/50" style={{ paddingBottom: 'env(safe-area-inset-bottom, 0px)' }}>
+      {/* Bottom Nav - REVER-inspired with bold orange active state */}
+      <nav className="fixed bottom-0 left-0 right-0 z-[1500] bg-card/95 backdrop-blur-xl border-t border-border/30" style={{ paddingBottom: 'env(safe-area-inset-bottom, 0px)' }}>
         <div className="flex items-center justify-around max-w-lg mx-auto h-16">
           {tabs.map(tab => {
             const isActive = activeTab === tab.id
             return (
-              <button key={tab.id} onClick={() => setActiveTab(tab.id)} className={`relative flex flex-col items-center justify-center gap-1 px-4 py-2 rounded-xl transition-all duration-200 ${isActive ? 'text-primary' : 'text-muted-foreground hover:text-foreground'}`}>
-                <div className={`transition-all duration-200 ${isActive ? 'p-1.5 rounded-xl bg-primary/10' : ''}`}>
-                  <tab.icon className={`size-5 transition-transform duration-200 ${isActive ? 'text-primary scale-105' : 'scale-100'}`} />
+              <button key={tab.id} onClick={() => setActiveTab(tab.id)} className={`relative flex flex-col items-center justify-center gap-0.5 px-3 py-1.5 rounded-2xl transition-all duration-300 active:scale-95 ${isActive ? '' : 'text-muted-foreground/60 hover:text-foreground/80'}`}>
+                {/* Active background glow */}
+                {isActive && (
+                  <div className="absolute inset-0 rounded-2xl bg-primary/15 shadow-[0_0_16px_rgba(var(--primary-rgb),0.2)]" />
+                )}
+                {/* Active dot indicator above icon */}
+                {isActive && (
+                  <div className="absolute -top-0.5 size-1.5 rounded-full bg-primary shadow-[0_0_6px_rgba(var(--primary-rgb),0.6)]" />
+                )}
+                <div className="relative">
+                  <tab.icon className={`size-[22px] transition-all duration-300 ${isActive ? 'text-primary drop-shadow-[0_0_8px_rgba(var(--primary-rgb),0.4)]' : ''}`} strokeWidth={isActive ? 2.5 : 1.8} />
                 </div>
-                <span className={`text-[10px] font-semibold transition-all duration-200 ${isActive ? 'text-primary' : ''}`}>{tab.label}</span>
+                <span className={`relative text-[10px] tracking-tight transition-all duration-300 ${isActive ? 'text-primary font-bold' : 'font-medium'}`}>{tab.label}</span>
               </button>
             )
           })}

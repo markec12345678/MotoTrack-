@@ -12,6 +12,9 @@ const nextConfig: NextConfig = {
   serverExternalPackages: ['@libsql/client', '@prisma/adapter-libsql'],
   allowedDevOrigins: [
     "preview-chat-4a0e5d7e-260f-4e68-a19b-8c7bdf46a006.space-z.ai",
+    "0.0.0.0:3000",
+    "localhost:3000",
+    "0.0.0.0",
   ],
   headers: async () => [
     {

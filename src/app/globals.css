@@ -45,6 +45,7 @@
 
 :root {
   --radius: 0.625rem;
+  --primary-rgb: 50, 50, 50;
   --background: oklch(1 0 0);
   --foreground: oklch(0.145 0 0);
   --card: oklch(1 0 0);
@@ -79,6 +80,7 @@
 }
 
 .dark {
+  --primary-rgb: 217, 138, 32;
   --background: oklch(0.13 0.01 30);
   --foreground: oklch(0.96 0.01 60);
   --card: oklch(0.18 0.015 30);
@@ -222,17 +224,18 @@ html {
   box-shadow: 0 0 8px oklch(0.7 0.18 55 / 0.3);
 }
 
-/* Header gradient line */
+/* Header gradient line - REVER-style orange glow */
 .header-gradient-line {
   background: linear-gradient(
     90deg,
     transparent 0%,
-    oklch(0.7 0.18 55 / 0.6) 30%,
-    oklch(0.7 0.18 55 / 0.8) 50%,
-    oklch(0.7 0.18 55 / 0.6) 70%,
+    oklch(0.7 0.18 55 / 0.4) 20%,
+    oklch(0.7 0.18 55 / 0.9) 50%,
+    oklch(0.7 0.18 55 / 0.4) 80%,
     transparent 100%
   );
-  height: 1px;
+  height: 2px;
+  box-shadow: 0 0 8px oklch(0.7 0.18 55 / 0.3);
 }
 
 /* Custom Leaflet markers */
