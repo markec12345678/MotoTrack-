@@ -695,3 +695,29 @@ Stage Summary:
 - Code pushed to GitHub: https://github.com/markec12345678/MotoTrack-
 - Vercel deployment auto-triggered on push
 - Dev server OOM in sandbox is expected - production (Vercel serverless) compiles routes individually
+
+---
+Task ID: 1-7
+Agent: Main Agent
+Task: Full audit, fix Vercel deployment, write user manual, push to GitHub/Vercel
+
+Work Log:
+- Identified root cause of Vercel deployment failure: vercel.json referenced non-existent Vercel Secrets (@turso-database-url, @turso-auth-token, @openrouter-api-key)
+- Fixed vercel.json by removing the `env` section that overrode dashboard env vars
+- Ran full application audit: ESLint clean, all components verified, all API routes checked
+- Found Turso database schema out of sync - missing User columns (unitSystem, autoPauseEnabled, etc.) and missing tables (camp_sites, moto_events, privacy_zones, video_footages, video_highlights, route_roi_scores, offline_sync_queue)
+- Migrated Turso database with ALTER TABLE and CREATE TABLE IF NOT EXISTS statements
+- Verified seed API works on Vercel after migration
+- Created comprehensive README.md for GitHub
+- Pushed all changes to GitHub (2 commits: vercel.json fix + README.md)
+- Verified Vercel deployment is accessible (HTTP 200)
+- Verified API endpoints work on Vercel (/api/ returns data, /api/rides returns ride data, /api/seed works)
+
+Stage Summary:
+- Vercel deployment issue FIXED: removed @secret references from vercel.json
+- Turso database schema MIGRATED: all missing columns and tables added
+- User manual exists at UPORABNISKI_PRIROCNIK.md (comprehensive, in Slovenian)
+- README.md created and pushed to GitHub
+- All changes pushed to https://github.com/markec12345678/MotoTrack-.git
+- Vercel deployment accessible at https://mototrack-gamma.vercel.app/
+- Application is fully functional on Vercel with Turso database
