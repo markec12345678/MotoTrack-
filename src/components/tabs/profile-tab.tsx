@@ -840,11 +840,11 @@ export default function ProfileTab({ user, allUsers, rides, routes, loading, onS
                 {/* Expense totals */}
                 <div className="grid grid-cols-2 gap-2">
                   <div className="rounded-lg bg-emerald-500/10 p-2.5 text-center">
-                    <p className="text-base font-bold text-emerald-600 dark:text-emerald-400">{expenseTotals.thisMonth.toFixed(2)} €</p>
+                    <p className="text-base font-bold text-emerald-600 dark:text-emerald-400">{(expenseTotals.thisMonth ?? 0).toFixed(2)} €</p>
                     <p className="text-[10px] text-muted-foreground">Ta mesec</p>
                   </div>
                   <div className="rounded-lg bg-emerald-500/10 p-2.5 text-center">
-                    <p className="text-base font-bold text-emerald-600 dark:text-emerald-400">{expenseTotals.allTime.toFixed(2)} €</p>
+                    <p className="text-base font-bold text-emerald-600 dark:text-emerald-400">{(expenseTotals.allTime ?? 0).toFixed(2)} €</p>
                     <p className="text-[10px] text-muted-foreground">Skupaj</p>
                   </div>
                 </div>
@@ -855,7 +855,7 @@ export default function ProfileTab({ user, allUsers, rides, routes, loading, onS
                     {Object.entries(expenseByType).map(([t, amt]) => (
                       <span key={t} className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full text-[10px] bg-muted">
                         {t === 'fuel' ? '⛽' : t === 'maintenance' ? '🔧' : t === 'insurance' ? '🛡️' : t === 'parts' ? '🔩' : t === 'toll' ? '🛣️' : t === 'parking' ? '🅿️' : '📦'}
-                        {amt.toFixed(0)} €
+                        {(amt ?? 0).toFixed(0)} €
                       </span>
                     ))}
                   </div>
@@ -963,7 +963,7 @@ export default function ProfileTab({ user, allUsers, rides, routes, loading, onS
                               </div>
                             </div>
                             <div className="flex items-center gap-1">
-                              <span className="text-[11px] font-bold text-emerald-600 dark:text-emerald-400">{exp.amount.toFixed(2)} €</span>
+                              <span className="text-[11px] font-bold text-emerald-600 dark:text-emerald-400">{(exp.amount ?? 0).toFixed(2)} €</span>
                               <button
                                 className="size-4 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity text-destructive hover:bg-destructive/10"
                                 onClick={() => deleteExpense(exp.id)}

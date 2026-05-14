@@ -40,7 +40,7 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({
       success: true,
       data: expenses,
-      totals: { all: Math.round(totalAll * 100) / 100, month: Math.round(totalMonth * 100) / 100 },
+      totals: { allTime: Math.round(totalAll * 100) / 100, thisMonth: Math.round(totalMonth * 100) / 100 },
       byType,
     })
   } catch (error) {
