@@ -18,8 +18,11 @@ import {
   Play,
   Share2,
   Loader2,
+  Wifi,
+  WifiOff,
 } from 'lucide-react'
 import { toast } from 'sonner'
+import { io as socketIO, Socket } from 'socket.io-client'
 
 interface LiveTrackingPanelProps {
   userId?: string
@@ -35,16 +38,59 @@ export default function LiveTrackingPanel({ userId, onSessionChange }: LiveTrack
   const [loading, setLoading] = useState(false)
   const [currentSpeed, setCurrentSpeed] = useState(0)
   const [currentHeading, setCurrentHeading] = useState(0)
+  const [wsConnected, setWsConnected] = useState(false)
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null)
   const watchRef = useRef<number | null>(null)
   const updateIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null)
   const lastPositionRef = useRef<{ lat: number; lng: number; speed: number; heading: number } | null>(null)
   const sessionRef = useRef<LiveTrackingSession | null>(null)
+  const socketRef = useRef<Socket | null>(null)
 
   // Keep sessionRef in sync
   useEffect(() => {
     sessionRef.current = session
   }, [session])
+
+  // Initialize Socket.io connection
+  useEffect(() => {
+    const socket = socketIO('/', {
+      query: { XTransformPort: '3003' },
+      transports: ['websocket', 'polling'],
+      reconnection: true,
+      reconnectionAttempts: 10,
+      reconnectionDelay: 2000,
+    })
+
+    socket.on('connect', () => {
+      console.log('[LiveTracking] WebSocket connected')
+      setWsConnected(true)
+    })
+
+    socket.on('disconnect', () => {
+      console.log('[LiveTracking] WebSocket disconnected')
+      setWsConnected(false)
+    })
+
+    socket.on('connect_error', (err) => {
+      console.warn('[LiveTracking] WebSocket connection error:', err.message)
+      setWsConnected(false)
+    })
+
+    // Listen for viewer count updates (when we're the rider)
+    socket.on('viewer-count', (data: { shareToken: string; count: number }) => {
+      const currentSession = sessionRef.current
+      if (currentSession && currentSession.shareToken === data.shareToken) {
+        setViewerCount(data.count)
+      }
+    })
+
+    socketRef.current = socket
+
+    return () => {
+      socket.disconnect()
+      socketRef.current = null
+    }
+  }, [])
 
   // Fetch active sessions on mount
   useEffect(() => {
@@ -77,6 +123,20 @@ export default function LiveTrackingPanel({ userId, onSessionChange }: LiveTrack
           setDuration(elapsed)
 
           onSessionChange?.(restored)
+
+          // Re-join the WebSocket session as rider
+          const socket = socketRef.current
+          if (socket?.connected) {
+            socket.emit('start-broadcast', {
+              userId,
+              userName: 'Rider',
+              shareToken: activeSession.shareToken,
+              lat: activeSession.lat ?? 0,
+              lng: activeSession.lng ?? 0,
+              speed: 0,
+              heading: 0,
+            })
+          }
         }
       } catch {
         // Silently fail on mount
@@ -100,7 +160,7 @@ export default function LiveTrackingPanel({ userId, onSessionChange }: LiveTrack
     }
   }, [isActive])
 
-  // Poll viewer count while active
+  // Poll viewer count as fallback (less frequent since we also get WS updates)
   useEffect(() => {
     if (!isActive || !userId) return
 
@@ -112,25 +172,41 @@ export default function LiveTrackingPanel({ userId, onSessionChange }: LiveTrack
         const sessions = json.data as Array<LiveTrackingSession & { viewerCount?: number }>
         const current = sessions?.find(s => s.id === sessionRef.current?.id)
         if (current?.viewerCount !== undefined) {
-          setViewerCount(current.viewerCount)
+          // Only update if WebSocket isn't connected (fallback)
+          if (!socketRef.current?.connected) {
+            setViewerCount(current.viewerCount)
+          }
         }
       } catch {
         // Silently fail
       }
     }
 
-    const interval = setInterval(pollViewers, 10000)
+    const interval = setInterval(pollViewers, 30000) // 30s fallback poll
     return () => clearInterval(interval)
   }, [isActive, userId])
 
-  // Send position updates to API periodically while tracking
-  const startPositionUpdates = useCallback((sessionId: string) => {
+  // Send position updates via HTTP API AND WebSocket while tracking
+  const startPositionUpdates = useCallback((sessionId: string, shareToken: string) => {
     if (updateIntervalRef.current) clearInterval(updateIntervalRef.current)
 
     updateIntervalRef.current = setInterval(async () => {
       const pos = lastPositionRef.current
       if (!pos) return
 
+      // 1. Send via WebSocket (real-time, primary)
+      const socket = socketRef.current
+      if (socket?.connected) {
+        socket.emit('location-update', {
+          shareToken,
+          lat: pos.lat,
+          lng: pos.lng,
+          speed: pos.speed,
+          heading: pos.heading,
+        })
+      }
+
+      // 2. Send via HTTP API (fallback/persistence)
       try {
         await fetch('/api/live-tracking', {
           method: 'PUT',
@@ -144,7 +220,7 @@ export default function LiveTrackingPanel({ userId, onSessionChange }: LiveTrack
           }),
         })
       } catch {
-        // Silently fail
+        // Silently fail - WS update may still have gone through
       }
     }, 5000) // Update every 5 seconds
   }, [])
@@ -211,10 +287,11 @@ export default function LiveTrackingPanel({ userId, onSessionChange }: LiveTrack
       }
 
       const json = await res.json()
-      const fullUrl = `${typeof window !== 'undefined' ? window.location.origin : ''}/live/${json.data.shareToken}`
+      const shareToken = json.data.shareToken as string
+      const fullUrl = `${typeof window !== 'undefined' ? window.location.origin : ''}/live/${shareToken}`
       const newSession: LiveTrackingSession = {
         id: json.data.id,
-        shareToken: json.data.shareToken,
+        shareToken,
         shareUrl: fullUrl,
         isActive: true,
         startedAt: json.data.startedAt,
@@ -232,6 +309,20 @@ export default function LiveTrackingPanel({ userId, onSessionChange }: LiveTrack
       // Store initial position
       lastPositionRef.current = { lat, lng, speed, heading }
 
+      // Start broadcasting via WebSocket
+      const socket = socketRef.current
+      if (socket?.connected) {
+        socket.emit('start-broadcast', {
+          userId,
+          userName: 'Rider',
+          shareToken,
+          lat,
+          lng,
+          speed,
+          heading,
+        })
+      }
+
       // Start watching GPS position
       watchRef.current = navigator.geolocation.watchPosition(
         (pos) => {
@@ -243,6 +334,19 @@ export default function LiveTrackingPanel({ userId, onSessionChange }: LiveTrack
           lastPositionRef.current = { lat: newLat, lng: newLng, speed: newSpeed, heading: newHeading }
           setCurrentSpeed(newSpeed)
           setCurrentHeading(newHeading)
+
+          // Emit real-time WebSocket location update on every GPS update
+          const currentSocket = socketRef.current
+          const currentSession = sessionRef.current
+          if (currentSocket?.connected && currentSession?.shareToken) {
+            currentSocket.emit('location-update', {
+              shareToken: currentSession.shareToken,
+              lat: newLat,
+              lng: newLng,
+              speed: newSpeed,
+              heading: newHeading,
+            })
+          }
         },
         (err) => {
           console.warn('GPS watch error:', err.message)
@@ -250,8 +354,8 @@ export default function LiveTrackingPanel({ userId, onSessionChange }: LiveTrack
         { enableHighAccuracy: true, maximumAge: 2000, timeout: 10000 }
       )
 
-      // Start periodic position updates to API
-      startPositionUpdates(json.data.id)
+      // Start periodic position updates to API (fallback persistence)
+      startPositionUpdates(json.data.id, shareToken)
 
       toast.success('Sledenje v živo začeto!')
     } catch (err: any) {
@@ -278,6 +382,14 @@ export default function LiveTrackingPanel({ userId, onSessionChange }: LiveTrack
       if (!res.ok) {
         const err = await res.json()
         throw new Error(err.error || 'Napaka pri ustavitvi seje')
+      }
+
+      // Stop broadcasting via WebSocket
+      const socket = socketRef.current
+      if (socket?.connected && session.shareToken) {
+        socket.emit('stop-broadcast', {
+          shareToken: session.shareToken,
+        })
       }
 
       cleanupTracking()
@@ -319,6 +431,20 @@ export default function LiveTrackingPanel({ userId, onSessionChange }: LiveTrack
               V ŽIVO
             </Badge>
           )}
+          {/* WebSocket connection indicator */}
+          <div className="ml-auto flex items-center gap-1">
+            {wsConnected ? (
+              <div className="flex items-center gap-1 text-emerald-500">
+                <Wifi className="h-3.5 w-3.5" />
+                <span className="text-[9px] font-medium">WS</span>
+              </div>
+            ) : (
+              <div className="flex items-center gap-1 text-muted-foreground">
+                <WifiOff className="h-3.5 w-3.5" />
+                <span className="text-[9px]">WS</span>
+              </div>
+            )}
+          </div>
         </CardTitle>
       </CardHeader>
       <CardContent className="space-y-4">

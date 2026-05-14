@@ -35,7 +35,7 @@ export async function PUT(
   try {
     const { id } = await params
     const body = await request.json()
-    const { status, gpsTrackOffset } = body
+    const { status, gpsTrackOffset, rideId } = body
 
     const existing = await db.videoFootage.findUnique({ where: { id } })
     if (!existing) {
@@ -45,6 +45,7 @@ export async function PUT(
     const updateData: Record<string, unknown> = {}
     if (status) updateData.status = status
     if (gpsTrackOffset !== undefined) updateData.gpsTrackOffset = gpsTrackOffset
+    if (rideId !== undefined) updateData.rideId = rideId
 
     const video = await db.videoFootage.update({
       where: { id },

@@ -14,9 +14,9 @@ import {
   Sparkles,
   Brain,
   Video,
-  Crown,
   RefreshCw,
   BarChart3,
+  Radio,
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Skeleton } from '@/components/ui/skeleton'
@@ -68,9 +68,10 @@ const AppShareButton = dynamic(withRetry(() => import('@/components/app-share-bu
 // New v2 feature panels
 const SmartRecommendationsPanel = dynamic(withRetry(() => import('@/components/smart-recommendations-panel')), { ssr: false, loading: DynamicLoading })
 const VideoSyncPanel = dynamic(withRetry(() => import('@/components/video-sync-panel')), { ssr: false, loading: DynamicLoading })
-const SubscriptionPanel = dynamic(withRetry(() => import('@/components/subscription-panel')), { ssr: false, loading: DynamicLoading })
 const OfflineSyncPanel = dynamic(withRetry(() => import('@/components/offline-sync-panel')), { ssr: false, loading: DynamicLoading })
 const RouteRoiPanel = dynamic(withRetry(() => import('@/components/route-roi-panel')), { ssr: false, loading: DynamicLoading })
+const LiveTrackingPanel = dynamic(withRetry(() => import('@/components/live-tracking-panel')), { ssr: false, loading: DynamicLoading })
+const LiveTrackingViewer = dynamic(withRetry(() => import('@/components/live-tracking-viewer')), { ssr: false, loading: DynamicLoading })
 
 const tabs: { id: TabId; label: string; icon: React.ElementType }[] = [
   { id: 'map', label: 'Zemljevid', icon: MapIcon },
@@ -150,7 +151,7 @@ function Home() {
 
   // Feature hub (new v2 features)
   const [featureOpen, setFeatureOpen] = useState(false)
-  const [featureTab, setFeatureTab] = useState<'roi' | 'smart' | 'video' | 'subscription' | 'sync'>('smart')
+  const [featureTab, setFeatureTab] = useState<'roi' | 'smart' | 'video' | 'live' | 'sync'>('smart')
 
   // Comments
   const [comments, setComments] = useState<CommentData[]>([])
@@ -500,7 +501,7 @@ function Home() {
               size="icon"
               className="size-8 rounded-lg hover:bg-primary/10 relative"
               onClick={() => setFeatureOpen(true)}
-              title="PRO Funkcije"
+              title="Napredne funkcije"
             >
               <Sparkles className="size-3.5 text-primary" />
               <span className="absolute -top-0.5 -right-0.5 w-2 h-2 bg-primary rounded-full animate-pulse" />
@@ -600,8 +601,8 @@ function Home() {
                   <Sparkles className="size-4 text-primary" />
                 </div>
                 <div>
-                  <h2 className="text-sm font-bold">PRO Funkcije</h2>
-                  <p className="text-[10px] text-muted-foreground">Napredne zmožnosti MotoTrack</p>
+                  <h2 className="text-sm font-bold">Napredne funkcije</h2>
+                  <p className="text-[10px] text-muted-foreground">Vse zmožnosti MotoTrack — brezplačno</p>
                 </div>
               </div>
               <Button variant="ghost" size="icon" className="size-8" onClick={() => setFeatureOpen(false)}>
@@ -615,7 +616,7 @@ function Home() {
                 { id: 'smart' as const, label: 'Priporočila', icon: Brain },
                 { id: 'roi' as const, label: 'ROI', icon: BarChart3 },
                 { id: 'video' as const, label: 'Video', icon: Video },
-                { id: 'subscription' as const, label: 'PRO', icon: Crown },
+                { id: 'live' as const, label: 'V živo', icon: Radio },
                 { id: 'sync' as const, label: 'Sync', icon: RefreshCw },
               ].map(ft => (
                 <button
@@ -675,8 +676,11 @@ function Home() {
               {featureTab === 'video' && (
                 <VideoSyncPanel userId={user?.id} />
               )}
-              {featureTab === 'subscription' && (
-                <SubscriptionPanel userId={user?.id} />
+              {featureTab === 'live' && (
+                <div className="space-y-4">
+                  <LiveTrackingPanel userId={user?.id} />
+                  <LiveTrackingViewer />
+                </div>
               )}
               {featureTab === 'sync' && (
                 <OfflineSyncPanel userId={user?.id} />

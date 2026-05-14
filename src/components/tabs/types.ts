@@ -907,21 +907,6 @@ export interface VideoFootageData {
   createdAt: string
 }
 
-// Subscription
-export interface SubscriptionData {
-  id: string
-  userId: string
-  plan: 'free' | 'pro' | 'elite'
-  status: 'active' | 'cancelled' | 'expired' | 'trial'
-  stripeCustomerId: string | null
-  stripeSubscriptionId: string | null
-  trialEndsAt: string | null
-  currentPeriodEnd: string | null
-  cancelAtPeriodEnd: boolean
-  createdAt: string
-  updatedAt: string
-}
-
 // Offline Sync Queue Item
 export interface SyncQueueItem {
   id: string
@@ -937,11 +922,4 @@ export interface SyncQueueItem {
   createdAt: string
 }
 
-// PRO Feature
-export interface ProFeatureData {
-  featureKey: string
-  name: string
-  description: string | null
-  category: string
-  isProOnly: boolean
-}
+

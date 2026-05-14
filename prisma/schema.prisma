@@ -76,7 +76,6 @@ model User {
   socialActivities        SocialActivity[]
   privacyZones            PrivacyZone[]
   videoFootages           VideoFootage[]
-  subscription            Subscription[]
   routeRoiScores          RouteRoiScore[]
   offlineSyncQueue        OfflineSyncQueue[]
 }
@@ -778,29 +777,6 @@ model VideoHighlight {
   @@map("video_highlights")
 }
 
-// Subscription plans for monetization
-model Subscription {
-  id                  String    @id @default(cuid())
-  userId              String
-  plan                String    // free, pro, elite
-  status              String    // active, cancelled, expired, trial
-  stripeCustomerId    String?   @unique
-  stripeSubscriptionId String?  @unique
-  stripePriceId       String?
-  trialEndsAt         DateTime?
-  currentPeriodStart  DateTime?
-  currentPeriodEnd    DateTime?
-  cancelAtPeriodEnd   Boolean   @default(false)
-  createdAt           DateTime  @default(now())
-  updatedAt           DateTime  @updatedAt
-
-  user                User      @relation(fields: [userId], references: [id])
-
-  @@index([userId])
-  @@index([status])
-  @@map("subscriptions")
-}
-
 // Smart Route ROI scoring
 model RouteRoiScore {
   id                    String   @id @default(cuid())
@@ -849,15 +825,4 @@ model OfflineSyncQueue {
   @@map("offline_sync_queue")
 }
 
-// PRO feature catalog
-model ProFeature {
-  id          String   @id @default(cuid())
-  featureKey  String   @unique
-  name        String
-  description String?
-  category    String   // navigation, maps, social, analytics, video
-  isProOnly   Boolean  @default(true)
-  createdAt   DateTime @default(now())
 
-  @@map("pro_features")
-}

@@ -404,3 +404,150 @@ Stage Summary:
 - All new components use Slovenian UI text
 - Database schema has 34 models (6 new added)
 - Service Worker updated to v3 with background sync
+
+---
+Task ID: 6
+Agent: PWA Agent
+Task: Implement PWA/Offline-first improvements
+
+Work Log:
+
+1. Rewrote Service Worker (public/sw.js) — upgraded from v3 to v4:
+   - Separated cache types: STATIC_CACHE, DYNAMIC_CACHE, API_CACHE, APP_SHELL_CACHE (all versioned)
+   - Cache-first strategy for static assets (CSS, JS, images, fonts) via handleStaticAsset()
+   - Network-first strategy for API GET requests with cache fallback via handleApiGet()
+   - Stale-while-revalidate for other resources via handleStaleWhileRevalidate()
+   - Navigation requests: network-first with app shell fallback and offline HTML page
+   - Background sync for non-GET requests: POST/PUT/DELETE queued when offline, auto-processed when back online
+   - Enhanced IndexedDB: added 'offline-data' object store for ride drafts, improved queue persistence
+   - Process queue with attempt tracking (max 5 attempts), client notifications for success/failure
+   - Client messaging: GET_QUEUE_STATUS, TRIGGER_SYNC, STORE_OFFLINE_DATA, SKIP_WAITING
+   - Periodic sync: refreshes key API endpoints (/api/rides, /api/routes, /api/user, /api/leaderboard)
+   - Cacheable API paths: 18 API routes defined for offline fallback
+   - Slovenian offline HTML fallback page with MotoTrack branding
+   - Cache-aware API responses include X-Served-From and X-Cache-Age headers
+
+2. Rewrote PWA Registration component (src/components/pwa-register.tsx):
+   - Service worker registration on mount with immediate update check
+   - Service worker update detection: shows toast notification with "Osveži" (Refresh) button
+   - Update available banner with download icon and refresh button
+   - Online/offline event monitoring with toast notifications in Slovenian
+   - Auto-triggers background sync when coming back online (via ref to avoid stale closure)
+   - Listens for SW messages: QUEUE_STATUS, SYNC_SUCCESS, SYNC_FAILED, SYNC_PROGRESS
+   - Offline indicator bar: fixed orange bar at top showing "Brez povezave" with queue count
+   - Periodic SW queue status polling every 10s when online
+   - Controller change handler: auto-reloads page when new SW takes control
+
+3. Enhanced OfflineSyncPanel (src/components/offline-sync-panel.tsx):
+   - Automatic background sync when coming back online (via handleSyncAllRef)
+   - Prominent offline/online status badge with pulse animation when offline
+   - Offline mode banner: orange warning bar explaining local data saving
+   - Storage usage estimate: shows usage/quota with progress bar and >80% warning
+   - Manual test item addition: "Dodaj testno postavko" button with random entity/operation
+   - Background sync trigger: Zap button to manually trigger SW sync
+   - SW queue length indicator: shows items in Service Worker's IndexedDB queue
+   - Periodic auto-refresh every 15s for items and SW queue status
+   - Additional entity labels: expense, maintenance, hazard, event, camp
+   - Summary shows: pending count, completed count, failed count in Slovenian
+
+4. Updated PWA Manifest (public/manifest.json):
+   - name: "MotoTrack" (was "MotoTrack - GPS Sledenje za Motoriste")
+   - short_name: "MotoTrack" (unchanged)
+   - description: "GPS Sledenje za Motoriste" (was longer description)
+   - theme_color: "#f97316" (was "#16a34a" green, now orange to match app branding)
+   - Added dir: "ltr"
+   - Added description to shortcuts
+   - Added third shortcut: "Raziskuj" for explore tab
+   - Added related_applications: [] and prefer_related_applications: false
+   - Existing icons and shortcuts preserved
+
+5. Lint fixes:
+   - Fixed forward reference in pwa-register.tsx: moved callbacks before effects, used refs for stable references
+   - Fixed unused eslint-disable in offline-sync-panel.tsx: used ref pattern for handleSyncAll
+   - Fixed react-hooks/set-state-in-effect: lazy initialization with getInitialOnlineStatus() for useState
+   - All lint checks pass cleanly (0 errors, 0 warnings)
+
+Stage Summary:
+- Service Worker v4 with proper offline-first strategies: cache-first for static, network-first for API, stale-while-revalidate for others
+- Background sync with IndexedDB persistence and client notifications
+- PWA registration with update toast, online/offline indicators, and auto-sync
+- OfflineSyncPanel with storage estimate, test item creation, and SW queue display
+- Manifest updated to orange theme (#f97316) with correct Slovenian description
+- All UI text in Slovenian
+- Lint passes cleanly
+
+---
+Task ID: 3
+Agent: Live Tracking Agent
+Task: Build Live Location Sharing WebSocket mini-service
+
+Work Log:
+
+1. Updated WebSocket mini-service at mini-services/live-tracking/:
+   - Rewrote index.ts with new event schema matching the task specification:
+     - `join-session`: `{ shareToken: string }` → viewer joins a tracking session room
+     - `location-update`: `{ shareToken, lat, lng, speed, heading }` → rider broadcasts location, server relays to viewers
+     - `leave-session`: `{ shareToken }` → viewer leaves a tracking session
+     - `viewer-count`: `{ shareToken, count }` → emitted to all participants when viewer count changes
+     - `rider-location`: `{ lat, lng, speed, heading }` → emitted to viewers when rider sends location-update
+     - `rider-stopped`: `{ shareToken }` → emitted when rider stops broadcasting or disconnects
+   - In-memory session store keyed by shareToken (tracks rider position, viewers, last update time)
+   - Socket-to-session mapping for cleanup on disconnect
+   - Rider role vs viewer role tracking per socket
+   - Backward-compatible `start-broadcast` and `stop-broadcast` events
+   - Auto-session creation if rider sends `location-update` before `start-broadcast`
+   - Periodic cleanup of stale sessions (10 min threshold) every 60 seconds
+   - Health check endpoint: GET /health → active sessions, total viewers
+   - Sessions listing: GET /sessions → all active sessions with details
+   - CORS enabled for all origins
+   - Port: 3003
+   - package.json with `bun --hot index.ts` dev script
+
+2. Updated LiveTrackingPanel (src/components/live-tracking-panel.tsx):
+   - Added Socket.io client integration with `io("/?XTransformPort=3003")`
+   - WebSocket connection indicator (Wifi/WifiOff icon with "WS" label) in header
+   - When starting tracking session: emits `start-broadcast` via WebSocket with shareToken
+   - On GPS position updates: emits `location-update` via WebSocket for real-time relay to viewers
+   - Periodic HTTP API updates every 5 seconds as fallback/persistence layer
+   - Listens for `viewer-count` events from WebSocket for real-time viewer count updates
+   - On stop tracking: emits `stop-broadcast` via WebSocket
+   - HTTP polling for viewer count reduced to 30s interval (fallback only, since WS provides real-time)
+   - On restore active session: re-joins WebSocket as rider with `start-broadcast`
+   - All existing HTTP API functionality preserved as fallback
+
+3. Created LiveTrackingViewer component (src/components/live-tracking-viewer.tsx):
+   - Full-featured real-time rider tracking viewer
+   - Socket.io integration with `io("/?XTransformPort=3003")` 
+   - Token input to join a session by share code
+   - `join-session` event on connect, `leave-session` on disconnect
+   - Listens for `rider-location` events to update rider position in real-time
+   - Listens for `viewer-count` events for live viewer count
+   - Listens for `rider-stopped` event with notification
+   - Leaflet map with:
+     - Custom motorcycle rider marker (orange circle with 🏍️ emoji)
+     - Orange dashed trail polyline (last 100 positions)
+     - Live/V ŽIVO badge overlay on map
+     - Last update time indicator
+     - Re-center button (Crosshair icon)
+     - Auto-follow rider (disables on manual pan)
+   - Rider info panel with:
+     - Speed (km/h), heading (° with compass direction), viewer count
+     - Position coordinates display
+     - Follow indicator badge
+   - HTTP API fallback: fetches initial position from `/api/live-tracking/[token]`
+   - All UI text in Slovenian (Sledenje vozniku, Pridruži se seji, V živo, Gledalci, etc.)
+
+4. Integrated LiveTrackingViewer in Feature Hub (page.tsx):
+   - Added dynamic import for LiveTrackingViewer
+   - "V živo" tab now shows both LiveTrackingPanel (broadcaster) and LiveTrackingViewer (viewer) stacked
+   - Both panels visible in Feature Hub for complete live tracking workflow
+
+5. Lint check passes cleanly (0 errors, 0 warnings)
+
+Stage Summary:
+- WebSocket mini-service on port 3003 with 5 event types: join-session, location-update, leave-session, viewer-count, rider-location
+- LiveTrackingPanel now uses Socket.io for real-time updates alongside HTTP API fallback
+- LiveTrackingViewer provides complete map-based rider tracking with real-time position, trail, and viewer count
+- Feature Hub "V živo" tab shows broadcaster and viewer panels together
+- All UI in Slovenian
+- Lint passes cleanly
