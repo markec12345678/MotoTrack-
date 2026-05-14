@@ -451,3 +451,26 @@ Stage Summary:
 - All API routes force-dynamic to prevent static generation crashes
 - next.config.ts properly externalizes libsql native bindings
 - Vercel needs these env vars: DATABASE_URL, TURSO_DATABASE_URL, TURSO_AUTH_TOKEN, OPENROUTER_API_KEY
+
+---
+Task ID: Vercel-Fix-Session-2
+Agent: Main
+Task: Fix Vercel Redeploy not working - push all commits + build improvements
+
+Work Log:
+- Discovered 3 commits were NOT pushed to GitHub (Vercel never received fixes!)
+- Pushed all commits including force-dynamic, serverExternalPackages, db.ts fixes
+- Added empty commit to trigger Vercel rebuild
+- Updated package.json: added packageManager field for Bun detection
+- Changed build/postinstall scripts to use npx prisma generate (more reliable)
+- Added DATABASE_URL fallback in db.ts: sets process.env.DATABASE_URL = 'file:./dev.db' if undefined
+  This prevents PrismaClient from throwing URL_INVALID when env var is missing
+- Verified all APIs working locally: users(200), hazards(200), rides(200)
+- Lint: 0 errors
+- All commits pushed to GitHub
+
+Stage Summary:
+- Root cause of Redeploy not working: commits were not pushed to GitHub
+- Additional safety: DATABASE_URL now set programmatically if missing
+- Build scripts improved with npx for reliability
+- packageManager field helps Vercel detect Bun correctly
