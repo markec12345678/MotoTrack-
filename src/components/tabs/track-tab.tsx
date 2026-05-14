@@ -12,6 +12,8 @@ import { type UnitSystem, convertSpeed, convertDistance, speedUnit, distanceUnit
 const CrashDetectionPanel = dynamic(() => import('@/components/crash-detection-panel'), { ssr: false })
 const LiveTrackingPanel = dynamic(() => import('@/components/live-tracking-panel'), { ssr: false })
 const LeanAngleDisplay = dynamic(() => import('@/components/lean-angle-display'), { ssr: false })
+const WeatherAlertsPanel = dynamic(() => import('@/components/weather-alerts-panel'), { ssr: false })
+const GradientAnalysis = dynamic(() => import('@/components/gradient-analysis'), { ssr: false })
 
 const MotoMap = dynamic(() => import('@/components/moto-map'), { ssr: false })
 
@@ -153,7 +155,9 @@ export default function TrackTab({
             <Badge variant="secondary" className="text-[9px] px-1.5 py-0">LIVE</Badge>
           </button>
           {showFeatures && (
-            <div className="mt-2 space-y-2 max-h-60 overflow-y-auto custom-scrollbar">
+            <div className="mt-2 space-y-2 max-h-80 overflow-y-auto custom-scrollbar">
+              <WeatherAlertsPanel lat={trackPoints.length > 0 ? trackPoints[trackPoints.length - 1].lat : null} lng={trackPoints.length > 0 ? trackPoints[trackPoints.length - 1].lng : null} isTracking={isTracking} />
+              <GradientAnalysis points={trackPoints} />
               <CrashDetectionPanel userId={userId} />
               <LiveTrackingPanel userId={userId} />
               <LeanAngleDisplay currentAngle={0} userId={userId} isTracking={isTracking} />

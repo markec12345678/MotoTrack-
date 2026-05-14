@@ -1,67 +1,27 @@
-import { db } from '@/lib/db'
 import { NextRequest, NextResponse } from 'next/server'
+import { db } from '@/lib/db'
 
 export const dynamic = 'force-dynamic'
 
-// GET /api/events/[id] - Get single event by ID
-export async function GET(
-  _request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
-) {
+export async function GET(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
     const { id } = await params
-
-    const event = await db.motoEvent.findUnique({
-      where: { id },
-    })
-
-    if (!event) {
-      return NextResponse.json(
-        { success: false, error: 'Event not found' },
-        { status: 404 }
-      )
-    }
-
-    return NextResponse.json({
-      success: true,
-      data: event,
-    })
+    const event = await db.motoEvent.findUnique({ where: { id } })
+    if (!event) return NextResponse.json({ error: 'Dogodek ni najden' }, { status: 404 })
+    return NextResponse.json({ data: event })
   } catch (error) {
-    console.error('Fetch event error:', error)
-    return NextResponse.json(
-      { success: false, error: 'Failed to fetch event' },
-      { status: 500 }
-    )
+    console.error('Event fetch error:', error)
+    return NextResponse.json({ error: 'Napaka' }, { status: 500 })
   }
 }
 
-// DELETE /api/events/[id] - Delete event by ID
-export async function DELETE(
-  _request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
-) {
+export async function DELETE(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
     const { id } = await params
-
-    const event = await db.motoEvent.findUnique({ where: { id } })
-    if (!event) {
-      return NextResponse.json(
-        { success: false, error: 'Event not found' },
-        { status: 404 }
-      )
-    }
-
     await db.motoEvent.delete({ where: { id } })
-
-    return NextResponse.json({
-      success: true,
-      message: 'Event deleted successfully',
-    })
+    return NextResponse.json({ data: { deleted: true } })
   } catch (error) {
-    console.error('Delete event error:', error)
-    return NextResponse.json(
-      { success: false, error: 'Failed to delete event' },
-      { status: 500 }
-    )
+    console.error('Event delete error:', error)
+    return NextResponse.json({ error: 'Napaka pri brisanju' }, { status: 500 })
   }
 }

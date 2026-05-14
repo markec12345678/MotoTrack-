@@ -6,7 +6,7 @@ import {
   Heart, User, Clock, Star, Trophy, Crown, Medal,
   Users, Plus, LogOut, Shield, Sparkles, UserPlus,
   UserCheck, UserMinus, UserX, Send, MapPin, Calendar,
-  ChevronRight, Trash2, Wrench, Fuel, GitCompare, ArrowLeft,
+  ChevronRight, Trash2, Wrench, Fuel, GitCompare, ArrowLeft, Tent,
 } from 'lucide-react'
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
@@ -25,6 +25,9 @@ import { formatDuration, categoryLabel, categoryColor, formatDate } from '@/comp
 import ChallengesPanel from '@/components/challenges-panel'
 import ServiceLocator from '@/components/service-locator'
 import FuelPriceCard from '@/components/fuel-price-card'
+import BalkanEventsPanel from '@/components/balkan-events-panel'
+import BalkanCampsPanel from '@/components/balkan-camps-panel'
+import BalkanRoadsPanel from '@/components/balkan-roads-panel'
 
 // Tab pill component (defined outside render to avoid re-creation)
 function TabPill({ active, onClick, icon, label, badge, notification }: {
@@ -68,7 +71,7 @@ const ExploreTabInner = React.memo(function ExploreTabInner({ rides, routes, lea
   const [exploreCategory, setExploreCategory] = useState<string>('all')
   const [searchQuery, setSearchQuery] = useState('')
   const debouncedSearchQuery = useDebounce(searchQuery, 200)
-  const [exploreSection, setExploreSection] = useState<'discover' | 'feed' | 'favorites' | 'communities' | 'friends' | 'grouprides' | 'challenges' | 'services' | 'fuel' | 'comparison'>('discover')
+  const [exploreSection, setExploreSection] = useState<'discover' | 'feed' | 'favorites' | 'communities' | 'friends' | 'grouprides' | 'challenges' | 'services' | 'fuel' | 'comparison' | 'events' | 'camps' | 'balkanroads'>('discover')
 
   // Comparison state
   const [selectedRideIds, setSelectedRideIds] = useState<string[]>([])
@@ -482,6 +485,24 @@ const ExploreTabInner = React.memo(function ExploreTabInner({ rides, routes, lea
               onClick={() => { setExploreSection('comparison'); setShowComparison(false); setSelectedRideIds([]) }}
               icon={<GitCompare className="size-3.5" />}
               label="Primerjava"
+            />
+            <TabPill
+              active={exploreSection === 'events'}
+              onClick={() => setExploreSection('events')}
+              icon={<Calendar className="size-3.5" />}
+              label="Dogodki"
+            />
+            <TabPill
+              active={exploreSection === 'camps'}
+              onClick={() => setExploreSection('camps')}
+              icon={<span className="text-sm">⛺</span>}
+              label="Kampi"
+            />
+            <TabPill
+              active={exploreSection === 'balkanroads'}
+              onClick={() => setExploreSection('balkanroads')}
+              icon={<span className="text-sm">🗺️</span>}
+              label="Ceste"
             />
           </div>
         </div>
@@ -1430,6 +1451,15 @@ const ExploreTabInner = React.memo(function ExploreTabInner({ rides, routes, lea
               })()
             )}
           </div>
+        ) : exploreSection === 'events' ? (
+          /* ====== BALKAN EVENTS SECTION ====== */
+          <BalkanEventsPanel userId={userId} />
+        ) : exploreSection === 'camps' ? (
+          /* ====== BALKAN CAMPS SECTION ====== */
+          <BalkanCampsPanel userId={userId} />
+        ) : exploreSection === 'balkanroads' ? (
+          /* ====== BALKAN ROADS SECTION ====== */
+          <BalkanRoadsPanel />
         ) : (
           /* ====== DISCOVER SECTION ====== */
           <>

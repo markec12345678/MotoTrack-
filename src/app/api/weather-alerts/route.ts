@@ -2,166 +2,259 @@ import { NextRequest, NextResponse } from 'next/server'
 
 export const dynamic = 'force-dynamic'
 
-interface WeatherAlert {
-  type: 'storm' | 'heavy_rain' | 'ice' | 'thunderstorm'
-  severity: 'warning' | 'danger' | 'extreme'
+interface WeatherAlertResult {
+  id: string
+  type: 'wind' | 'rain' | 'storm' | 'ice' | 'fog' | 'heat' | 'snow'
+  severity: 'low' | 'medium' | 'high' | 'extreme'
   title: string
   description: string
   lat: number
   lng: number
   radius: number
-  expiresAt: string
+  startTime: string
+  endTime: string
   source: string
 }
 
-interface OpenMeteoResponse {
-  current?: {
-    wind_speed_10m?: number
-    precipitation?: number
-    temperature_2m?: number
-    weather_code?: number
-  }
-}
-
-// WMO Weather codes that indicate thunderstorms
-const THUNDERSTORM_CODES = new Set([95, 96, 99])
-
-// GET /api/weather-alerts - Fetch weather alerts for a region
 export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url)
-    const lat = searchParams.get('lat')
-    const lng = searchParams.get('lng')
-    const radius = parseFloat(searchParams.get('radius') || '100')
+    const lat = parseFloat(searchParams.get('lat') || '0')
+    const lng = parseFloat(searchParams.get('lng') || '0')
 
     if (!lat || !lng) {
-      return NextResponse.json(
-        { success: false, error: 'Missing required parameters: lat, lng' },
-        { status: 400 }
-      )
+      return NextResponse.json({ data: [] })
     }
 
-    const latitude = parseFloat(lat)
-    const longitude = parseFloat(lng)
+    const alerts: WeatherAlertResult[] = []
 
-    // Fetch current weather from Open-Meteo API
-    const weatherUrl = `https://api.open-meteo.com/v1/forecast?latitude=${latitude}&longitude=${longitude}&current=wind_speed_10m,precipitation,temperature_2m,weather_code`
-    
-    let weatherData: OpenMeteoResponse = {}
-    
-    try {
-      const response = await fetch(weatherUrl, {
-        next: { revalidate: 300 }, // Cache for 5 minutes
-      })
-      
-      if (response.ok) {
-        weatherData = await response.json()
-      }
-    } catch (fetchError) {
-      console.error('Weather API fetch error:', fetchError)
-      // Return empty alerts if API is unavailable
-      return NextResponse.json({
-        success: true,
-        data: [],
-        message: 'Weather data temporarily unavailable',
-      })
+    // Fetch current weather from Open-Meteo
+    const weatherUrl = `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lng}&current=temperature_2m,wind_speed_10m,precipitation,weather_code&daily=temperature_2m_max,temperature_2m_min,precipitation_sum,wind_speed_10m_max,weather_code&timezone=auto&forecast_days=3`
+
+    const weatherRes = await fetch(weatherUrl, { next: { revalidate: 600 } })
+    if (!weatherRes.ok) {
+      return NextResponse.json({ data: [] })
     }
 
-    const alerts: WeatherAlert[] = []
-    const current = weatherData.current
-    const now = new Date()
-    const expiresAt = new Date(now.getTime() + 6 * 60 * 60 * 1000).toISOString() // 6 hours from now
+    const weather = await weatherRes.json()
+    const current = weather.current || {}
+    const daily = weather.daily || {}
 
-    if (!current) {
-      return NextResponse.json({
-        success: true,
-        data: [],
-        message: 'No current weather data available',
-      })
-    }
+    const now = new Date().toISOString()
+    const in24h = new Date(Date.now() + 86400000).toISOString()
 
-    // Check for storm (wind speed > 60 km/h)
-    const windSpeed = current.wind_speed_10m
-    if (windSpeed !== undefined && windSpeed > 60) {
+    // Check current wind speed
+    const windSpeed = current.wind_speed_10m || 0
+    if (windSpeed > 80) {
       alerts.push({
-        type: 'storm',
-        severity: windSpeed > 90 ? 'extreme' : windSpeed > 75 ? 'danger' : 'warning',
-        title: windSpeed > 90 ? 'Extreme Wind Storm' : windSpeed > 75 ? 'Dangerous Wind Storm' : 'High Wind Warning',
-        description: `Wind speed of ${Math.round(windSpeed)} km/h detected. Motorcycling is ${windSpeed > 90 ? 'extremely dangerous' : 'hazardous'}. Consider sheltering and avoiding exposed roads.`,
-        lat: latitude,
-        lng: longitude,
-        radius,
-        expiresAt,
+        id: 'wind-extreme',
+        type: 'wind',
+        severity: 'extreme',
+        title: 'Ekstremno močan veter',
+        description: `Hitrost vetra ${Math.round(windSpeed)} km/h - izjemno nevarno za motocikle! Ne peljite!`,
+        lat, lng, radius: 30,
+        startTime: now, endTime: in24h,
+        source: 'Open-Meteo',
+      })
+    } else if (windSpeed > 60) {
+      alerts.push({
+        id: 'wind-high',
+        type: 'wind',
+        severity: 'high',
+        title: 'Močan veter',
+        description: `Hitrost vetra ${Math.round(windSpeed)} km/h - nevarno za motocikle. Pazite na postranske sunki!`,
+        lat, lng, radius: 30,
+        startTime: now, endTime: in24h,
+        source: 'Open-Meteo',
+      })
+    } else if (windSpeed > 40) {
+      alerts.push({
+        id: 'wind-medium',
+        type: 'wind',
+        severity: 'medium',
+        title: 'Zmeren veter',
+        description: `Hitrost vetra ${Math.round(windSpeed)} km/h - bodite previdni, zlasti na izpostavljenih odsekih.`,
+        lat, lng, radius: 20,
+        startTime: now, endTime: in24h,
         source: 'Open-Meteo',
       })
     }
 
-    // Check for heavy rain (precipitation > 10mm)
-    const precipitation = current.precipitation
-    if (precipitation !== undefined && precipitation > 10) {
+    // Check current temperature for ice
+    const temp = current.temperature_2m || 0
+    if (temp < -5) {
       alerts.push({
-        type: 'heavy_rain',
-        severity: precipitation > 25 ? 'extreme' : precipitation > 15 ? 'danger' : 'warning',
-        title: precipitation > 25 ? 'Extreme Rainfall' : precipitation > 15 ? 'Dangerous Heavy Rain' : 'Heavy Rain Warning',
-        description: `Precipitation rate of ${precipitation.toFixed(1)} mm/h detected. Roads may be slippery with reduced visibility. Reduce speed and increase following distance.`,
-        lat: latitude,
-        lng: longitude,
-        radius,
-        expiresAt,
-        source: 'Open-Meteo',
-      })
-    }
-
-    // Check for ice (temperature < 0°C)
-    const temperature = current.temperature_2m
-    if (temperature !== undefined && temperature < 0) {
-      alerts.push({
+        id: 'ice-extreme',
         type: 'ice',
-        severity: temperature < -10 ? 'extreme' : temperature < -5 ? 'danger' : 'warning',
-        title: temperature < -10 ? 'Extreme Ice Conditions' : temperature < -5 ? 'Severe Black Ice Danger' : 'Black Ice Warning',
-        description: `Temperature is ${Math.round(temperature)}°C. Black ice is likely on roads, especially on bridges and shaded areas. Exercise extreme caution or delay travel.`,
-        lat: latitude,
-        lng: longitude,
-        radius,
-        expiresAt,
+        severity: 'extreme',
+        title: 'Ekstremno nizke temperature',
+        description: `Temperatura ${Math.round(temp)}°C - poledica, črna led! Ne peljite!`,
+        lat, lng, radius: 20,
+        startTime: now, endTime: in24h,
         source: 'Open-Meteo',
       })
-    }
-
-    // Check for thunderstorm (WMO weather codes)
-    const weatherCode = current.weather_code
-    if (weatherCode !== undefined && THUNDERSTORM_CODES.has(weatherCode)) {
+    } else if (temp < 0) {
       alerts.push({
-        type: 'thunderstorm',
-        severity: weatherCode >= 96 ? 'extreme' : 'danger',
-        title: weatherCode >= 96 ? 'Severe Thunderstorm with Hail' : 'Thunderstorm Warning',
-        description: weatherCode >= 96
-          ? 'Thunderstorm with hail detected. Extremely dangerous for motorcyclists. Seek shelter immediately and avoid open areas.'
-          : 'Thunderstorm activity detected. Lightning, heavy rain, and gusty winds possible. Seek shelter and avoid riding.',
-        lat: latitude,
-        lng: longitude,
-        radius,
-        expiresAt,
+        id: 'ice-high',
+        type: 'ice',
+        severity: 'high',
+        title: 'Nevarnost poledice',
+        description: `Temperatura ${Math.round(temp)}°C - možna poledica na cesti, zlasti na mostovih in v senci.`,
+        lat, lng, radius: 15,
+        startTime: now, endTime: in24h,
+        source: 'Open-Meteo',
+      })
+    } else if (temp < 3) {
+      alerts.push({
+        id: 'ice-low',
+        type: 'ice',
+        severity: 'low',
+        title: 'Nizka temperatura',
+        description: `Temperatura ${Math.round(temp)}°C - možna poledica v višjih legah.`,
+        lat, lng, radius: 10,
+        startTime: now, endTime: in24h,
         source: 'Open-Meteo',
       })
     }
 
-    return NextResponse.json({
-      success: true,
-      data: alerts,
-      count: alerts.length,
-      currentConditions: {
-        temperature: temperature ?? null,
-        windSpeed: windSpeed ?? null,
-        precipitation: precipitation ?? null,
-        weatherCode: weatherCode ?? null,
-      },
-    })
+    // Check current precipitation
+    const precip = current.precipitation || 0
+    if (precip > 10) {
+      alerts.push({
+        id: 'rain-extreme',
+        type: 'rain',
+        severity: 'extreme',
+        title: 'Ekstremno deževje',
+        description: `Padavine ${precip.toFixed(1)} mm - zelo slaba vidljivost, nevarnost plazenja!`,
+        lat, lng, radius: 20,
+        startTime: now, endTime: in24h,
+        source: 'Open-Meteo',
+      })
+    } else if (precip > 5) {
+      alerts.push({
+        id: 'rain-high',
+        type: 'rain',
+        severity: 'high',
+        title: 'Močan dež',
+        description: `Padavine ${precip.toFixed(1)} mm - slaba vidljivost, drsna podlaga.`,
+        lat, lng, radius: 15,
+        startTime: now, endTime: in24h,
+        source: 'Open-Meteo',
+      })
+    } else if (precip > 1) {
+      alerts.push({
+        id: 'rain-low',
+        type: 'rain',
+        severity: 'low',
+        title: 'Dež',
+        description: `Padavine ${precip.toFixed(1)} mm - mokra cesta, povečana previdnost.`,
+        lat, lng, radius: 10,
+        startTime: now, endTime: in24h,
+        source: 'Open-Meteo',
+      })
+    }
+
+    // Check weather code for thunderstorm
+    const weatherCode = current.weather_code || 0
+    if (weatherCode >= 95) {
+      alerts.push({
+        id: 'storm-extreme',
+        type: 'storm',
+        severity: 'extreme',
+        title: 'Nevihta',
+        description: 'Aktivna nevihta v okolici - strela je izjemno nevarna za motoriste! Počakajte!',
+        lat, lng, radius: 30,
+        startTime: now, endTime: in24h,
+        source: 'Open-Meteo',
+      })
+    } else if (weatherCode >= 51 && weatherCode <= 57) {
+      alerts.push({
+        id: 'fog-medium',
+        type: 'fog',
+        severity: 'medium',
+        title: 'Megla',
+        description: 'Slaba vidljivost zaradi megle - zmanjšajte hitrost in vklopite luči.',
+        lat, lng, radius: 15,
+        startTime: now, endTime: in24h,
+        source: 'Open-Meteo',
+      })
+    }
+
+    // Check daily forecast for upcoming alerts
+    if (daily && daily.weather_code) {
+      for (let i = 1; i < Math.min(3, daily.weather_code.length); i++) {
+        const dayCode = daily.weather_code[i]
+        const dayWindMax = daily.wind_speed_10m_max?.[i] || 0
+        const dayPrecip = daily.precipitation_sum?.[i] || 0
+        const dayDate = daily.time?.[i] || ''
+
+        if (dayCode >= 95 && !alerts.find(a => a.type === 'storm')) {
+          alerts.push({
+            id: `storm-forecast-${i}`,
+            type: 'storm',
+            severity: 'high',
+            title: 'Nevihta napovedana',
+            description: `Nevihta napovedana za ${dayDate}. Načrtujte potovanje drugič.`,
+            lat, lng, radius: 50,
+            startTime: dayDate, endTime: new Date(new Date(dayDate).getTime() + 86400000).toISOString(),
+            source: 'Open-Meteo',
+          })
+        }
+        if (dayWindMax > 60 && !alerts.find(a => a.type === 'wind' && a.severity === 'high')) {
+          alerts.push({
+            id: `wind-forecast-${i}`,
+            type: 'wind',
+            severity: 'medium',
+            title: 'Močan veter napovedan',
+            description: `Veter do ${Math.round(dayWindMax)} km/h napovedan za ${dayDate}.`,
+            lat, lng, radius: 50,
+            startTime: dayDate, endTime: new Date(new Date(dayDate).getTime() + 86400000).toISOString(),
+            source: 'Open-Meteo',
+          })
+        }
+        if (dayPrecip > 15 && !alerts.find(a => a.type === 'rain' && a.severity === 'high')) {
+          alerts.push({
+            id: `rain-forecast-${i}`,
+            type: 'rain',
+            severity: 'medium',
+            title: 'Močne padavine napovedane',
+            description: `${dayPrecip.toFixed(0)} mm padavin napovedanih za ${dayDate}.`,
+            lat, lng, radius: 50,
+            startTime: dayDate, endTime: new Date(new Date(dayDate).getTime() + 86400000).toISOString(),
+            source: 'Open-Meteo',
+          })
+        }
+      }
+    }
+
+    // Check heat
+    if (temp > 38) {
+      alerts.push({
+        id: 'heat-extreme',
+        type: 'heat',
+        severity: 'extreme',
+        title: 'Ekstremna vročina',
+        description: `Temperatura ${Math.round(temp)}°C - nevarnost toplotnega udara! Pijte dovolj vode!`,
+        lat, lng, radius: 20,
+        startTime: now, endTime: in24h,
+        source: 'Open-Meteo',
+      })
+    } else if (temp > 33) {
+      alerts.push({
+        id: 'heat-medium',
+        type: 'heat',
+        severity: 'medium',
+        title: 'Visoka temperatura',
+        description: `Temperatura ${Math.round(temp)}°C - poskrbite za zadosten vnos tekočine.`,
+        lat, lng, radius: 15,
+        startTime: now, endTime: in24h,
+        source: 'Open-Meteo',
+      })
+    }
+
+    return NextResponse.json({ data: alerts })
   } catch (error) {
     console.error('Weather alerts error:', error)
-    return NextResponse.json(
-      { success: false, error: 'Failed to fetch weather alerts' },
-      { status: 500 }
-    )
+    return NextResponse.json({ data: [] })
   }
 }

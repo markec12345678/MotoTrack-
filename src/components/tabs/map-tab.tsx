@@ -27,6 +27,10 @@ const POI_TYPES = [
   { key: 'parking', label: 'Parkirišča', emoji: '🅿️' },
   { key: 'hotel', label: 'Hoteli', emoji: '🏨' },
   { key: 'mechanic', label: 'Servisi', emoji: '🔧' },
+  { key: 'camping', label: 'Kampi', emoji: '⛺' },
+  { key: 'viewpoint', label: 'Razgledne točke', emoji: '🏔️' },
+  { key: 'snowmobile', label: 'Snežni skuter', emoji: '🛷' },
+  { key: 'racetrack', label: 'Dirkališča', emoji: '🏁' },
 ]
 
 const HAZARD_TYPES = [
@@ -69,6 +73,7 @@ export default function MapTab({ rides, routes, onOpenDetail, userId }: MapTabPr
 
   // Map overlays state
   const [showTwistyRoads, setShowTwistyRoads] = useState(false)
+  const [showBalkanRoads, setShowBalkanRoads] = useState(false)
   const [showWeatherRadar, setShowWeatherRadar] = useState(false)
   const [showHazards, setShowHazards] = useState(false)
 
@@ -393,8 +398,8 @@ export default function MapTab({ rides, routes, onOpenDetail, userId }: MapTabPr
 
   // Grouped button active states
   const filtersNonDefault = !filterRides || !filterRoutes || filterCategory !== 'all'
-  const layersActive = filtersNonDefault || activePoiCount > 0 || showRoadQuality || showTwistyRoads || showTraffic
-  const layersActiveCount = [filtersNonDefault, activePoiCount > 0, showRoadQuality, showTwistyRoads, showTraffic].filter(Boolean).length
+  const layersActive = filtersNonDefault || activePoiCount > 0 || showRoadQuality || showTwistyRoads || showBalkanRoads || showTraffic
+  const layersActiveCount = [filtersNonDefault, activePoiCount > 0, showRoadQuality, showTwistyRoads, showBalkanRoads, showTraffic].filter(Boolean).length
   const safetyActive = showHazards || showWeatherRadar || showLiveRide
   const safetyActiveCount = [showHazards, showWeatherRadar, showLiveRide].filter(Boolean).length
   const navActive = showNavigation || showFuelPanel || showParkingPanel || showFriendRides
@@ -422,6 +427,7 @@ export default function MapTab({ rides, routes, onOpenDetail, userId }: MapTabPr
         filterCategory={filterCategory}
         filterPoiTypes={activePoiTypes}
         showTwistyRoads={showTwistyRoads}
+        showBalkanRoads={showBalkanRoads}
         showWeatherRadar={showWeatherRadar}
         showHazards={showHazards}
         roadRatings={showRoadQuality ? roadRatings : []}
@@ -496,6 +502,9 @@ export default function MapTab({ rides, routes, onOpenDetail, userId }: MapTabPr
               </button>
               <button onClick={() => setShowTwistyRoads(!showTwistyRoads)} className={`w-full flex items-center gap-2 px-2.5 py-2 rounded-lg text-xs font-medium transition-colors ${showTwistyRoads ? 'bg-amber-500/15 text-amber-500 border border-amber-500/30' : 'bg-secondary/50 text-muted-foreground hover:bg-muted'}`}>
                 <GitBranch className="size-3.5" /> Vijugaste ceste
+              </button>
+              <button onClick={() => setShowBalkanRoads(!showBalkanRoads)} className={`w-full flex items-center gap-2 px-2.5 py-2 rounded-lg text-xs font-medium transition-colors ${showBalkanRoads ? 'bg-red-500/15 text-red-500 border border-red-500/30' : 'bg-secondary/50 text-muted-foreground hover:bg-muted'}`}>
+                <MapPin className="size-3.5" /> Balkan moto ceste
               </button>
               <button onClick={() => setShowTraffic(!showTraffic)} className={`w-full flex items-center gap-2 px-2.5 py-2 rounded-lg text-xs font-medium transition-colors ${showTraffic ? 'bg-orange-500/15 text-orange-500 border border-orange-500/30' : 'bg-secondary/50 text-muted-foreground hover:bg-muted'}`}>
                 <Layers className="size-3.5" /> Promet v živo

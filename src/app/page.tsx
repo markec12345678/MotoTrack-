@@ -322,8 +322,17 @@ function Home() {
   }, [])
 
   const handleMapClick = useCallback((lat: number, lng: number) => {
-    if (activeTab === 'plan') setPlanWaypoints(prev => [...prev, { lat, lng }])
-  }, [activeTab])
+    if (activeTab === 'plan') {
+      setPlanWaypoints(prev => {
+        const maxWP = planRoutingMode === 'offroad' ? 100 : 25
+        if (prev.length >= maxWP) {
+          toast.error(`Največ ${maxWP} točk${maxWP === 25 ? '' : ''} za ${planRoutingMode === 'offroad' ? 'terensko' : 'ta način'} načrtovanje`)
+          return prev
+        }
+        return [...prev, { lat, lng }]
+      })
+    }
+  }, [activeTab, planRoutingMode])
 
   const openDetail = useCallback(async (item: RideData | RouteData, type: 'ride' | 'route') => {
     setSelectedItem(item); setSelectedType(type); setDetailOpen(true)

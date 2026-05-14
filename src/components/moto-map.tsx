@@ -89,6 +89,7 @@ interface MotoMapProps {
   showTwistyRoads?: boolean
   showWeatherRadar?: boolean
   showHazards?: boolean
+  showBalkanRoads?: boolean
   className?: string
 }
 
@@ -97,6 +98,8 @@ const categoryColors: Record<string, string> = {
   twisty: '#f59e0b',
   offroad: '#f97316',
   city: '#3b82f6',
+  snowmobile: '#06b6d4',
+  racetrack: '#dc2626',
 }
 
 const catLabels: Record<string, string> = {
@@ -104,6 +107,8 @@ const catLabels: Record<string, string> = {
   twisty: 'Vijugasto',
   offroad: 'Terensko',
   city: 'Mesto',
+  snowmobile: 'Snežni skuter',
+  racetrack: 'Dirkališče',
 }
 
 // Custom SVG marker for rides (motorcycle icon)
@@ -202,6 +207,7 @@ export default function MotoMap({
   showTwistyRoads = false,
   showWeatherRadar = false,
   showHazards = false,
+  showBalkanRoads = false,
   className = '',
 }: MotoMapProps) {
   const mapRef = useRef<L.Map | null>(null)
@@ -573,6 +579,85 @@ export default function MotoMap({
       }
     }
   }, [showTwistyRoads])
+
+  // Update Balkan motorcycle roads overlay (Butler Maps equivalent)
+  useEffect(() => {
+    if (!layersRef.current) return
+    const layer = layersRef.current.overlays
+    if (!showBalkanRoads && !showTwistyRoads) {
+      // Clear overlays if neither is shown
+    }
+    if (!showBalkanRoads) return
+
+    // Known best motorcycle roads across the Balkans with difficulty ratings
+    const balkanRoads = [
+      // Slovenia
+      { name: 'Vršič', lat: 46.4333, lng: 13.7333, difficulty: 'extreme', country: 'SI' },
+      { name: 'Mangart', lat: 46.4500, lng: 13.6333, difficulty: 'challenging', country: 'SI' },
+      { name: 'Predel', lat: 46.3833, lng: 13.5667, difficulty: 'challenging', country: 'SI' },
+      { name: 'Soška dolina', lat: 46.2500, lng: 13.6500, difficulty: 'moderate', country: 'SI' },
+      { name: 'Jezersko', lat: 46.4000, lng: 14.8500, difficulty: 'moderate', country: 'SI' },
+      { name: 'Gorjanci', lat: 45.8000, lng: 15.1667, difficulty: 'moderate', country: 'SI' },
+      // Croatia
+      { name: 'Jadranska magistrala', lat: 43.5000, lng: 16.4500, difficulty: 'easy', country: 'HR' },
+      { name: 'Mali Alan', lat: 44.4000, lng: 15.5000, difficulty: 'challenging', country: 'HR' },
+      { name: 'Pelješac', lat: 42.9500, lng: 17.4500, difficulty: 'easy', country: 'HR' },
+      // Montenegro
+      { name: 'Kotor Serpentine', lat: 42.4200, lng: 18.7700, difficulty: 'extreme', country: 'ME' },
+      { name: 'Lovćen', lat: 42.3800, lng: 18.8500, difficulty: 'challenging', country: 'ME' },
+      { name: 'Durmitor', lat: 43.1500, lng: 19.1200, difficulty: 'challenging', country: 'ME' },
+      // Bosnia
+      { name: 'Ivan Sedlo', lat: 43.7000, lng: 18.0500, difficulty: 'moderate', country: 'BA' },
+      // Albania
+      { name: 'Llogara Pass', lat: 40.1800, lng: 19.5800, difficulty: 'challenging', country: 'AL' },
+      { name: 'Albanska riviera', lat: 40.0500, lng: 19.7500, difficulty: 'moderate', country: 'AL' },
+      { name: 'Theth', lat: 42.3800, lng: 19.7700, difficulty: 'extreme', country: 'AL' },
+      // Romania
+      { name: 'Transfăgărășan', lat: 45.5900, lng: 24.6200, difficulty: 'extreme', country: 'RO' },
+      { name: 'Transalpina', lat: 45.4300, lng: 23.7200, difficulty: 'extreme', country: 'RO' },
+      // Greece
+      { name: 'Katara Pass', lat: 39.7700, lng: 21.2300, difficulty: 'challenging', country: 'GR' },
+      // Serbia
+      { name: 'Zlatibor', lat: 43.7200, lng: 19.7000, difficulty: 'moderate', country: 'RS' },
+      // Bulgaria
+      { name: 'Shipka', lat: 42.7100, lng: 25.3300, difficulty: 'challenging', country: 'BG' },
+      // Austria
+      { name: 'Grossglockner', lat: 47.0800, lng: 12.8300, difficulty: 'extreme', country: 'AT' },
+    ]
+
+    const difficultyColors: Record<string, string> = {
+      easy: '#22c55e',
+      moderate: '#f59e0b',
+      challenging: '#f97316',
+      extreme: '#ef4444',
+    }
+    const difficultyLabels: Record<string, string> = {
+      easy: 'Lahko',
+      moderate: 'Zmerno',
+      challenging: 'Zahtevno',
+      extreme: 'Ekstremno',
+    }
+
+    balkanRoads.forEach(road => {
+      const color = difficultyColors[road.difficulty] || '#6b7280'
+      const marker = L.circleMarker([road.lat, road.lng], {
+        radius: 9,
+        fillColor: color,
+        color: '#fff',
+        weight: 2,
+        opacity: 1,
+        fillOpacity: 0.85,
+      }).addTo(layer)
+
+      marker.bindPopup(`
+        <div style="min-width:180px">
+          <strong style="font-size:14px">🗺️ ${road.name}</strong><br/>
+          <span style="background:${color}22;color:${color};padding:2px 8px;border-radius:4px;font-size:11px;display:inline-block;margin:4px 0">${difficultyLabels[road.difficulty]}</span>
+          <span style="color:#888;font-size:11px;margin-left:6px">${road.country}</span>
+        </div>
+      `)
+    })
+  }, [showBalkanRoads])
 
   // Update weather radar overlay
   useEffect(() => {
