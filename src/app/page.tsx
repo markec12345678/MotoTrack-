@@ -653,6 +653,9 @@ function Home() {
                   userId={user?.id}
                   routeCategory={(selectedItem as RouteData).category}
                   routeDistance={(selectedItem as RouteData).distance}
+                  availableRoutes={routes}
+                  routeLat={(selectedItem as RouteData).waypoints ? (() => { try { const w = typeof (selectedItem as RouteData).waypoints === 'string' ? JSON.parse((selectedItem as RouteData).waypoints) : (selectedItem as RouteData).waypoints; return Array.isArray(w) && w[0]?.lat ? w[0].lat : undefined } catch { return undefined } })() : undefined}
+                  routeLng={(selectedItem as RouteData).waypoints ? (() => { try { const w = typeof (selectedItem as RouteData).waypoints === 'string' ? JSON.parse((selectedItem as RouteData).waypoints) : (selectedItem as RouteData).waypoints; return Array.isArray(w) && w[0]?.lng ? w[0].lng : undefined } catch { return undefined } })() : undefined}
                 />
               )}
               {featureTab === 'roi' && (selectedType !== 'route' || !selectedItem) && (
@@ -668,6 +671,9 @@ function Home() {
                         userId={user?.id}
                         routeCategory={routes[0].category}
                         routeDistance={routes[0].distance}
+                        availableRoutes={routes}
+                        routeLat={(() => { try { const w = typeof routes[0].waypoints === 'string' ? JSON.parse(routes[0].waypoints) : routes[0].waypoints; return Array.isArray(w) && w[0]?.lat ? w[0].lat : undefined } catch { return undefined } })()}
+                        routeLng={(() => { try { const w = typeof routes[0].waypoints === 'string' ? JSON.parse(routes[0].waypoints) : routes[0].waypoints; return Array.isArray(w) && w[0]?.lng ? w[0].lng : undefined } catch { return undefined } })()}
                       />
                     </div>
                   )}

@@ -153,7 +153,7 @@ export async function GET(
   }
 }
 
-// POST /api/videos/[id]/highlights — Create a manual highlight
+// POST /api/videos/[id]/highlights — Create a manual highlight or auto-detect
 export async function POST(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
@@ -161,6 +161,48 @@ export async function POST(
   try {
     const { id } = await params
     const body = await request.json()
+    const { autoDetect } = body
+
+    const footage = await db.videoFootage.findUnique({ where: { id } })
+    if (!footage) {
+      return NextResponse.json({ error: 'Video ni najden' }, { status: 404 })
+    }
+
+    // Auto-detect mode: delete existing auto highlights and regenerate
+    if (autoDetect) {
+      // Remove existing auto-generated highlights
+      await db.videoHighlight.deleteMany({
+        where: { footageId: id, type: 'auto' },
+      })
+
+      // Generate fresh highlights from telemetry data
+      const autoHighlights = autoGenerateHighlights(footage.duration, id)
+      const created = []
+
+      for (const h of autoHighlights) {
+        const highlight = await db.videoHighlight.create({
+          data: {
+            footageId: h.footageId,
+            startTime: h.startTime,
+            endTime: h.endTime,
+            title: h.title,
+            type: 'auto',
+            gForce: h.gForce,
+            speed: h.speed,
+            leanAngle: h.leanAngle,
+          },
+        })
+        created.push(highlight)
+      }
+
+      return NextResponse.json({
+        success: true,
+        data: created,
+        message: `Zaznanih ${created.length} poudarkov iz telemetrije`,
+      })
+    }
+
+    // Manual highlight creation
     const { startTime, endTime, title } = body
 
     if (startTime === undefined || endTime === undefined) {
@@ -168,11 +210,6 @@ export async function POST(
         { error: 'Začetni in končni čas sta obvezna' },
         { status: 400 }
       )
-    }
-
-    const footage = await db.videoFootage.findUnique({ where: { id } })
-    if (!footage) {
-      return NextResponse.json({ error: 'Video ni najden' }, { status: 404 })
     }
 
     // Validate time range

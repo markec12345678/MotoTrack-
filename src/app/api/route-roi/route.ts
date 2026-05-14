@@ -118,18 +118,50 @@ function estimateTimePerKm(category: string, difficulty: string): number {
   return Math.round(base * mult * 100) / 100
 }
 
-// GET /api/route-roi?routeId=...&userId=...
+// GET /api/route-roi?routeId=...&userId=...&history=true
 export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url)
     const routeId = searchParams.get('routeId')
     const userId = searchParams.get('userId')
+    const history = searchParams.get('history')
 
     if (!routeId) {
       return NextResponse.json(
         { success: false, error: 'routeId is required' },
         { status: 400 },
       )
+    }
+
+    // History mode: return all ROI scores for the route (latest 3)
+    if (history === 'true') {
+      const scores = await db.routeRoiScore.findMany({
+        where: { routeId },
+        orderBy: { updatedAt: 'desc' },
+        take: 3,
+      })
+      return NextResponse.json({
+        success: true,
+        data: scores.map(s => ({
+          id: s.id,
+          routeId: s.routeId,
+          userId: s.userId,
+          sceneryScore: s.sceneryScore,
+          twistinessScore: s.twistinessScore,
+          roadQualityScore: s.roadQualityScore,
+          weatherScore: s.weatherScore,
+          fuelEfficiencyScore: s.fuelEfficiencyScore,
+          timeEfficiencyScore: s.timeEfficiencyScore,
+          overallRoi: s.overallRoi,
+          timePerKm: s.timePerKm ?? 0,
+          fuelCost: s.fuelCost ?? 0,
+          pointsOfInterest: s.pointsOfInterest,
+          recommendedWeather: s.recommendedWeather ?? '',
+          bestSeason: s.bestSeason ?? '',
+          createdAt: s.createdAt.toISOString(),
+          updatedAt: s.updatedAt.toISOString(),
+        })),
+      })
     }
 
     // Try to find existing ROI score
