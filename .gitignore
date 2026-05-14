@@ -52,3 +52,13 @@ prompt
 server.log
 # Skills directory
 /skills/
+
+# Database files (SQLite - will be created on deploy)
+db/*.db
+db/*.db-journal
+
+# Mini services
+/mini-services/
+
+# Worklog (dev only)
+worklog.mddb/custom.db
