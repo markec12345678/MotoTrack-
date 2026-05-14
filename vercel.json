@@ -1,0 +1,15 @@
+{
+  "buildCommand": "npx prisma generate && next build",
+  "devCommand": "next dev",
+  "installCommand": "bun install",
+  "framework": "nextjs",
+  "outputDirectory": ".next",
+  "regions": ["iad1"],
+  "env": {
+    "DATABASE_URL": "@turso-database-url",
+    "DIRECT_DATABASE_URL": "@turso-database-url",
+    "TURSO_DATABASE_URL": "@turso-database-url",
+    "TURSO_AUTH_TOKEN": "@turso-auth-token",
+    "OPENROUTER_API_KEY": "@openrouter-api-key"
+  }
+}

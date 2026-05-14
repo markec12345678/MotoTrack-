@@ -1,7 +1,7 @@
 import { createServer } from 'http'
 import { Server } from 'socket.io'
 
-const PORT = 3003
+const PORT = 3002
 
 const httpServer = createServer((req, res) => {
   // CORS headers

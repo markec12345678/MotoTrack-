@@ -89,6 +89,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Use provided userId or fall back to first user in DB
+    // TODO: Add proper authentication - currently uses first user as fallback
     let rideUserId = userId
     if (!rideUserId) {
       const firstUser = await db.user.findFirst()
@@ -99,6 +100,7 @@ export async function POST(request: NextRequest) {
         )
       }
       rideUserId = firstUser.id
+      console.warn('[API] POST /api/rides - No userId provided, falling back to first user:', rideUserId)
     }
 
     const ride = await db.ride.create({

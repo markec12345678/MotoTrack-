@@ -50,9 +50,8 @@ export async function POST() {
   return seedDatabase()
 }
 
-export async function GET() {
-  return seedDatabase()
-}
+// GET handler removed for security - seed via POST only
+// Accidental GET /api/seed could wipe the database
 
 async function seedDatabase() {
   try {
@@ -105,7 +104,7 @@ async function seedDatabase() {
           email: 'miran@rever.si',
           avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Miran',
           bike: 'BMW R1250GS',
-          bio: 'Adventurni motociklist z ljubeznijo do slovenskih gora. Raziskujem阿尔卑ские prelaze in doline že 15 let.',
+          bio: 'Adventurni motociklist z ljubeznijo do slovenskih gora. Raziskujem alpske prelaze in doline že 15 let.',
         },
       }),
       db.user.create({
