@@ -57,27 +57,45 @@ export async function GET() {
 async function seedDatabase() {
   try {
     // Delete existing data in correct order (FK constraints)
-    await db.achievement.deleteMany()
-    await db.comment.deleteMany()
-    await db.like.deleteMany()
-    await db.poi.deleteMany()
-    await db.hazard.deleteMany()
-    await db.communityMember.deleteMany()
-    await db.ride.deleteMany()
-    await db.route.deleteMany()
-    await db.community.deleteMany()
-    await db.challengeParticipant.deleteMany()
-    await db.challenge.deleteMany()
-    await db.pointsTransaction.deleteMany()
-    await db.userPoints.deleteMany()
-    await db.liveTrackingViewer.deleteMany()
-    await db.liveTrackingSession.deleteMany()
-    await db.crashEvent.deleteMany()
-    await db.leanAngleSession.deleteMany()
-    await db.gpxImport.deleteMany()
-    await db.mapStyleConfig.deleteMany()
-    await db.serviceCenter.deleteMany()
-    await db.user.deleteMany()
+    // Use deleteMany which ignores if no records exist
+    try { await db.activityLike.deleteMany() } catch {}
+    try { await db.achievement.deleteMany() } catch {}
+    try { await db.comment.deleteMany() } catch {}
+    try { await db.like.deleteMany() } catch {}
+    try { await db.poi.deleteMany() } catch {}
+    try { await db.hazard.deleteMany() } catch {}
+    try { await db.communityMember.deleteMany() } catch {}
+    try { await db.ride.deleteMany() } catch {}
+    try { await db.route.deleteMany() } catch {}
+    try { await db.community.deleteMany() } catch {}
+    try { await db.challengeParticipant.deleteMany() } catch {}
+    try { await db.challenge.deleteMany() } catch {}
+    try { await db.pointsTransaction.deleteMany() } catch {}
+    try { await db.userPoints.deleteMany() } catch {}
+    try { await db.liveTrackingViewer.deleteMany() } catch {}
+    try { await db.liveTrackingSession.deleteMany() } catch {}
+    try { await db.crashEvent.deleteMany() } catch {}
+    try { await db.leanAngleSession.deleteMany() } catch {}
+    try { await db.gpxImport.deleteMany() } catch {}
+    try { await db.mapStyleConfig.deleteMany() } catch {}
+    try { await db.serviceCenter.deleteMany() } catch {}
+    try { await db.socialActivity.deleteMany() } catch {}
+    try { await db.expense.deleteMany() } catch {}
+    try { await db.maintenanceReminder.deleteMany() } catch {}
+    try { await db.friendship.deleteMany() } catch {}
+    try { await db.notification.deleteMany() } catch {}
+    try { await db.sosAlert.deleteMany() } catch {}
+    try { await db.emergencyContact.deleteMany() } catch {}
+    try { await db.roadRating.deleteMany() } catch {}
+    try { await db.tripDay.deleteMany() } catch {}
+    try { await db.trip.deleteMany() } catch {}
+    try { await db.groupRideParticipant.deleteMany() } catch {}
+    try { await db.groupRide.deleteMany() } catch {}
+    try { await db.fuelLog.deleteMany() } catch {}
+    try { await db.parkingLog.deleteMany() } catch {}
+    try { await db.speedAlertSetting.deleteMany() } catch {}
+    try { await db.favorite.deleteMany() } catch {}
+    try { await db.user.deleteMany() } catch {}
 
     // Create demo users
     const users = await Promise.all([
