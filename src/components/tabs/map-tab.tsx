@@ -19,7 +19,23 @@ import type { RideData, RouteData, PoiData, LiveRider, HazardData, FuelData, Fri
 import { categoryLabel, categoryColor, poiTypeLabel, poiTypeEmoji } from '@/components/tabs/types'
 
 const MotoMap = dynamic(() => import('@/components/moto-map'), { ssr: false })
-const Map3DViewer = dynamic(() => import('@/components/map-3d-viewer'), { ssr: false })
+const Map3DViewer = dynamic(() => import('@/components/map-3d-viewer').catch(() => {
+  // Return a fallback component if maplibre-gl chunk fails to load
+  return { default: () => (
+    <div className="flex flex-col items-center justify-center h-64 gap-2 text-muted-foreground">
+      <Mountain className="size-8 opacity-30" />
+      <p className="text-sm">3D zemljevid ni na voljo</p>
+      <p className="text-xs opacity-50">Poskusite osvežiti stran</p>
+    </div>
+  )}
+}), { ssr: false, loading: () => (
+  <div className="flex items-center justify-center h-64">
+    <div className="flex flex-col items-center gap-2">
+      <div className="size-6 border-2 border-primary border-t-transparent rounded-full animate-spin" />
+      <span className="text-xs text-muted-foreground">Nalaganje 3D...</span>
+    </div>
+  </div>
+) })
 
 const POI_TYPES = [
   { key: 'gas_station', label: 'Bencinske črpalke', emoji: '⛽' },

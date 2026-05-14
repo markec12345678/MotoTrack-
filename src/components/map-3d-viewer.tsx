@@ -73,7 +73,8 @@ export default function Map3DViewer({
   bearing = -20,
 }: Map3DViewerProps) {
   const containerRef = useRef<HTMLDivElement>(null)
-  const mapRef = useRef<maplibregl.Map | null>(null)
+  const mapRef = useRef<any>(null)
+  const maplibreRef = useRef<any>(null) // store dynamically imported maplibre-gl
   const flyAnimRef = useRef<number | null>(null)
   const [mounted, setMounted] = useState(false)
   const [mapStyle, setMapStyle] = useState<MapStyle>('topo')
@@ -111,7 +112,7 @@ export default function Map3DViewer({
   }, [trackPoints])
 
   // Build map style based on selected type
-  const buildStyle = useCallback((style: MapStyle): maplibregl.StyleSpecification => {
+  const buildStyle = useCallback((style: MapStyle): any => {
     const baseSources: Record<string, any> = {
       'terrain-dem': {
         type: 'raster-dem',
@@ -209,12 +210,14 @@ export default function Map3DViewer({
   useEffect(() => {
     if (!mounted || !containerRef.current) return
 
-    let map: maplibregl.Map | null = null
+    let map: any = null
 
     const initMap = async () => {
       try {
         const maplibregl = (await import('maplibre-gl')).default
         await import('maplibre-gl/dist/maplibre-gl.css')
+
+        maplibreRef.current = maplibregl
 
         map = new maplibregl.Map({
           container: containerRef.current!,
@@ -285,7 +288,7 @@ export default function Map3DViewer({
   }, [mounted])
 
   // Add track/route data to the map
-  const addTrackData = useCallback((map: maplibregl.Map) => {
+  const addTrackData = useCallback((map: any) => {
     const td = trackData()
     const allCoords: Array<[number, number]> = []
 
@@ -498,7 +501,10 @@ export default function Map3DViewer({
       if (trackCoords.length > 0) {
         const startEl = document.createElement('div')
         startEl.innerHTML = `<div style="background:#22c55e;border:3px solid #fff;border-radius:50%;width:20px;height:20px;box-shadow:0 2px 8px rgba(0,0,0,0.4);display:flex;align-items:center;justify-content:center;color:#fff;font-size:10px;font-weight:700;">S</div>`
-        new maplibregl.Marker({ element: startEl })
+        const ml = maplibreRef.current
+        if (!ml) return
+
+        new ml.Marker({ element: startEl })
           .setLngLat(trackCoords[0])
           .addTo(map)
 
@@ -506,7 +512,7 @@ export default function Map3DViewer({
         if (trackCoords.length > 1) {
           const endEl = document.createElement('div')
           endEl.innerHTML = `<div style="background:#ef4444;border:3px solid #fff;border-radius:50%;width:20px;height:20px;box-shadow:0 2px 8px rgba(0,0,0,0.4);display:flex;align-items:center;justify-content:center;color:#fff;font-size:10px;font-weight:700;">E</div>`
-          new maplibregl.Marker({ element: endEl })
+          new ml.Marker({ element: endEl })
             .setLngLat(trackCoords[trackCoords.length - 1])
             .addTo(map)
         }
@@ -553,7 +559,9 @@ export default function Map3DViewer({
 
     // Fit bounds if we have coordinates
     if (allCoords.length > 1) {
-      const bounds = new maplibregl.LngLatBounds()
+      const ml = maplibreRef.current
+      if (!ml) return
+      const bounds = new ml.LngLatBounds()
       allCoords.forEach(c => bounds.extend(c))
       map.fitBounds(bounds, { padding: 60, pitch: currentPitch, bearing, duration: 1500 })
     }
