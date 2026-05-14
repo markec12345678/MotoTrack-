@@ -17,7 +17,12 @@ function createPrismaClient(): PrismaClient {
   // DATABASE_URL is required by Prisma schema (url = env("DATABASE_URL")).
   // Provide a sensible default so Prisma can initialize even if the env var
   // is missing (e.g. during Vercel build or Edge runtime).
-  const databaseUrl = process.env.DATABASE_URL || 'file:./db/custom.db'
+  // This is critical: without a valid DATABASE_URL, PrismaClient constructor
+  // will throw "URL_INVALID: The URL 'undefined' is not in a valid format"
+  if (!process.env.DATABASE_URL) {
+    process.env.DATABASE_URL = 'file:./dev.db'
+  }
+  const databaseUrl = process.env.DATABASE_URL
   const tursoUrl = process.env.TURSO_DATABASE_URL || ''
   const tursoAuthToken = process.env.TURSO_AUTH_TOKEN || ''
   // Only use Turso when both URL and token are provided AND we're in production
