@@ -856,3 +856,92 @@ export interface BalkanMotoRoad {
   rating: number  // 1-5
   geometry?: [number, number][]
 }
+
+// Route ROI Score
+export interface RouteRoiScoreData {
+  id: string
+  routeId: string
+  userId: string
+  sceneryScore: number      // 1-10
+  twistinessScore: number   // 1-10
+  roadQualityScore: number  // 1-10
+  weatherScore: number      // 1-10
+  fuelEfficiencyScore: number // 1-10
+  timeEfficiencyScore: number // 1-10
+  overallRoi: number        // 0-100
+  timePerKm: number         // minutes per km
+  fuelCost: number          // estimated EUR
+  pointsOfInterest: number
+  recommendedWeather: string
+  bestSeason: string
+  createdAt: string
+  updatedAt: string
+}
+
+// Route Recommendation
+export interface RouteRecommendation {
+  routeId: string
+  route: RouteData
+  roiScore: RouteRoiScoreData | null
+  weatherCompatibility: number  // 0-100
+  distance: number              // km from user
+  combinedScore: number         // final ranking score
+  weatherAtRoute: WaypointWeather | null
+  reason: string                // why this route is recommended (in Slovenian)
+}
+
+// Video Footage
+export interface VideoFootageData {
+  id: string
+  userId: string
+  rideId: string | null
+  fileName: string
+  fileSize: number
+  duration: number
+  gpsTrackOffset: number
+  thumbnailUrl: string | null
+  videoUrl: string | null
+  metadata: Record<string, unknown> | null
+  status: 'processing' | 'ready' | 'error'
+  recordedAt: string
+  createdAt: string
+}
+
+// Subscription
+export interface SubscriptionData {
+  id: string
+  userId: string
+  plan: 'free' | 'pro' | 'elite'
+  status: 'active' | 'cancelled' | 'expired' | 'trial'
+  stripeCustomerId: string | null
+  stripeSubscriptionId: string | null
+  trialEndsAt: string | null
+  currentPeriodEnd: string | null
+  cancelAtPeriodEnd: boolean
+  createdAt: string
+  updatedAt: string
+}
+
+// Offline Sync Queue Item
+export interface SyncQueueItem {
+  id: string
+  userId: string
+  operation: 'create' | 'update' | 'delete'
+  entity: string
+  entityId: string | null
+  data: Record<string, unknown>
+  attempts: number
+  maxAttempts: number
+  lastAttemptAt: string | null
+  status: 'pending' | 'in_progress' | 'completed' | 'failed'
+  createdAt: string
+}
+
+// PRO Feature
+export interface ProFeatureData {
+  featureKey: string
+  name: string
+  description: string | null
+  category: string
+  isProOnly: boolean
+}

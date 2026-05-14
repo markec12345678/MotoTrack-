@@ -317,6 +317,37 @@ Stage Summary:
 - Dev server running without errors
 
 ---
+Task ID: 6
+Agent: Schema Agent
+Task: Add 6 new Prisma models for Video, Subscription, ROI, Offline Sync, and Pro Features
+
+Work Log:
+- Read current prisma/schema.prisma (28 existing models ending with CampSite)
+- Read worklog.md for context on prior work
+- Added 4 new relations to User model:
+  - videoFootages VideoFootage[]
+  - subscription Subscription[]
+  - routeRoiScores RouteRoiScore[]
+  - offlineSyncQueue OfflineSyncQueue[]
+- Added back-relation videoFootages VideoFootage[] to Ride model
+- Added back-relation routeRoiScores RouteRoiScore[] to Route model
+- Added 6 new models:
+  1. VideoFootage - GoPro/Action Cam integration (userId, rideId?, fileName, fileSize, duration, gpsTrackOffset, thumbnailUrl, videoUrl, metadata JSON, status, recordedAt, createdAt) → mapped to "video_footages", indexed on userId and rideId
+  2. VideoHighlight - Highlights/clips from footage (footageId, startTime, endTime, title, type, thumbnailUrl, gForce?, speed?, leanAngle?, createdAt) → mapped to "video_highlights", cascade delete on footage
+  3. Subscription - Monetization (userId, plan, status, stripeCustomerId @unique, stripeSubscriptionId @unique, stripePriceId, trialEndsAt, currentPeriodStart/End, cancelAtPeriodEnd, timestamps) → mapped to "subscriptions", indexed on userId and status
+  4. RouteRoiScore - Smart Route ROI (routeId, userId, 6 score fields 1-10, overallRoi 0-100, timePerKm, fuelCost, pointsOfInterest, recommendedWeather, bestSeason, timestamps) → mapped to "route_roi_scores", unique on [routeId, userId]
+  5. OfflineSyncQueue - PWA background sync (userId, operation, entity, entityId?, data JSON, attempts, maxAttempts, lastAttemptAt, status, createdAt) → mapped to "offline_sync_queue", indexed on userId and status
+  6. ProFeature - PRO feature catalog (featureKey @unique, name, description?, category, isProOnly, createdAt) → mapped to "pro_features"
+- Ran bun run db:push — database synced successfully, Prisma Client regenerated
+
+Stage Summary:
+- Schema now has 34 models (6 new added, 0 existing modified/deleted)
+- User model has 4 new relation fields
+- Ride model has videoFootages back-relation
+- Route model has routeRoiScores back-relation
+- Database is in sync with schema
+
+---
 Task ID: Final
 Agent: Main
 Task: Verify all 11 features and run final checks
@@ -344,3 +375,32 @@ Stage Summary:
   9. 3D map improved: style selector, buildings, fly-along animation, mini elevation profile
   10. Offline tile caching fixed: MapLibre protocol handler, 12 Balkan regions, expiry management
   11. 15 seed camps across 9 countries with auto-seed + map overlay markers
+
+---
+Task ID: v2-features
+Agent: Main
+Task: Implement 5 new features for MotoTrack v2
+
+Work Log:
+- Updated Prisma schema with 6 new models: VideoFootage, VideoHighlight, Subscription, RouteRoiScore, OfflineSyncQueue, ProFeature
+- Added User model relations: videoFootages, subscription, routeRoiScores, offlineSyncQueue
+- Ran db:push to sync database
+- Built WebSocket mini-service at port 3003 for Live Tracking with: join-tracking, start-broadcast, update-location, stop-broadcast, sos-beacon, leave-tracking events
+- Created API routes: /api/route-roi (GET+POST), /api/route-recommendations (GET), /api/videos (GET+POST), /api/videos/[id] (GET+PUT+DELETE), /api/subscription (GET+POST+PUT), /api/sync-queue (GET+POST+PUT+DELETE)
+- Built frontend components: route-roi-panel.tsx, smart-recommendations-panel.tsx, video-sync-panel.tsx, subscription-panel.tsx, offline-sync-panel.tsx
+- Added types to types.ts: RouteRoiScoreData, RouteRecommendation, VideoFootageData, SubscriptionData, SyncQueueItem, ProFeatureData
+- Updated Service Worker (sw.js) with: background sync support, queue for failed POST requests, IndexedDB persistence, periodic sync, push notification handler
+- Integrated Feature Hub dialog in page.tsx with 5 tabs: Priporočila, ROI, Video, PRO, Sync
+- Added Sparkles icon button in header to open Feature Hub
+- Fixed lucide-react Sync icon (replaced with RefreshCw as SyncIcon)
+- Fixed route-recommendations API: sequential weather fetching, reduced to 5 routes max, fixed precipitation array access
+- All lint checks pass clean
+- All API endpoints tested and returning correct responses
+
+Stage Summary:
+- 5 major features implemented: Live Tracking, Smart Route ROI, Video Sync, PWA Offline Sync, Monetization/PRO
+- WebSocket service running on port 3003
+- Feature Hub accessible via ✨ button in header
+- All new components use Slovenian UI text
+- Database schema has 34 models (6 new added)
+- Service Worker updated to v3 with background sync

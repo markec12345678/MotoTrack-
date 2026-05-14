@@ -11,6 +11,12 @@ import {
   Bike,
   Sun,
   Moon,
+  Sparkles,
+  Brain,
+  Video,
+  Crown,
+  RefreshCw,
+  BarChart3,
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Skeleton } from '@/components/ui/skeleton'
@@ -59,6 +65,12 @@ const NotificationBell = dynamic(withRetry(() => import('@/components/notificati
 const SosButton = dynamic(withRetry(() => import('@/components/sos-button')), { ssr: false, loading: () => null })
 const PwaInstallPrompt = dynamic(withRetry(() => import('@/components/pwa-install-prompt').then(m => ({ default: m.PwaInstallPrompt }))), { ssr: false, loading: () => null })
 const AppShareButton = dynamic(withRetry(() => import('@/components/app-share-button').then(m => ({ default: m.AppShareButton }))), { ssr: false, loading: () => null })
+// New v2 feature panels
+const SmartRecommendationsPanel = dynamic(withRetry(() => import('@/components/smart-recommendations-panel')), { ssr: false, loading: DynamicLoading })
+const VideoSyncPanel = dynamic(withRetry(() => import('@/components/video-sync-panel')), { ssr: false, loading: DynamicLoading })
+const SubscriptionPanel = dynamic(withRetry(() => import('@/components/subscription-panel')), { ssr: false, loading: DynamicLoading })
+const OfflineSyncPanel = dynamic(withRetry(() => import('@/components/offline-sync-panel')), { ssr: false, loading: DynamicLoading })
+const RouteRoiPanel = dynamic(withRetry(() => import('@/components/route-roi-panel')), { ssr: false, loading: DynamicLoading })
 
 const tabs: { id: TabId; label: string; icon: React.ElementType }[] = [
   { id: 'map', label: 'Zemljevid', icon: MapIcon },
@@ -136,6 +148,10 @@ function Home() {
   const [selectedType, setSelectedType] = useState<'ride' | 'route'>('ride')
   const [detailOpen, setDetailOpen] = useState(false)
 
+  // Feature hub (new v2 features)
+  const [featureOpen, setFeatureOpen] = useState(false)
+  const [featureTab, setFeatureTab] = useState<'roi' | 'smart' | 'video' | 'subscription' | 'sync'>('smart')
+
   // Comments
   const [comments, setComments] = useState<CommentData[]>([])
   const [newComment, setNewComment] = useState('')
@@ -156,6 +172,18 @@ function Home() {
     return 'map' as TabId
   }, [])
   const [activeTab, setActiveTab] = useState<TabId>(initialTab)
+
+  // User location for recommendations
+  const [userLat, setUserLat] = useState<number | undefined>()
+  const [userLng, setUserLng] = useState<number | undefined>()
+  useEffect(() => {
+    if (navigator.geolocation) {
+      navigator.geolocation.getCurrentPosition(pos => {
+        setUserLat(pos.coords.latitude)
+        setUserLng(pos.coords.longitude)
+      }, () => {}, { enableHighAccuracy: false, timeout: 5000 })
+    }
+  }, [])
 
   // Fetch data - only seed if database is empty
   const fetchData = useCallback(async () => {
@@ -466,6 +494,17 @@ function Home() {
         </div>
         {mounted && (
           <div className="flex items-center gap-0.5">
+            {/* Feature Hub button */}
+            <Button
+              variant="ghost"
+              size="icon"
+              className="size-8 rounded-lg hover:bg-primary/10 relative"
+              onClick={() => setFeatureOpen(true)}
+              title="PRO Funkcije"
+            >
+              <Sparkles className="size-3.5 text-primary" />
+              <span className="absolute -top-0.5 -right-0.5 w-2 h-2 bg-primary rounded-full animate-pulse" />
+            </Button>
             <NotificationBell userId={user?.id} />
             <AppShareButton />
             <Button
@@ -547,6 +586,104 @@ function Home() {
           onPostComment={postComment}
           onNewCommentChange={setNewComment}
         />
+      )}
+
+      {/* Feature Hub Dialog - New v2 Features */}
+      {featureOpen && (
+        <div className="fixed inset-0 z-[2000] flex items-end sm:items-center justify-center">
+          <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={() => setFeatureOpen(false)} />
+          <div className="relative w-full max-w-lg max-h-[85vh] bg-background border border-border rounded-t-2xl sm:rounded-2xl overflow-hidden flex flex-col">
+            {/* Header */}
+            <div className="flex items-center justify-between p-4 border-b border-border/50">
+              <div className="flex items-center gap-2">
+                <div className="flex items-center justify-center size-8 rounded-xl bg-primary/20">
+                  <Sparkles className="size-4 text-primary" />
+                </div>
+                <div>
+                  <h2 className="text-sm font-bold">PRO Funkcije</h2>
+                  <p className="text-[10px] text-muted-foreground">Napredne zmožnosti MotoTrack</p>
+                </div>
+              </div>
+              <Button variant="ghost" size="icon" className="size-8" onClick={() => setFeatureOpen(false)}>
+                ✕
+              </Button>
+            </div>
+
+            {/* Feature Tabs */}
+            <div className="flex border-b border-border/30 overflow-x-auto">
+              {[
+                { id: 'smart' as const, label: 'Priporočila', icon: Brain },
+                { id: 'roi' as const, label: 'ROI', icon: BarChart3 },
+                { id: 'video' as const, label: 'Video', icon: Video },
+                { id: 'subscription' as const, label: 'PRO', icon: Crown },
+                { id: 'sync' as const, label: 'Sync', icon: RefreshCw },
+              ].map(ft => (
+                <button
+                  key={ft.id}
+                  onClick={() => setFeatureTab(ft.id)}
+                  className={`flex items-center gap-1.5 px-4 py-2.5 text-xs font-medium whitespace-nowrap border-b-2 transition-all ${
+                    featureTab === ft.id
+                      ? 'border-primary text-primary'
+                      : 'border-transparent text-muted-foreground hover:text-foreground'
+                  }`}
+                >
+                  <ft.icon className="size-3.5" />
+                  {ft.label}
+                </button>
+              ))}
+            </div>
+
+            {/* Feature Content */}
+            <div className="flex-1 overflow-y-auto p-4 custom-scrollbar">
+              {featureTab === 'smart' && (
+                <SmartRecommendationsPanel
+                  userId={user?.id}
+                  userLat={userLat}
+                  userLng={userLng}
+                  onOpenDetail={(route) => {
+                    setFeatureOpen(false)
+                    openDetail(route, 'route')
+                  }}
+                />
+              )}
+              {featureTab === 'roi' && selectedType === 'route' && selectedItem && (
+                <RouteRoiPanel
+                  routeId={selectedItem.id}
+                  userId={user?.id}
+                  routeCategory={(selectedItem as RouteData).category}
+                  routeDistance={(selectedItem as RouteData).distance}
+                />
+              )}
+              {featureTab === 'roi' && (selectedType !== 'route' || !selectedItem) && (
+                <div className="text-center py-8">
+                  <BarChart3 className="size-8 text-muted-foreground/30 mx-auto mb-2" />
+                  <p className="text-sm text-muted-foreground">Izberite ruto za ROI analizo</p>
+                  <p className="text-xs text-muted-foreground/50 mt-1">Odprite podrobnosti rute in nato priročnik ROI</p>
+                  {/* Show ROI for first route if available */}
+                  {routes.length > 0 && (
+                    <div className="mt-4">
+                      <RouteRoiPanel
+                        routeId={routes[0].id}
+                        userId={user?.id}
+                        routeCategory={routes[0].category}
+                        routeDistance={routes[0].distance}
+                      />
+                    </div>
+                  )}
+                </div>
+              )}
+              {featureTab === 'video' && (
+                <VideoSyncPanel userId={user?.id} />
+              )}
+              {featureTab === 'subscription' && (
+                <SubscriptionPanel userId={user?.id} />
+              )}
+              {featureTab === 'sync' && (
+                <OfflineSyncPanel userId={user?.id} />
+              )}
+            </div>
+          </div>
+        </div>
       )}
 
       {/* FAB - Floating Action Button (REVER-style) */}
