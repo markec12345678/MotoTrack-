@@ -9,12 +9,10 @@ const globalForPrisma = globalThis as unknown as {
  * - Turso (libsql) adapter on Vercel/production (when TURSO_DATABASE_URL is set)
  * - Local SQLite in development
  *
- * CRITICAL: When using the Turso adapter, Prisma's internal engine STILL
- * validates the DATABASE_URL from the schema (url = env("DATABASE_URL")).
- * If DATABASE_URL is set to a libsql:// URL on Vercel, Prisma will reject it
- * as invalid for the "sqlite" provider. Therefore, we MUST override
- * DATABASE_URL to a valid SQLite placeholder (file:./dev.db) when using
- * the adapter — the actual connection goes through the adapter, not DATABASE_URL.
+ * IMPORTANT (Prisma 6.x): PrismaLibSQL is a FACTORY, not an adapter.
+ * Pass the config object { url, authToken } directly — do NOT create a
+ * client first with createClient(). The factory's connect() method will
+ * create the @libsql/client instance internally.
  */
 function createPrismaClient(): PrismaClient {
   const tursoUrl = process.env.TURSO_DATABASE_URL || ''
@@ -29,24 +27,20 @@ function createPrismaClient(): PrismaClient {
   if (isTurso && typeof window === 'undefined') {
     try {
       // eslint-disable-next-line @typescript-eslint/no-require-imports
-      const { createClient } = require('@libsql/client')
-      // eslint-disable-next-line @typescript-eslint/no-require-imports
       const { PrismaLibSQL } = require('@prisma/adapter-libsql')
 
-      const libsql = createClient({
+      console.log('[DB] Connecting to Turso:', tursoUrl.replace(/\/\/.*@/, '//***@'))
+
+      // CRITICAL: PrismaLibSQL is a FACTORY in Prisma 6.x.
+      // Pass config object directly, NOT a createClient() instance.
+      // The factory's connect() method creates the client internally.
+      const adapter = new PrismaLibSQL({
         url: tursoUrl,
         authToken: tursoAuthToken,
       })
-      const adapter = new PrismaLibSQL(libsql)
 
-      console.log('[DB] Connected to Turso:', tursoUrl.replace(/\/\/.*@/, '//***@'))
-
-      // CRITICAL FIX: Prisma's internal engine validates DATABASE_URL even
-      // when using an adapter. On Vercel, DATABASE_URL might be set to a
-      // libsql:// URL which is NOT valid for Prisma's "sqlite" provider.
-      // We MUST override it to a valid SQLite placeholder before creating
-      // the PrismaClient. The adapter handles the actual connection, so
-      // this placeholder value is never used for data access.
+      // DATABASE_URL must be a valid SQLite URL for Prisma's internal validation
+      // even when using the adapter. Set it to a placeholder.
       process.env.DATABASE_URL = 'file:./dev.db'
 
       return new PrismaClient({
