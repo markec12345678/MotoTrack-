@@ -258,3 +258,62 @@ Stage Summary:
 - All lint errors resolved (0 errors, 0 warnings)
 - 3 new features working: Curvature Profiles, Search Along Route, Ride Comparison
 - App fully operational with 50+ features
+
+---
+Task ID: 14
+Agent: Main - PWA Implementation
+Task: Add Progressive Web App support and app sharing feature
+
+Work Log:
+- Generated app icons (icon-192.png, icon-512.png) with motorcycle + GPS pin design
+- Created manifest.json with Slovenian metadata, 2 icons, 2 shortcuts (Sledi, Načrtuj)
+- Created sw.js service worker with network-first caching strategy
+- Created pwa-register.tsx component for service worker registration
+- Updated layout.tsx: added manifest, appleWebApp, PWA icons, PwaRegister component
+- Created pwa-install-prompt.tsx: auto-detect beforeinstallprompt, 7-day dismiss, install button
+- Created app-share-button.tsx: Web Share API, QR code, copy link, WhatsApp/Email/SMS sharing
+- Integrated AppShareButton in header, PwaInstallPrompt above bottom nav
+- All PWA files verified: manifest.json (200), sw.js (200), icons (200)
+- Lint: 0 errors, 0 warnings
+- Dev server: HTTP 200 OK
+
+Stage Summary:
+- Full PWA support implemented (installable on Android/iOS/Desktop)
+- App sharing feature with QR code, social media, clipboard
+- PWA install prompt with smart dismiss logic
+- All assets accessible and serving correctly
+
+---
+Task ID: PWA-2
+Agent: PWA Install Prompt & Sharing Feature Implementer
+Task: Create PWA install prompt banner and app sharing component
+
+Work Log:
+- Read worklog.md and page.tsx to understand current project state
+- Created /src/components/pwa-install-prompt.tsx:
+  - Detects `beforeinstallprompt` browser event for PWA installability
+  - Shows install banner with 3-second delay (non-aggressive)
+  - Respects 7-day dismissal period via localStorage
+  - Checks `display-mode: standalone` to detect already-installed state
+  - Fixed lint error: moved isInstalled check to useState initializer (avoids setState-in-effect)
+  - UI: fixed bottom-20 banner with Smartphone icon, install/dismiss buttons, Slovenian labels
+- Created /src/components/app-share-button.tsx:
+  - Supports native Web Share API (mobile) with dialog fallback
+  - QR code generation via api.qrserver.com
+  - Copy link to clipboard with toast feedback
+  - Share via WhatsApp, Email, SMS with platform-specific URLs
+  - Installation instructions section (Android, iPhone, Desktop)
+  - Slovenian labels throughout (Deli MotoTrack, Prikaži QR kodo, Kako namestiti)
+- Integrated into page.tsx:
+  - Added dynamic imports for both components with ssr: false
+  - PwaInstallPrompt placed before Bottom Nav (z-[1600] above nav z-[1500])
+  - AppShareButton placed in header next to NotificationBell and theme toggle
+- ESLint: 0 errors, 0 warnings
+- Dev server: HTTP 200 OK
+
+Stage Summary:
+- 2 new components created: pwa-install-prompt.tsx, app-share-button.tsx
+- Both dynamically imported in page.tsx with ssr: false
+- PWA install prompt: auto-detects installability, dismissible with 7-day cooldown
+- App share: native share API + QR code + WhatsApp/Email/SMS + copy link
+- Zero lint errors, all existing functionality preserved

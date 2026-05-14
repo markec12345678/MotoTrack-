@@ -1,0 +1,42 @@
+{
+  "name": "MotoTrack - GPS Sledenje za Motoriste",
+  "short_name": "MotoTrack",
+  "description": "Aplikacija za sledenje, načrtovanje in raziskovanje motociklističnih poti po Sloveniji",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#0a0a0a",
+  "theme_color": "#0a0a0a",
+  "orientation": "portrait-primary",
+  "scope": "/",
+  "lang": "sl",
+  "categories": ["navigation", "lifestyle", "travel"],
+  "icons": [
+    {
+      "src": "/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ],
+  "screenshots": [],
+  "shortcuts": [
+    {
+      "name": "Sledi vožnji",
+      "short_name": "Sledi",
+      "url": "/?tab=track",
+      "icons": [{"src": "/icon-192.png", "sizes": "192x192"}]
+    },
+    {
+      "name": "Načrtuj pot",
+      "short_name": "Načrtuj",
+      "url": "/?tab=plan",
+      "icons": [{"src": "/icon-192.png", "sizes": "192x192"}]
+    }
+  ]
+}

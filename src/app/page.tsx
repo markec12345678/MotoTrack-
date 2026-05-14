@@ -30,6 +30,8 @@ const MotoChat = dynamic(() => import('@/components/moto-chat'), { ssr: false })
 const DetailDialog = dynamic(() => import('@/components/tabs/detail-dialog'), { ssr: false })
 const NotificationBell = dynamic(() => import('@/components/notification-bell'), { ssr: false })
 const SosButton = dynamic(() => import('@/components/sos-button'), { ssr: false })
+const PwaInstallPrompt = dynamic(() => import('@/components/pwa-install-prompt').then(m => ({ default: m.PwaInstallPrompt })), { ssr: false })
+const AppShareButton = dynamic(() => import('@/components/app-share-button').then(m => ({ default: m.AppShareButton })), { ssr: false })
 
 const tabs: { id: TabId; label: string; icon: React.ElementType }[] = [
   { id: 'map', label: 'Zemljevid', icon: MapIcon },
@@ -313,6 +315,7 @@ export default function Home() {
         {mounted && (
           <div className="flex items-center gap-1">
             <NotificationBell userId={user?.id} />
+            <AppShareButton />
             <Button
               variant="ghost"
               size="icon"
@@ -393,6 +396,9 @@ export default function Home() {
 
       {/* AI Chat */}
       <MotoChat />
+
+      {/* PWA Install Prompt */}
+      <PwaInstallPrompt />
 
       {/* Bottom Nav */}
       <nav className="fixed bottom-0 left-0 right-0 z-[1500] bg-background/95 backdrop-blur-md border-t border-border/50 safe-area-bottom">
