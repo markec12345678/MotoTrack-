@@ -124,7 +124,7 @@ export default function TrackTab({
   const speedBarColor = isOverSpeed ? 'bg-red-500' : speedPct > 80 ? 'bg-amber-500' : 'bg-primary'
 
   return (
-    <div className={`relative w-full h-[calc(100vh-104px)] flex flex-col transition-all duration-200 ${
+    <div className={`relative w-full h-[calc(100vh-120px)] flex flex-col transition-all duration-200 ${
       isOverSpeed && flashOn ? 'ring-4 ring-inset ring-red-500/70' : ''
     }`}>
       {/* Feature panels toggle - when not tracking */}

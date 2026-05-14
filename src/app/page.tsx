@@ -71,13 +71,16 @@ export default function HomePage() {
   return (
     <Suspense fallback={
       <div className="min-h-screen flex flex-col bg-background">
-        <header className="fixed top-0 left-0 right-0 z-[1400] h-10 flex items-center px-4 bg-background/95 backdrop-blur-md">
+        <header className="fixed top-0 left-0 right-0 z-[1400] h-12 flex items-center px-4 bg-background/95 backdrop-blur-md border-b border-border/30">
           <div className="flex items-center gap-2">
-            <Bike className="size-4 text-primary" />
-            <span className="font-bold text-sm tracking-tight">MotoTrack</span>
+            <div className="flex items-center justify-center size-8 rounded-xl bg-primary/20">
+              <Bike className="size-[18px] text-primary" strokeWidth={2.5} />
+            </div>
+            <span className="font-black text-[15px] tracking-tight text-primary">MotoTrack</span>
           </div>
         </header>
-        <main className="flex-1 pt-11 pb-20 px-4 max-w-lg mx-auto w-full">
+        <div className="header-gradient-line fixed top-12 left-0 right-0 z-[1400]" />
+        <main className="flex-1 pt-12 pb-20 px-4 max-w-lg mx-auto w-full">
           <div className="py-6 space-y-6">
             <Skeleton className="w-full h-48 rounded-xl" />
             <Skeleton className="h-24 rounded-xl" />
@@ -313,18 +316,20 @@ function Home() {
     return (
       <div className="min-h-screen flex flex-col bg-background">
         {/* Header skeleton */}
-        <header className="fixed top-0 left-0 right-0 z-[1400] h-11 flex items-center px-4 bg-background/95 backdrop-blur-md">
-          <div className="flex items-center gap-2.5 flex-1">
-            <div className="flex items-center justify-center size-7 rounded-lg bg-primary/15">
-              <Bike className="size-4 text-primary" strokeWidth={2.2} />
+        <header className="fixed top-0 left-0 right-0 z-[1400] h-12 flex items-center px-4 bg-background/95 backdrop-blur-md border-b border-border/30">
+          <div className="flex items-center gap-2 flex-1">
+            <div className="flex items-center justify-center size-8 rounded-xl bg-primary/20 shadow-sm shadow-primary/20">
+              <Bike className="size-[18px] text-primary" strokeWidth={2.5} />
             </div>
-            <span className="font-extrabold text-sm tracking-tight text-primary">MotoTrack</span>
-            <span className="text-[9px] text-muted-foreground/60 hidden sm:inline uppercase tracking-widest">GPS Sledenje</span>
+            <div className="flex flex-col -space-y-0.5">
+              <span className="font-black text-[15px] tracking-tight text-primary leading-none">MotoTrack</span>
+              <span className="text-[8px] text-muted-foreground/70 uppercase tracking-[0.2em] font-semibold leading-none hidden sm:block">GPS Sledenje</span>
+            </div>
           </div>
         </header>
-        <div className="header-gradient-line fixed top-11 left-0 right-0 z-[1400]" />
+        <div className="header-gradient-line fixed top-12 left-0 right-0 z-[1400]" />
 
-        <main className="flex-1 pt-10 pb-16 px-4 max-w-lg mx-auto w-full">
+        <main className="flex-1 pt-12 pb-20 px-4 max-w-lg mx-auto w-full">
           <div className="py-6 space-y-6">
             {/* Map placeholder skeleton */}
             <Skeleton className="w-full h-48 rounded-xl" />
@@ -353,13 +358,13 @@ function Home() {
           </div>
         </main>
 
-        {/* Bottom nav skeleton */}
-        <nav className="fixed bottom-0 left-0 right-0 z-[1500] bg-background/95 backdrop-blur-md border-t border-border/50" style={{ paddingBottom: 'env(safe-area-inset-bottom, 0px)' }}>
-          <div className="flex items-center justify-around max-w-lg mx-auto h-16">
+        {/* Bottom nav skeleton - dark REVER style */}
+        <nav className="fixed bottom-0 left-0 right-0 z-[1500] bg-black/95 backdrop-blur-xl border-t border-white/5" style={{ paddingBottom: 'env(safe-area-inset-bottom, 0px)' }}>
+          <div className="flex items-center justify-around max-w-lg mx-auto h-[72px]">
             {[1,2,3,4,5].map(i => (
-              <div key={i} className="flex flex-col items-center gap-1 px-3 py-2">
-                <Skeleton className="size-5 rounded" />
-                <Skeleton className="h-2.5 w-8" />
+              <div key={i} className="flex flex-col items-center gap-1 px-4 py-2">
+                <Skeleton className="size-5 rounded bg-white/10" />
+                <Skeleton className="h-2.5 w-8 bg-white/10" />
               </div>
             ))}
           </div>
@@ -370,27 +375,29 @@ function Home() {
 
   return (
     <div className="min-h-screen flex flex-col bg-background">
-      {/* Header - REVER-inspired with bold brand */}
-      <header className={`fixed top-0 left-0 right-0 z-[1400] h-11 flex items-center px-4 transition-all duration-300 ${
+      {/* Header - REVER-inspired with bold orange brand */}
+      <header className={`fixed top-0 left-0 right-0 z-[1400] h-12 flex items-center px-4 transition-all duration-300 ${
         activeTab === 'map'
-          ? 'bg-black/30 backdrop-blur-sm'
-          : 'bg-background/95 backdrop-blur-md'
+          ? 'bg-black/40 backdrop-blur-sm'
+          : 'bg-background/95 backdrop-blur-md border-b border-border/30'
       }`}>
-        <div className="flex items-center gap-2.5 flex-1">
-          <div className="flex items-center justify-center size-7 rounded-lg bg-primary/15">
-            <Bike className="size-4 text-primary" strokeWidth={2.2} />
+        <div className="flex items-center gap-2 flex-1">
+          <div className="flex items-center justify-center size-8 rounded-xl bg-primary/20 shadow-sm shadow-primary/20">
+            <Bike className="size-[18px] text-primary" strokeWidth={2.5} />
           </div>
-          <span className="font-extrabold text-sm tracking-tight text-primary">MotoTrack</span>
-          <span className="text-[9px] text-muted-foreground/60 hidden sm:inline uppercase tracking-widest">GPS Sledenje</span>
+          <div className="flex flex-col -space-y-0.5">
+            <span className="font-black text-[15px] tracking-tight text-primary leading-none">MotoTrack</span>
+            <span className="text-[8px] text-muted-foreground/70 uppercase tracking-[0.2em] font-semibold leading-none hidden sm:block">GPS Sledenje</span>
+          </div>
         </div>
         {mounted && (
-          <div className="flex items-center gap-1">
+          <div className="flex items-center gap-0.5">
             <NotificationBell userId={user?.id} />
             <AppShareButton />
             <Button
               variant="ghost"
               size="icon"
-              className="size-7"
+              className="size-8 rounded-lg hover:bg-primary/10"
               onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
               title={theme === 'dark' ? 'Svetla tema' : 'Temna tema'}
             >
@@ -399,12 +406,12 @@ function Home() {
           </div>
         )}
       </header>
-      {/* Header gradient accent line */}
-      <div className={`header-gradient-line fixed top-11 left-0 right-0 z-[1400] transition-opacity duration-300 ${
-        activeTab === 'map' ? 'opacity-40' : 'opacity-100'
+      {/* Header gradient accent line - REVER orange glow */}
+      <div className={`header-gradient-line fixed top-12 left-0 right-0 z-[1400] transition-opacity duration-300 ${
+        activeTab === 'map' ? 'opacity-50' : 'opacity-100'
       }`} />
 
-      <main className="flex-1 relative" style={{ paddingTop: activeTab === 'map' ? '0' : '44px', paddingBottom: 'calc(64px + env(safe-area-inset-bottom, 0px))' }}>
+      <main className="flex-1 relative" style={{ paddingTop: activeTab === 'map' ? '0' : '48px', paddingBottom: 'calc(72px + env(safe-area-inset-bottom, 0px))' }}>
         <div key={activeTab} className="tab-transition">
           {activeTab === 'map' && (
             <MapTab rides={rides} routes={routes} onOpenDetail={openDetail} userId={user?.id} />
@@ -462,6 +469,20 @@ function Home() {
         />
       )}
 
+      {/* FAB - Floating Action Button (REVER-style) */}
+      {activeTab === 'map' && (
+        <div className="fixed z-[1401] left-1/2 -translate-x-1/2" style={{ bottom: 'calc(76px + env(safe-area-inset-bottom, 0px))' }}>
+          <button
+            onClick={() => setActiveTab('track')}
+            className="relative w-14 h-14 rounded-full bg-primary shadow-lg shadow-primary/40 flex items-center justify-center active:scale-95 transition-all hover:shadow-xl hover:shadow-primary/50"
+          >
+            <Play className="size-6 text-white fill-white ml-0.5" />
+            {/* Pulse ring */}
+            <div className="absolute inset-0 rounded-full bg-primary/25 animate-ping" />
+          </button>
+        </div>
+      )}
+
       {/* SOS Button */}
       <SosButton userId={user?.id} />
 
@@ -471,23 +492,19 @@ function Home() {
       {/* PWA Install Prompt */}
       <PwaInstallPrompt />
 
-      {/* Bottom Nav - REVER-inspired with bold orange active state */}
-      <nav className="fixed bottom-0 left-0 right-0 z-[1500] bg-card/95 backdrop-blur-xl border-t border-border/30" style={{ paddingBottom: 'env(safe-area-inset-bottom, 0px)' }}>
-        <div className="flex items-center justify-around max-w-lg mx-auto h-16">
+      {/* Bottom Nav - REVER-inspired dark bar with bold orange active */}
+      <nav className="fixed bottom-0 left-0 right-0 z-[1500] bg-black/95 backdrop-blur-xl border-t border-white/5 dark:bg-black/95" style={{ paddingBottom: 'env(safe-area-inset-bottom, 0px)' }}>
+        <div className="flex items-center justify-around max-w-lg mx-auto h-[72px]">
           {tabs.map(tab => {
             const isActive = activeTab === tab.id
             return (
-              <button key={tab.id} onClick={() => setActiveTab(tab.id)} className={`relative flex flex-col items-center justify-center gap-0.5 px-3 py-1.5 rounded-2xl transition-all duration-300 active:scale-95 ${isActive ? '' : 'text-muted-foreground/60 hover:text-foreground/80'}`}>
-                {/* Active background glow */}
+              <button key={tab.id} onClick={() => setActiveTab(tab.id)} className={`relative flex flex-col items-center justify-center gap-1 px-4 py-2 rounded-2xl transition-all duration-300 active:scale-90 ${isActive ? '' : 'text-white/40 hover:text-white/70'}`}>
+                {/* Active indicator bar */}
                 {isActive && (
-                  <div className="absolute inset-0 rounded-2xl bg-primary/15 shadow-[0_0_16px_rgba(var(--primary-rgb),0.2)]" />
-                )}
-                {/* Active dot indicator above icon */}
-                {isActive && (
-                  <div className="absolute -top-0.5 size-1.5 rounded-full bg-primary shadow-[0_0_6px_rgba(var(--primary-rgb),0.6)]" />
+                  <div className="absolute -top-px left-1/2 -translate-x-1/2 w-8 h-[3px] rounded-full bg-primary shadow-[0_0_12px_rgba(var(--primary-rgb),0.6)]" />
                 )}
                 <div className="relative">
-                  <tab.icon className={`size-[22px] transition-all duration-300 ${isActive ? 'text-primary drop-shadow-[0_0_8px_rgba(var(--primary-rgb),0.4)]' : ''}`} strokeWidth={isActive ? 2.5 : 1.8} />
+                  <tab.icon className={`size-[22px] transition-all duration-300 ${isActive ? 'text-primary drop-shadow-[0_0_10px_rgba(var(--primary-rgb),0.5)]' : ''}`} strokeWidth={isActive ? 2.5 : 1.5} />
                 </div>
                 <span className={`relative text-[10px] tracking-tight transition-all duration-300 ${isActive ? 'text-primary font-bold' : 'font-medium'}`}>{tab.label}</span>
               </button>

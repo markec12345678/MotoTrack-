@@ -401,7 +401,7 @@ export default function MapTab({ rides, routes, onOpenDetail, userId }: MapTabPr
   const navActiveCount = [showNavigation, showFuelPanel, showParkingPanel, showFriendRides].filter(Boolean).length
 
   return (
-    <div className="relative w-full h-[calc(100vh-64px)]">
+    <div className="relative w-full h-[calc(100vh-72px)]">
       {/* Map */}
       <MotoMap
         center={[46.15, 14.99]}
@@ -428,11 +428,11 @@ export default function MapTab({ rides, routes, onOpenDetail, userId }: MapTabPr
         className="absolute inset-0"
       />
 
-      {/* Floating search bar */}
+      {/* Floating search bar - REVER style with bold shadow */}
       <div className="absolute top-4 left-4 right-16 z-[1000]">
         <div className="relative max-w-md">
-          <div className="flex items-center gap-2 bg-background/90 backdrop-blur-md border border-border rounded-xl shadow-lg px-3 py-2">
-            <Search className="h-4 w-4 text-muted-foreground shrink-0" />
+          <div className="flex items-center gap-2 bg-white/95 dark:bg-black/80 backdrop-blur-xl border border-white/20 dark:border-white/10 rounded-2xl shadow-xl shadow-black/10 dark:shadow-black/30 px-3.5 py-2.5">
+            <Search className="h-4 w-4 text-primary shrink-0" />
             <Input
               value={searchInput}
               onChange={(e) => {
@@ -452,7 +452,7 @@ export default function MapTab({ rides, routes, onOpenDetail, userId }: MapTabPr
 
           {/* Search dropdown */}
           {showSearch && searchQuery && (
-            <div className="absolute top-full left-0 right-0 mt-1 bg-background/95 backdrop-blur-md border border-border rounded-xl shadow-lg overflow-hidden">
+            <div className="absolute top-full left-0 right-0 mt-1.5 bg-white/95 dark:bg-black/90 backdrop-blur-xl border border-white/20 dark:border-white/10 rounded-2xl shadow-xl overflow-hidden">
               <ScrollArea className="max-h-72">
                 {!hasResults && <div className="px-4 py-6 text-center text-sm text-muted-foreground">Ni zadetkov</div>}
                 {filteredRides.map((ride) => (
@@ -681,48 +681,48 @@ export default function MapTab({ rides, routes, onOpenDetail, userId }: MapTabPr
         </div>
       )}
 
-      {/* Nearby panel - compact strip */}
+      {/* Nearby panel - REVER-style compact strip */}
       <div className="absolute bottom-4 left-4 right-4 z-[1000]">
-        <div className={`bg-background/95 backdrop-blur-md border border-border rounded-2xl shadow-lg transition-all duration-300 overflow-hidden ${nearbyExpanded ? 'max-h-[60vh]' : 'max-h-12'}`}>
-          <button onClick={() => setNearbyExpanded(!nearbyExpanded)} className="w-full flex items-center justify-between px-4 h-12 text-sm font-medium text-foreground hover:bg-muted/30 transition-colors rounded-t-2xl">
+        <div className={`bg-black/85 backdrop-blur-xl border border-white/10 rounded-2xl shadow-xl shadow-black/20 transition-all duration-300 overflow-hidden ${nearbyExpanded ? 'max-h-[60vh]' : 'max-h-12'}`}>
+          <button onClick={() => setNearbyExpanded(!nearbyExpanded)} className="w-full flex items-center justify-between px-4 h-12 text-sm font-medium text-white hover:bg-white/5 transition-colors rounded-t-2xl">
             <div className="flex items-center gap-2">
-              <div className="flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-amber-500/15 text-amber-500 text-[10px] font-bold">
+              <div className="flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-primary/20 text-primary text-[10px] font-bold">
                 <Bike className="size-3" /> {rides.length}
               </div>
-              <div className="flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-emerald-500/15 text-emerald-500 text-[10px] font-bold">
+              <div className="flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-400 text-[10px] font-bold">
                 <RouteIcon className="size-3" /> {routes.length}
               </div>
               {activePoiCount > 0 && (
-                <div className="flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-primary/15 text-primary text-[10px] font-bold">
+                <div className="flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-sky-500/20 text-sky-400 text-[10px] font-bold">
                   <MapPin className="size-3" /> {pois.filter(p => activePoiTypes.includes(p.type)).length} POI
                 </div>
               )}
               {liveRiders.length > 0 && (
-                <div className="flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-green-500/15 text-green-500 text-[10px] font-bold">
+                <div className="flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-green-500/20 text-green-400 text-[10px] font-bold">
                   <Radio className="size-3 animate-pulse" /> {liveRiders.length}
                 </div>
               )}
             </div>
-            {nearbyExpanded ? <ChevronDown className="h-4 w-4 text-muted-foreground" /> : <ChevronUp className="h-4 w-4 text-muted-foreground" />}
+            {nearbyExpanded ? <ChevronDown className="h-4 w-4 text-white/50" /> : <ChevronUp className="h-4 w-4 text-white/50" />}
           </button>
           {nearbyExpanded && (
             <ScrollArea className="max-h-[calc(60vh-3.5rem)]">
-              <div className="px-4 pb-4 space-y-2">
+              <div className="px-4 pb-4 space-y-1.5">
                 {rides.map((ride) => (
-                  <button key={`nearby-ride-${ride.id}`} onClick={() => onOpenDetail(ride, 'ride')} className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-muted/50 transition-colors text-left">
-                    <Badge variant="outline" className="bg-amber-500/20 text-amber-400 border-amber-500/30 shrink-0 text-[10px] px-1.5 py-0">Vožnja</Badge>
-                    <span className="text-sm text-foreground truncate flex-1">{ride.title}</span>
-                    <span className="text-xs text-muted-foreground shrink-0">{ride.distance} km</span>
+                  <button key={`nearby-ride-${ride.id}`} onClick={() => onOpenDetail(ride, 'ride')} className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl hover:bg-white/5 transition-colors text-left">
+                    <Badge variant="outline" className="bg-primary/20 text-primary border-primary/30 shrink-0 text-[10px] px-1.5 py-0">Vožnja</Badge>
+                    <span className="text-sm text-white truncate flex-1">{ride.title}</span>
+                    <span className="text-xs text-white/40 shrink-0">{ride.distance} km</span>
                   </button>
                 ))}
                 {routes.map((route) => (
-                  <button key={`nearby-route-${route.id}`} onClick={() => onOpenDetail(route, 'route')} className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-muted/50 transition-colors text-left">
+                  <button key={`nearby-route-${route.id}`} onClick={() => onOpenDetail(route, 'route')} className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl hover:bg-white/5 transition-colors text-left">
                     <Badge variant="outline" className={`${categoryColor(route.category)} shrink-0 text-[10px] px-1.5 py-0`}>{categoryLabel(route.category)}</Badge>
-                    <span className="text-sm text-foreground truncate flex-1">{route.title}</span>
-                    <span className="text-xs text-muted-foreground shrink-0">{route.distance} km</span>
+                    <span className="text-sm text-white truncate flex-1">{route.title}</span>
+                    <span className="text-xs text-white/40 shrink-0">{route.distance} km</span>
                   </button>
                 ))}
-                {totalCount === 0 && <div className="py-6 text-center text-sm text-muted-foreground">Ni voženj in poti</div>}
+                {totalCount === 0 && <div className="py-6 text-center text-sm text-white/40">Ni voženj in poti</div>}
               </div>
             </ScrollArea>
           )}

@@ -409,7 +409,7 @@ const ExploreTabInner = React.memo(function ExploreTabInner({ rides, routes, lea
   )
 
   return (
-    <div className="w-full h-[calc(100vh-104px)] overflow-y-auto custom-scrollbar">
+    <div className="w-full h-[calc(100vh-120px)] overflow-y-auto custom-scrollbar">
       <div className="mx-auto max-w-4xl px-4 py-6">
         {/* Section tabs - 2-row compact icon tab bar */}
         <div className="space-y-1.5 mb-6">

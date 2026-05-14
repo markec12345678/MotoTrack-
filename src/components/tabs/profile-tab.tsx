@@ -413,7 +413,7 @@ export default function ProfileTab({ user, allUsers, rides, routes, loading, onS
 
   if (loading) {
     return (
-      <div className="w-full h-[calc(100vh-104px)] flex items-center justify-center">
+      <div className="w-full h-[calc(100vh-120px)] flex items-center justify-center">
         <User className="size-12 text-muted-foreground animate-pulse" />
       </div>
     )
@@ -421,7 +421,7 @@ export default function ProfileTab({ user, allUsers, rides, routes, loading, onS
 
   if (!user) {
     return (
-      <div className="w-full h-[calc(100vh-104px)] flex flex-col items-center justify-center gap-4">
+      <div className="w-full h-[calc(100vh-120px)] flex flex-col items-center justify-center gap-4">
         <p className="text-muted-foreground">Podatki o uporabniku niso na voljo</p>
         <Button onClick={onRefresh}>Poskusi znova</Button>
       </div>
@@ -436,7 +436,7 @@ export default function ProfileTab({ user, allUsers, rides, routes, loading, onS
   const dosezkiItemCount = 3 // achievements + points + performance
 
   return (
-    <div className="w-full h-[calc(100vh-104px)] overflow-y-auto custom-scrollbar">
+    <div className="w-full h-[calc(100vh-120px)] overflow-y-auto custom-scrollbar">
       <div className="mx-auto max-w-lg px-4 py-6 space-y-5">
 
         {/* ── User Switcher ── */}
