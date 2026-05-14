@@ -745,3 +745,53 @@ Stage Summary:
 - ServiceLocator now uses live web search API ✓
 - Smart Consumption calculator with full API + UI component ✓
 - All three features integrated into the Explore tab ✓
+
+---
+Task ID: Cinema-Director
+Agent: Main
+Task: Implement Moto-Cinema-Director module - interactive documentary film from ride data
+
+Work Log:
+- Analyzed full project state: existing ride-animation API, TTS API, photo API, Leaflet map component, GPX manager
+- Created /api/cinema/route.ts with:
+  - GET endpoint: Returns ride data formatted for cinema playback (track points with speed, photos mapped to track positions, detected stop points)
+  - POST endpoint with action='narrate': Generates TTS narration using z-ai-web-dev-sdk for location descriptions
+  - POST endpoint with action='location': Returns reverse geocoded location name via Nominatim API
+  - WAV audio generation using z-ai TTS with PCM→WAV header conversion
+  - Smart stop detection: identifies low-speed sections for narration triggers
+  - Photo-to-trackpoint mapping: matches photo timestamps to nearest GPS positions
+- Created /components/movie-player.tsx (full-screen cinema player):
+  - Dark CartoDB map style for cinematic feel
+  - Animated motorcycle marker with heading rotation following the route
+  - Traveled route highlighted (orange) vs full route (dimmed)
+  - Photo markers on the route (green camera icons)
+  - Smart photo pauses: auto-pauses at photo points, shows photo with fade-in effect for 3 seconds, then auto-resumes
+  - Telemetry HUD: speed (large display), altitude, location name, photo count
+  - TTS narration at stop points with Slovenian descriptions
+  - Full cinema controls: play/pause, speed selector (1x/2x/4x/8x), timeline scrubber with photo markers
+  - Keyboard shortcuts: Space (play/pause), Arrow keys (skip), Esc (close)
+  - Fullscreen mode, narration toggle
+  - Progress bar with photo position markers
+  - Ride stats bar at bottom (distance, elevation, max speed, photo count, "by Markec")
+  - Simulated data fallback when no real data available
+- Integrated into ExploreTab (Raziskuj tab):
+  - Added "Cinema" tab pill with Film icon
+  - Cinema section with intro card explaining the feature (4 feature highlights)
+  - Ride selector showing all saved rides with distance, duration, max speed
+  - Click to launch full-screen cinema player
+  - Keyboard shortcut tips in Slovenian
+- Added dynamic import for MoviePlayer in explore-tab.tsx
+- Added Film, Play icons to lucide-react imports
+- Added 'cinema' to exploreSection type union and cinemaRideId state
+- Fixed lint errors: moved triggerNarration before animation loop, separated effects, used ref-based animation loop pattern
+- All lint checks pass clean (0 errors, 0 warnings)
+- Dev server running and returning 200 OK
+
+Stage Summary:
+- Moto-Cinema-Director is a complete interactive documentary film player for motorcycle rides
+- Features: animated map following, smart photo pauses, TTS narration, telemetry HUD, cinema controls
+- Similar to Relive/GoPro Quik but built into MotoTrack
+- Accessible via Raziskuj tab → Cinema section
+- All UI in Slovenian with orange cinematic theme
+- API endpoint at /api/cinema supports data retrieval and TTS narration
+- Lint passes cleanly

@@ -7,7 +7,7 @@ import {
   Users, Plus, LogOut, Shield, Sparkles, UserPlus,
   UserCheck, UserMinus, UserX, Send, MapPin, Calendar,
   ChevronRight, Trash2, Wrench, Fuel, GitCompare, ArrowLeft, Tent,
-  Gauge,
+  Gauge, Film, Play,
 } from 'lucide-react'
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
@@ -30,6 +30,9 @@ import SmartConsumptionPanel from '@/components/smart-consumption-panel'
 import BalkanEventsPanel from '@/components/balkan-events-panel'
 import BalkanCampsPanel from '@/components/balkan-camps-panel'
 import BalkanRoadsPanel from '@/components/balkan-roads-panel'
+import dynamic from 'next/dynamic'
+
+const MoviePlayer = dynamic(() => import('@/components/movie-player'), { ssr: false, loading: () => null })
 
 // Tab pill component (defined outside render to avoid re-creation)
 function TabPill({ active, onClick, icon, label, badge, notification }: {
@@ -73,7 +76,10 @@ const ExploreTabInner = React.memo(function ExploreTabInner({ rides, routes, lea
   const [exploreCategory, setExploreCategory] = useState<string>('all')
   const [searchQuery, setSearchQuery] = useState('')
   const debouncedSearchQuery = useDebounce(searchQuery, 200)
-  const [exploreSection, setExploreSection] = useState<'discover' | 'feed' | 'favorites' | 'communities' | 'friends' | 'grouprides' | 'challenges' | 'services' | 'fuel' | 'consumption' | 'comparison' | 'events' | 'camps' | 'balkanroads'>('discover')
+  const [exploreSection, setExploreSection] = useState<'discover' | 'feed' | 'favorites' | 'communities' | 'friends' | 'grouprides' | 'challenges' | 'services' | 'fuel' | 'consumption' | 'comparison' | 'events' | 'camps' | 'balkanroads' | 'cinema'>('discover')
+
+  // Cinema state
+  const [cinemaRideId, setCinemaRideId] = useState<string | null>(null)
 
   // Comparison state
   const [selectedRideIds, setSelectedRideIds] = useState<string[]>([])
@@ -511,6 +517,12 @@ const ExploreTabInner = React.memo(function ExploreTabInner({ rides, routes, lea
               onClick={() => setExploreSection('balkanroads')}
               icon={<span className="text-sm">🗺️</span>}
               label="Ceste"
+            />
+            <TabPill
+              active={exploreSection === 'cinema'}
+              onClick={() => setExploreSection('cinema')}
+              icon={<Film className="size-3.5" />}
+              label="Cinema"
             />
           </div>
         </div>
@@ -1476,6 +1488,128 @@ const ExploreTabInner = React.memo(function ExploreTabInner({ rides, routes, lea
         ) : exploreSection === 'balkanroads' ? (
           /* ====== BALKAN ROADS SECTION ====== */
           <BalkanRoadsPanel />
+        ) : exploreSection === 'cinema' ? (
+          /* ====== MOTO CINEMA DIRECTOR ====== */
+          <div className="space-y-4">
+            {/* Cinema Player (full screen overlay) */}
+            {cinemaRideId && (
+              <MoviePlayer
+                rideId={cinemaRideId}
+                onClose={() => setCinemaRideId(null)}
+              />
+            )}
+
+            {/* Header */}
+            <div className="flex items-center justify-between">
+              <h2 className="text-lg font-bold flex items-center gap-2">
+                <Film className="size-5 text-primary" /> Moto Cinema
+              </h2>
+              <Badge variant="outline" className="bg-orange-500/20 text-orange-400 border-orange-500/30 text-[9px]">
+                REŽISER
+              </Badge>
+            </div>
+
+            {/* Intro card */}
+            <Card className="border-orange-500/30 bg-gradient-to-br from-orange-500/5 to-primary/5 overflow-hidden">
+              <div className="h-1 bg-gradient-to-r from-orange-400 via-red-500 to-orange-400" />
+              <CardContent className="p-4 space-y-3">
+                <div className="flex items-start gap-3">
+                  <div className="flex items-center justify-center size-12 rounded-xl bg-orange-500/20 shrink-0">
+                    <Film className="size-6 text-orange-400" />
+                  </div>
+                  <div>
+                    <h3 className="font-bold text-sm">Dokumentarni film tvoje vožnje</h3>
+                    <p className="text-xs text-muted-foreground mt-1">
+                      Izberi vožnjo in oglej si interaktivni film z animacijo po zemljevidu,
+                      telemetrijo, fotografijami in AI narracijo. Kot Relive ali GoPro Quik!
+                    </p>
+                  </div>
+                </div>
+
+                {/* Features list */}
+                <div className="grid grid-cols-2 gap-2">
+                  {[
+                    { icon: '🗺️', label: 'Animacija po poti' },
+                    { icon: '📷', label: 'Smart foto pavze' },
+                    { icon: '📊', label: 'Telemetrija LIVE' },
+                    { icon: '🎙️', label: 'AI narracija TTS' },
+                  ].map(f => (
+                    <div key={f.label} className="flex items-center gap-1.5 text-xs text-muted-foreground bg-secondary/50 rounded-lg px-2 py-1.5">
+                      <span className="text-sm">{f.icon}</span>
+                      <span>{f.label}</span>
+                    </div>
+                  ))}
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Ride selector */}
+            <div className="space-y-2">
+              <h3 className="text-sm font-semibold flex items-center gap-2">
+                <Bike className="size-4 text-primary" /> Izberi vožnjo za predvajanje
+              </h3>
+
+              {rides.length === 0 ? (
+                <Card className="border-dashed">
+                  <CardContent className="p-6 text-center">
+                    <Bike className="size-8 text-muted-foreground/30 mx-auto mb-2" />
+                    <p className="text-sm text-muted-foreground">Ni shranjenih voženj</p>
+                    <p className="text-xs text-muted-foreground/50 mt-1">Snemaj vožnjo v zavihku Sledi, nato jo predvajaj tukaj!</p>
+                  </CardContent>
+                </Card>
+              ) : (
+                <div className="space-y-2 max-h-96 overflow-y-auto custom-scrollbar">
+                  {rides.map(ride => (
+                    <Card
+                      key={ride.id}
+                      className="rounded-xl hover:border-orange-500/30 transition-all group cursor-pointer overflow-hidden"
+                      onClick={() => {
+                        setCinemaRideId(ride.id)
+                        toast.success('🎬 Moto Cinema se začenja!')
+                      }}
+                    >
+                      <div className="h-0.5 bg-gradient-to-r from-orange-400 to-red-500" />
+                      <CardContent className="p-3 flex items-center gap-3">
+                        <div className="flex items-center justify-center size-10 rounded-xl bg-orange-500/20 shrink-0">
+                          <Play className="size-5 text-orange-400 ml-0.5" />
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <p className="font-medium text-sm truncate group-hover:text-orange-400 transition-colors">
+                            {ride.title}
+                          </p>
+                          <div className="flex items-center gap-2 text-xs text-muted-foreground mt-0.5">
+                            <span>{ride.distance?.toFixed(1)} km</span>
+                            <span>·</span>
+                            <span>{ride.duration ? formatDuration(ride.duration) : '--'}</span>
+                            {ride.maxSpeed && (
+                              <>
+                                <span>·</span>
+                                <span className="text-orange-400">{ride.maxSpeed} km/h max</span>
+                              </>
+                            )}
+                          </div>
+                        </div>
+                        <Badge variant="outline" className="bg-orange-500/10 text-orange-400 border-orange-500/20 text-[9px] shrink-0">
+                          PLAY
+                        </Badge>
+                      </CardContent>
+                    </Card>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            {/* Tip */}
+            <div className="rounded-lg bg-secondary/50 p-3 text-xs text-muted-foreground">
+              <p className="font-medium text-foreground mb-1">💡 Namig</p>
+              <p>
+                Med predvajanjem uporabljaj tipke: <kbd className="px-1 py-0.5 bg-muted rounded text-[10px]">Space</kbd> za premor,
+                <kbd className="px-1 py-0.5 bg-muted rounded text-[10px]">←</kbd> <kbd className="px-1 py-0.5 bg-muted rounded text-[10px]">→</kbd> za premik,
+                <kbd className="px-1 py-0.5 bg-muted rounded text-[10px]">Esc</kbd> za izhod.
+                Fotografije se samodejno prikažejo ob ustreznih točkah!
+              </p>
+            </div>
+          </div>
         ) : (
           /* ====== DISCOVER SECTION ====== */
           <>
