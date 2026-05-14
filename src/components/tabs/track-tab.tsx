@@ -2,11 +2,12 @@
 
 import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react'
 import dynamic from 'next/dynamic'
-import { Play, Pause, Square, Save, Gauge, AlertTriangle, ChevronDown, ChevronUp } from 'lucide-react'
+import { Play, Pause, Square, Save, Gauge, AlertTriangle, ChevronDown, ChevronUp, Activity, Bike } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 import { Switch } from '@/components/ui/switch'
 import { Badge } from '@/components/ui/badge'
+import { Progress } from '@/components/ui/progress'
 import type { TrackPoint, SpeedAlertSettings } from '@/components/tabs/types'
 import { formatDuration } from '@/components/tabs/types'
 
@@ -169,38 +170,76 @@ export default function TrackTab({
         )}
       </div>
       <div className="absolute bottom-0 left-0 right-0 z-[1000] bg-background/95 backdrop-blur-md border-t border-border/50">
-        <div className="text-center py-2">
-          <span className="text-3xl font-mono font-bold text-primary">{formatDuration(duration)}</span>
+        {/* Timer - prominent display */}
+        <div className="text-center pt-3 pb-1">
+          <span className="text-4xl font-mono font-bold bg-gradient-to-r from-primary to-primary/70 bg-clip-text text-transparent">{formatDuration(duration)}</span>
         </div>
-        <div className="grid grid-cols-4 gap-2 px-4 pb-2">
-          <div className="text-center"><p className="text-[10px] text-muted-foreground uppercase">Razdalja</p><p className="text-sm font-bold">{distance.toFixed(1)} km</p></div>
-          <div className="text-center">
-            <p className="text-[10px] text-muted-foreground uppercase">Hitrost</p>
-            <p className={`text-sm font-bold transition-colors duration-200 ${
-              isOverSpeed ? 'text-red-500' : ''
-            }`}>{currentSpeed} km/h</p>
+        
+        {/* Stats row - card-style pills */}
+        <div className="flex items-center justify-center gap-2 px-4 pb-2">
+          <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-primary/10 text-xs">
+            <Activity className="size-3 text-primary" />
+            <span className="font-bold">{distance.toFixed(1)}</span>
+            <span className="text-muted-foreground">km</span>
           </div>
-          <div className="text-center"><p className="text-[10px] text-muted-foreground uppercase">Max</p><p className="text-sm font-bold">{maxSpeed} km/h</p></div>
-          <div className="text-center"><p className="text-[10px] text-muted-foreground uppercase">Nadm. viš.</p><p className="text-sm font-bold">{Math.round(elevation)} m</p></div>
+          <div className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs transition-colors duration-200 ${
+            isOverSpeed ? 'bg-red-500/20 text-red-500' : 'bg-primary/10'
+          }`}>
+            <Gauge className="size-3" />
+            <span className="font-bold">{currentSpeed}</span>
+            <span className="text-muted-foreground">km/h</span>
+          </div>
+          <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-primary/10 text-xs">
+            <Gauge className="size-3 text-amber-500" />
+            <span className="font-bold">{maxSpeed}</span>
+            <span className="text-muted-foreground">max</span>
+          </div>
+          <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-primary/10 text-xs">
+            <span className="font-bold">{Math.round(elevation)}</span>
+            <span className="text-muted-foreground">m</span>
+          </div>
         </div>
+
+        {/* Speed progress bar */}
+        {isTracking && !isPaused && speedSettings.speedAlertEnabled && (
+          <div className="px-6 pb-1.5">
+            <div className="h-1 rounded-full bg-muted overflow-hidden">
+              <div 
+                className={`h-full rounded-full transition-all duration-500 ${
+                  isOverSpeed ? 'bg-red-500' : currentSpeed > speedSettings.speedLimit * 0.8 ? 'bg-amber-500' : 'bg-primary'
+                }`} 
+                style={{ width: `${Math.min(100, (currentSpeed / speedSettings.speedLimit) * 100)}%` }} 
+              />
+            </div>
+            <div className="flex justify-between text-[8px] text-muted-foreground/50 mt-0.5">
+              <span>0</span>
+              <span className="text-amber-500">{speedSettings.speedLimit * 0.8} km/h</span>
+              <span className="text-red-500">{speedSettings.speedLimit} km/h</span>
+            </div>
+          </div>
+        )}
+
+        {/* Control buttons */}
         <div className="flex items-center justify-center gap-3 pb-3 px-4">
           {!isTracking ? (
-            <Button size="lg" className="px-8" onClick={onStart}><Play className="size-5 mr-2" />Začni sledenje</Button>
+            <Button size="lg" className="px-10 gap-2 rounded-full shadow-lg shadow-primary/20" onClick={onStart}>
+              <Play className="size-5" />Začni sledenje
+            </Button>
           ) : (
             <>
               {isPaused ? (
-                <Button size="lg" variant="outline" className="px-6" onClick={onResume}><Play className="size-4 mr-2" />Nadaljuj</Button>
+                <Button size="lg" variant="outline" className="px-6 gap-2 rounded-full" onClick={onResume}><Play className="size-4" />Nadaljuj</Button>
               ) : (
-                <Button size="lg" variant="outline" className="px-6" onClick={onPause}><Pause className="size-4 mr-2" />Premor</Button>
+                <Button size="lg" variant="outline" className="px-6 gap-2 rounded-full" onClick={onPause}><Pause className="size-4" />Premor</Button>
               )}
-              <Button size="lg" variant="destructive" className="px-6" onClick={onStop}><Square className="size-4 mr-2" />Ustavi</Button>
+              <Button size="lg" variant="destructive" className="px-6 gap-2 rounded-full" onClick={onStop}><Square className="size-4" />Ustavi</Button>
             </>
           )}
         </div>
         {!isTracking && trackPoints.length > 1 && (
           <div className="px-4 pb-3">
-            <Button className="w-full" onClick={onSave}>
-              <Save className="size-4 mr-2" />Shrani vožnjo ({distance.toFixed(1)} km, {formatDuration(duration)})
+            <Button className="w-full gap-2 rounded-full" onClick={onSave}>
+              <Save className="size-4" />Shrani vožnjo ({distance.toFixed(1)} km, {formatDuration(duration)})
             </Button>
           </div>
         )}

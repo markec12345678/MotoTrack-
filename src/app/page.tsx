@@ -400,12 +400,11 @@ export default function Home() {
           {tabs.map(tab => {
             const isActive = activeTab === tab.id
             return (
-              <button key={tab.id} onClick={() => setActiveTab(tab.id)} className={`relative flex flex-col items-center justify-center gap-1 px-3 py-2 rounded-lg transition-all duration-200 ${isActive ? 'text-primary' : 'text-muted-foreground hover:text-foreground'}`}>
-                <div className={isActive ? 'nav-icon-active' : ''}>
-                  <tab.icon className={`size-5 transition-transform duration-200 ${isActive ? 'text-primary scale-110' : 'scale-100'}`} />
+              <button key={tab.id} onClick={() => setActiveTab(tab.id)} className={`relative flex flex-col items-center justify-center gap-1 px-4 py-2 rounded-xl transition-all duration-200 ${isActive ? 'text-primary' : 'text-muted-foreground hover:text-foreground'}`}>
+                <div className={`transition-all duration-200 ${isActive ? 'p-1.5 rounded-xl bg-primary/10' : ''}`}>
+                  <tab.icon className={`size-5 transition-transform duration-200 ${isActive ? 'text-primary scale-105' : 'scale-100'}`} />
                 </div>
-                <span className={`text-[10px] font-medium transition-all duration-200 ${isActive ? 'text-primary' : ''}`}>{tab.label}</span>
-                {isActive && <span className="nav-indicator absolute -bottom-0.5 left-1/2 -translate-x-1/2 w-5 h-0.5 rounded-full bg-primary" />}
+                <span className={`text-[10px] font-semibold transition-all duration-200 ${isActive ? 'text-primary' : ''}`}>{tab.label}</span>
               </button>
             )
           })}

@@ -6,7 +6,7 @@ import {
   Heart, User, Clock, Star, Trophy, Crown, Medal,
   Users, Plus, LogOut, Shield, Sparkles, UserPlus,
   UserCheck, UserMinus, UserX, Send, MapPin, Calendar,
-  ChevronRight, Trash2, Wrench,
+  ChevronRight, Trash2, Wrench, Fuel,
 } from 'lucide-react'
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
@@ -24,6 +24,34 @@ import { formatDuration, categoryLabel, categoryColor, formatDate } from '@/comp
 import ChallengesPanel from '@/components/challenges-panel'
 import ServiceLocator from '@/components/service-locator'
 import FuelPriceCard from '@/components/fuel-price-card'
+
+// Tab pill component (defined outside render to avoid re-creation)
+function TabPill({ active, onClick, icon, label, badge, notification }: {
+  active: boolean
+  onClick: () => void
+  icon: React.ReactNode
+  label: string
+  badge?: React.ReactNode
+  notification?: number
+}) {
+  return (
+    <button
+      onClick={onClick}
+      className={`relative flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium transition-all duration-200 ${
+        active
+          ? 'bg-primary text-primary-foreground shadow-sm'
+          : 'text-muted-foreground hover:bg-secondary hover:text-foreground'
+      }`}
+    >
+      {icon}
+      <span>{label}</span>
+      {badge}
+      {notification !== undefined && notification > 0 && (
+        <span className="absolute -top-1 -right-1 bg-red-500 text-white text-[8px] font-bold rounded-full size-4 flex items-center justify-center">{notification}</span>
+      )}
+    </button>
+  )
+}
 
 interface ExploreTabProps {
   rides: RideData[]
@@ -335,45 +363,112 @@ export default function ExploreTab({ rides, routes, leaderboard, onOpenDetail, o
   const roleLabel = (role: string) => role === 'admin' ? 'Upravitelj' : role === 'moderator' ? 'Moderator' : 'Član'
   const roleIcon = (role: string) => role === 'admin' ? <Shield className="size-3 text-amber-400" /> : role === 'moderator' ? <Star className="size-3 text-sky-400" /> : null
 
+  // Relative time formatting (Slovenian)
+  const relativeTime = (date: string) => {
+    const now = new Date()
+    const then = new Date(date)
+    const diffMs = now.getTime() - then.getTime()
+    const diffMin = Math.floor(diffMs / 60000)
+    const diffHr = Math.floor(diffMs / 3600000)
+    const diffDay = Math.floor(diffMs / 86400000)
+    if (diffMin < 1) return 'zdaj'
+    if (diffMin === 1) return 'pred 1 min'
+    if (diffMin < 60) return `pred ${diffMin} min`
+    if (diffHr === 1) return 'pred 1 uro'
+    if (diffHr === 2) return 'pred 2 urama'
+    if (diffHr < 24) return `pred ${diffHr} urami`
+    if (diffDay === 1) return 'včeraj'
+    if (diffDay < 7) return `pred ${diffDay} dnevi`
+    return formatDate(date)
+  }
+
+  // Category gradient for card strips
+  const categoryGradient = (cat: string) => {
+    switch (cat) {
+      case 'scenic': return 'from-emerald-400 to-emerald-600'
+      case 'twisty': return 'from-sky-400 to-sky-600'
+      case 'offroad': return 'from-orange-400 to-orange-600'
+      case 'city': return 'from-violet-400 to-violet-600'
+      default: return 'from-primary/60 to-primary/40'
+    }
+  }
+
+  // Popular routes for featured section
+  const popularRoutes = useMemo(() =>
+    [...routes].sort((a, b) => b.likes - a.likes).slice(0, 3),
+    [routes]
+  )
+
   return (
     <div className="w-full h-[calc(100vh-104px)] overflow-y-auto custom-scrollbar">
       <div className="mx-auto max-w-4xl px-4 py-6">
-        {/* Section tabs */}
-        <div className="flex gap-1 bg-secondary/50 rounded-lg p-1 mb-6 w-fit">
-          <Button variant={exploreSection === 'discover' ? 'default' : 'ghost'} size="sm" className="text-xs" onClick={() => setExploreSection('discover')}>
-            <Compass className="size-3.5 mr-1" /> Odkrij
-          </Button>
-          <Button variant={exploreSection === 'feed' ? 'default' : 'ghost'} size="sm" className="text-xs gap-1" onClick={() => { setExploreSection('feed'); fetchFeed() }}>
-            <Sparkles className="size-3.5" /> Novice
-          </Button>
-          <Button variant={exploreSection === 'favorites' ? 'default' : 'ghost'} size="sm" className="text-xs gap-1" onClick={() => { setExploreSection('favorites'); fetchFavorites() }}>
-            <Star className="size-3.5" /> Priljubljene
-            {favoriteItems.length > 0 && <span className="text-[10px] opacity-70">({favoriteItems.length})</span>}
-          </Button>
-          <Button variant={exploreSection === 'communities' ? 'default' : 'ghost'} size="sm" className="text-xs gap-1" onClick={() => setExploreSection('communities')}>
-            <Users className="size-3.5" /> Skupnosti
-            {communities.length > 0 && <span className="text-[10px] opacity-70">({communities.length})</span>}
-          </Button>
-          <Button variant={exploreSection === 'friends' ? 'default' : 'ghost'} size="sm" className="text-xs gap-1 relative" onClick={() => setExploreSection('friends')}>
-            <UserPlus className="size-3.5" /> Prijatelji
-            {acceptedFriends.length > 0 && <span className="text-[10px] opacity-70">({acceptedFriends.length})</span>}
-            {pendingReceived.length > 0 && (
-              <span className="absolute -top-1 -right-1 bg-red-500 text-white text-[8px] font-bold rounded-full size-3.5 flex items-center justify-center">{pendingReceived.length}</span>
-            )}
-          </Button>
-          <Button variant={exploreSection === 'grouprides' ? 'default' : 'ghost'} size="sm" className="text-xs gap-1" onClick={() => { setExploreSection('grouprides'); fetchGroupRides() }}>
-            <Bike className="size-3.5" /> Vožnje
-            {groupRides.length > 0 && <span className="text-[10px] opacity-70">({groupRides.length})</span>}
-          </Button>
-          <Button variant={exploreSection === 'challenges' ? 'default' : 'ghost'} size="sm" className="text-xs gap-1" onClick={() => setExploreSection('challenges')}>
-            <Trophy className="size-3.5" /> Izzivi
-          </Button>
-          <Button variant={exploreSection === 'services' ? 'default' : 'ghost'} size="sm" className="text-xs gap-1" onClick={() => setExploreSection('services')}>
-            <Wrench className="size-3.5" /> Servisi
-          </Button>
-          <Button variant={exploreSection === 'fuel' ? 'default' : 'ghost'} size="sm" className="text-xs gap-1" onClick={() => setExploreSection('fuel')}>
-            ⛽ Gorivo
-          </Button>
+        {/* Section tabs - 2-row compact icon tab bar */}
+        <div className="space-y-1.5 mb-6">
+          {/* Primary row */}
+          <div className="flex gap-1 flex-wrap">
+            <TabPill
+              active={exploreSection === 'discover'}
+              onClick={() => setExploreSection('discover')}
+              icon={<Compass className="size-3.5" />}
+              label="Odkrij"
+            />
+            <TabPill
+              active={exploreSection === 'feed'}
+              onClick={() => { setExploreSection('feed'); fetchFeed() }}
+              icon={<Sparkles className="size-3.5" />}
+              label="Novice"
+            />
+            <TabPill
+              active={exploreSection === 'favorites'}
+              onClick={() => { setExploreSection('favorites'); fetchFavorites() }}
+              icon={<Star className="size-3.5" />}
+              label="Priljubljene"
+              badge={favoriteItems.length > 0 ? <span className="text-[10px] opacity-70">({favoriteItems.length})</span> : undefined}
+            />
+            <TabPill
+              active={exploreSection === 'communities'}
+              onClick={() => setExploreSection('communities')}
+              icon={<Users className="size-3.5" />}
+              label="Skupnosti"
+              badge={communities.length > 0 ? <span className="text-[10px] opacity-70">({communities.length})</span> : undefined}
+            />
+            <TabPill
+              active={exploreSection === 'friends'}
+              onClick={() => setExploreSection('friends')}
+              icon={<UserPlus className="size-3.5" />}
+              label="Prijatelji"
+              badge={acceptedFriends.length > 0 ? <span className="text-[10px] opacity-70">({acceptedFriends.length})</span> : undefined}
+              notification={pendingReceived.length}
+            />
+          </div>
+          {/* Secondary row */}
+          <div className="flex gap-1 flex-wrap">
+            <TabPill
+              active={exploreSection === 'grouprides'}
+              onClick={() => { setExploreSection('grouprides'); fetchGroupRides() }}
+              icon={<Bike className="size-3.5" />}
+              label="Vožnje"
+              badge={groupRides.length > 0 ? <span className="text-[10px] opacity-70">({groupRides.length})</span> : undefined}
+            />
+            <TabPill
+              active={exploreSection === 'challenges'}
+              onClick={() => setExploreSection('challenges')}
+              icon={<Trophy className="size-3.5" />}
+              label="Izzivi"
+            />
+            <TabPill
+              active={exploreSection === 'services'}
+              onClick={() => setExploreSection('services')}
+              icon={<Wrench className="size-3.5" />}
+              label="Servisi"
+            />
+            <TabPill
+              active={exploreSection === 'fuel'}
+              onClick={() => setExploreSection('fuel')}
+              icon={<Fuel className="size-3.5" />}
+              label="Gorivo"
+            />
+          </div>
         </div>
 
         {exploreSection === 'feed' ? (
@@ -391,7 +486,7 @@ export default function ExploreTab({ rides, routes, leaderboard, onOpenDetail, o
             {feedLoading ? (
               <div className="space-y-3">
                 {[1,2,3].map(i => (
-                  <Card key={i} className="animate-pulse">
+                  <Card key={i} className="animate-pulse rounded-xl">
                     <CardContent className="p-4">
                       <div className="flex gap-3">
                         <div className="size-10 rounded-full bg-muted" />
@@ -405,9 +500,12 @@ export default function ExploreTab({ rides, routes, leaderboard, onOpenDetail, o
                 ))}
               </div>
             ) : feedItems.length === 0 ? (
-              <div className="text-center py-12">
-                <Sparkles className="size-12 text-muted-foreground mx-auto mb-4" />
-                <p className="text-muted-foreground">Ni aktivnosti. Začnite z vožnjo!</p>
+              <div className="text-center py-16">
+                <div className="size-16 rounded-full bg-muted/50 flex items-center justify-center mx-auto mb-4">
+                  <Sparkles className="size-8 text-muted-foreground" />
+                </div>
+                <p className="text-muted-foreground font-medium">Ni aktivnosti</p>
+                <p className="text-xs text-muted-foreground mt-1">Začnite z vožnjo, da vidite novice!</p>
               </div>
             ) : (
               <div className="space-y-3">
@@ -415,7 +513,7 @@ export default function ExploreTab({ rides, routes, leaderboard, onOpenDetail, o
                   const typeIcon = item.type === 'ride_completed' ? '🏍️' : item.type === 'route_shared' ? '🗺️' : item.type === 'achievement_earned' ? '🏆' : item.type === 'challenge_joined' ? '⚔️' : item.type === 'community_joined' ? '👥' : item.type === 'group_ride_created' ? '🚀' : item.type === 'photo_uploaded' ? '📸' : '💬'
                   const typeLabel = item.type === 'ride_completed' ? 'zaključil vožnjo' : item.type === 'route_shared' ? 'delil pot' : item.type === 'achievement_earned' ? 'pridobil dosežek' : item.type === 'challenge_joined' ? 'se pridružil izzivu' : item.type === 'community_joined' ? 'se pridružil skupnosti' : item.type === 'group_ride_created' ? 'ustvaril skupinsko vožnjo' : item.type === 'photo_uploaded' ? 'dodal fotografijo' : 'komentiral'
                   return (
-                    <Card key={item.id} className="hover:border-primary/30 transition-all group">
+                    <Card key={item.id} className="rounded-xl hover:border-primary/30 transition-all group">
                       <CardContent className="p-4">
                         <div className="flex gap-3">
                           <div className="size-10 rounded-full bg-primary/15 flex items-center justify-center text-lg shrink-0">
@@ -423,8 +521,8 @@ export default function ExploreTab({ rides, routes, leaderboard, onOpenDetail, o
                           </div>
                           <div className="flex-1 min-w-0">
                             <div className="flex items-center gap-2">
-                              <Avatar className="size-5">
-                                <AvatarFallback className="text-[8px] bg-primary/20 text-primary">{item.user?.name?.charAt(0) || '?'}</AvatarFallback>
+                              <Avatar className="size-7 border border-primary/10">
+                                <AvatarFallback className="text-xs bg-primary/20 text-primary font-semibold">{item.user?.name?.charAt(0) || '?'}</AvatarFallback>
                               </Avatar>
                               <span className="text-sm font-medium">{item.user?.name || 'Neznan'}</span>
                               <span className="text-xs text-muted-foreground">{typeLabel}</span>
@@ -435,7 +533,11 @@ export default function ExploreTab({ rides, routes, leaderboard, onOpenDetail, o
                             )}
                             <div className="flex items-center gap-3 mt-2">
                               <button
-                                className="flex items-center gap-1 text-xs text-muted-foreground hover:text-red-400 transition-colors"
+                                className={`flex items-center gap-1.5 text-xs px-2 py-1 rounded-full transition-colors ${
+                                  item.userLiked
+                                    ? 'text-red-500 bg-red-500/10'
+                                    : 'text-muted-foreground hover:text-red-400 hover:bg-red-500/5'
+                                }`}
                                 onClick={async () => {
                                   if (!userId) { toast.error('Izberite uporabnika'); return }
                                   try {
@@ -451,15 +553,15 @@ export default function ExploreTab({ rides, routes, leaderboard, onOpenDetail, o
                                   } catch { /* ignore */ }
                                 }}
                               >
-                                <Heart className={`size-3 ${item.userLiked ? 'fill-red-400 text-red-400' : ''}`} />
-                                {item.likes > 0 && item.likes}
+                                <Heart className={`size-3.5 ${item.userLiked ? 'fill-red-500' : ''}`} />
+                                {item.likes > 0 && <span className="font-medium">{item.likes}</span>}
                               </button>
-                              <span className="text-[10px] text-muted-foreground">{formatDate(item.createdAt)}</span>
+                              <span className="text-xs text-muted-foreground">{relativeTime(item.createdAt)}</span>
                               {item.targetType && (
                                 <Button
                                   variant="ghost"
                                   size="sm"
-                                  className="h-5 text-[10px] gap-1 px-1.5"
+                                  className="h-6 text-xs gap-1 px-2"
                                   onClick={() => {
                                     if (item.targetType === 'ride') {
                                       const ride = rides.find(r => r.id === item.targetId)
@@ -470,7 +572,7 @@ export default function ExploreTab({ rides, routes, leaderboard, onOpenDetail, o
                                     }
                                   }}
                                 >
-                                  <ChevronRight className="size-2.5" /> Odpri
+                                  <ChevronRight className="size-3" /> Odpri
                                 </Button>
                               )}
                             </div>
@@ -491,14 +593,17 @@ export default function ExploreTab({ rides, routes, leaderboard, onOpenDetail, o
             </h2>
 
             {!userId ? (
-              <div className="text-center py-12">
-                <Star className="size-12 text-muted-foreground mx-auto mb-4" />
-                <p className="text-muted-foreground">Izberite uporabnika za ogled priljubljenih</p>
+              <div className="text-center py-16">
+                <div className="size-16 rounded-full bg-muted/50 flex items-center justify-center mx-auto mb-4">
+                  <Star className="size-8 text-muted-foreground" />
+                </div>
+                <p className="text-muted-foreground font-medium">Izberite uporabnika</p>
+                <p className="text-xs text-muted-foreground mt-1">Za ogled priljubljenih izberite svoj profil</p>
               </div>
             ) : favoritesLoading ? (
               <div className="space-y-3">
                 {[1,2,3].map(i => (
-                  <Card key={i} className="animate-pulse">
+                  <Card key={i} className="animate-pulse rounded-xl">
                     <CardContent className="p-4">
                       <div className="h-4 bg-muted rounded w-3/4" />
                       <div className="h-3 bg-muted rounded w-1/2 mt-2" />
@@ -507,10 +612,12 @@ export default function ExploreTab({ rides, routes, leaderboard, onOpenDetail, o
                 ))}
               </div>
             ) : favoriteItems.length === 0 ? (
-              <div className="text-center py-12">
-                <Star className="size-12 text-muted-foreground mx-auto mb-4" />
-                <p className="text-muted-foreground">Ni priljubljenih. Dodajte vožnje ali poti!</p>
-                <p className="text-xs text-muted-foreground mt-1">Kliknite ★ v podrobnostih vožnje/poti</p>
+              <div className="text-center py-16">
+                <div className="size-16 rounded-full bg-muted/50 flex items-center justify-center mx-auto mb-4">
+                  <Star className="size-8 text-muted-foreground" />
+                </div>
+                <p className="text-muted-foreground font-medium">Ni priljubljenih</p>
+                <p className="text-xs text-muted-foreground mt-1">Kliknite ★ v podrobnostih vožnje/poti za dodajanje</p>
               </div>
             ) : (
               <div className="space-y-2">
@@ -519,11 +626,12 @@ export default function ExploreTab({ rides, routes, leaderboard, onOpenDetail, o
                   const item = fav.ride || fav.route
                   if (!item) return null
                   return (
-                    <Card key={fav.id} className="hover:border-primary/30 transition-all group cursor-pointer" onClick={() => {
+                    <Card key={fav.id} className="rounded-xl hover:border-primary/30 transition-all group cursor-pointer overflow-hidden" onClick={() => {
                       if (fav.ride) onOpenDetail(fav.ride as unknown as RideData, 'ride')
                       else if (fav.route) onOpenDetail(fav.route as unknown as RouteData, 'route')
                     }}>
-                      <CardContent className="p-3 flex items-center gap-3">
+                      <div className={`h-0.5 bg-gradient-to-r ${isRide ? 'from-amber-400 to-amber-600' : 'from-emerald-400 to-emerald-600'}`} />
+                      <CardContent className="p-4 flex items-center gap-3">
                         <div className={`size-10 rounded-xl flex items-center justify-center shrink-0 ${isRide ? 'bg-amber-500/20 text-amber-400' : 'bg-emerald-500/20 text-emerald-400'}`}>
                           {isRide ? <Bike className="size-5" /> : <Route className="size-5" />}
                         </div>
@@ -561,7 +669,7 @@ export default function ExploreTab({ rides, routes, leaderboard, onOpenDetail, o
           </div>
         ) : exploreSection === 'friends' ? (
           /* ====== FRIENDS SECTION ====== */
-          <div className="space-y-6">
+          <div className="space-y-4">
             {/* Header */}
             <div className="flex items-center justify-between">
               <h2 className="text-lg font-bold flex items-center gap-2">
@@ -601,10 +709,10 @@ export default function ExploreTab({ rides, routes, leaderboard, onOpenDetail, o
                 </h3>
                 <div className="space-y-2">
                   {pendingReceived.map(f => (
-                    <Card key={f.id} className="border-amber-500/20 hover:border-amber-500/30 transition-all">
-                      <CardContent className="p-3 flex items-center gap-3">
+                    <Card key={f.id} className="rounded-xl border-amber-500/20 hover:border-amber-500/30 transition-all">
+                      <CardContent className="p-4 flex items-center gap-3">
                         <Avatar className="size-10">
-                          <AvatarFallback className="text-sm bg-amber-500/20 text-amber-400">{f.friend.name.charAt(0)}</AvatarFallback>
+                          <AvatarFallback className="text-sm bg-amber-500/20 text-amber-400 font-semibold">{f.friend.name.charAt(0)}</AvatarFallback>
                         </Avatar>
                         <div className="flex-1 min-w-0">
                           <p className="font-medium text-sm truncate">{f.friend.name}</p>
@@ -633,10 +741,10 @@ export default function ExploreTab({ rides, routes, leaderboard, onOpenDetail, o
                 </h3>
                 <div className="space-y-2">
                   {pendingSent.map(f => (
-                    <Card key={f.id} className="opacity-70">
-                      <CardContent className="p-3 flex items-center gap-3">
+                    <Card key={f.id} className="rounded-xl opacity-70">
+                      <CardContent className="p-4 flex items-center gap-3">
                         <Avatar className="size-10">
-                          <AvatarFallback className="text-sm bg-primary/20 text-primary">{f.friend.name.charAt(0)}</AvatarFallback>
+                          <AvatarFallback className="text-sm bg-primary/20 text-primary font-semibold">{f.friend.name.charAt(0)}</AvatarFallback>
                         </Avatar>
                         <div className="flex-1 min-w-0">
                           <p className="font-medium text-sm truncate">{f.friend.name}</p>
@@ -660,10 +768,10 @@ export default function ExploreTab({ rides, routes, leaderboard, onOpenDetail, o
               {filteredFriends.length > 0 ? (
                 <div className="space-y-2">
                   {filteredFriends.map(f => (
-                    <Card key={f.id} className="hover:border-primary/30 transition-all group">
-                      <CardContent className="p-3 flex items-center gap-3">
+                    <Card key={f.id} className="rounded-xl hover:border-primary/30 transition-all group">
+                      <CardContent className="p-4 flex items-center gap-3">
                         <Avatar className="size-10">
-                          <AvatarFallback className="text-sm bg-primary/20 text-primary">{f.friend.name.charAt(0)}</AvatarFallback>
+                          <AvatarFallback className="text-sm bg-primary/20 text-primary font-semibold">{f.friend.name.charAt(0)}</AvatarFallback>
                         </Avatar>
                         <div className="flex-1 min-w-0">
                           <p className="font-medium text-sm truncate group-hover:text-primary transition-colors">{f.friend.name}</p>
@@ -684,9 +792,11 @@ export default function ExploreTab({ rides, routes, leaderboard, onOpenDetail, o
                   ))}
                 </div>
               ) : (
-                <div className="text-center py-8">
-                  <UserCheck className="size-10 text-muted-foreground mx-auto mb-3" />
-                  <p className="text-muted-foreground text-sm">
+                <div className="text-center py-12">
+                  <div className="size-14 rounded-full bg-muted/50 flex items-center justify-center mx-auto mb-3">
+                    <UserCheck className="size-7 text-muted-foreground" />
+                  </div>
+                  <p className="text-muted-foreground text-sm font-medium">
                     {friendSearch ? 'Ni prijateljev s tem imenom' : 'Še nimate prijateljev'}
                   </p>
                   {!friendSearch && <p className="text-xs text-muted-foreground mt-1">Dodajte prijatelje spodaj!</p>}
@@ -696,9 +806,12 @@ export default function ExploreTab({ rides, routes, leaderboard, onOpenDetail, o
 
             {/* Add friend section */}
             {!userId ? (
-              <div className="text-center py-8">
-                <User className="size-10 text-muted-foreground mx-auto mb-3" />
-                <p className="text-muted-foreground text-sm">Izberite uporabnika za upravljanje prijateljev</p>
+              <div className="text-center py-12">
+                <div className="size-14 rounded-full bg-muted/50 flex items-center justify-center mx-auto mb-3">
+                  <User className="size-7 text-muted-foreground" />
+                </div>
+                <p className="text-muted-foreground text-sm font-medium">Izberite uporabnika</p>
+                <p className="text-xs text-muted-foreground mt-1">Za upravljanje prijateljev izberite svoj profil</p>
               </div>
             ) : filteredNonFriends.length > 0 ? (
               <div className="space-y-3">
@@ -708,10 +821,10 @@ export default function ExploreTab({ rides, routes, leaderboard, onOpenDetail, o
                 <ScrollArea className="max-h-96">
                   <div className="space-y-2">
                     {filteredNonFriends.map(u => (
-                      <Card key={u.id} className="hover:border-primary/30 transition-all group">
-                        <CardContent className="p-3 flex items-center gap-3">
+                      <Card key={u.id} className="rounded-xl hover:border-primary/30 transition-all group">
+                        <CardContent className="p-4 flex items-center gap-3">
                           <Avatar className="size-10">
-                            <AvatarFallback className="text-sm bg-primary/20 text-primary">{u.name.charAt(0)}</AvatarFallback>
+                            <AvatarFallback className="text-sm bg-primary/20 text-primary font-semibold">{u.name.charAt(0)}</AvatarFallback>
                           </Avatar>
                           <div className="flex-1 min-w-0">
                             <p className="font-medium text-sm truncate group-hover:text-primary transition-colors">{u.name}</p>
@@ -738,9 +851,11 @@ export default function ExploreTab({ rides, routes, leaderboard, onOpenDetail, o
                 </ScrollArea>
               </div>
             ) : (
-              <div className="text-center py-8">
-                <Users className="size-10 text-muted-foreground mx-auto mb-3" />
-                <p className="text-muted-foreground text-sm">Vsi uporabniki so že vaši prijatelji!</p>
+              <div className="text-center py-12">
+                <div className="size-14 rounded-full bg-muted/50 flex items-center justify-center mx-auto mb-3">
+                  <Users className="size-7 text-muted-foreground" />
+                </div>
+                <p className="text-muted-foreground text-sm font-medium">Vsi uporabniki so že vaši prijatelji!</p>
               </div>
             )}
           </div>
@@ -759,25 +874,36 @@ export default function ExploreTab({ rides, routes, leaderboard, onOpenDetail, o
             </div>
 
             {/* Filter */}
-            <div className="flex gap-2">
+            <div className="flex gap-1 flex-wrap">
               {['all', 'upcoming', 'active', 'completed'].map(f => (
-                <Button key={f} variant={groupRideFilter === f ? 'default' : 'outline'} size="sm" className="text-xs" onClick={() => { setGroupRideFilter(f); fetchGroupRides() }}>
+                <button
+                  key={f}
+                  onClick={() => { setGroupRideFilter(f); fetchGroupRides() }}
+                  className={`px-3 py-1 rounded-full text-xs font-medium transition-colors ${
+                    groupRideFilter === f
+                      ? 'bg-primary text-primary-foreground'
+                      : 'text-muted-foreground hover:bg-secondary hover:text-foreground'
+                  }`}
+                >
                   {f === 'all' ? 'Vse' : f === 'upcoming' ? 'Prihajajoče' : f === 'active' ? 'Aktivne' : 'Zaključene'}
-                </Button>
+                </button>
               ))}
             </div>
 
             {/* Group rides list */}
             {groupRides.length === 0 ? (
-              <div className="text-center py-12">
-                <Bike className="size-12 text-muted-foreground mx-auto mb-4" />
-                <p className="text-muted-foreground">Ni skupinskih voženj. Ustvarite prvo!</p>
+              <div className="text-center py-16">
+                <div className="size-16 rounded-full bg-muted/50 flex items-center justify-center mx-auto mb-4">
+                  <Bike className="size-8 text-muted-foreground" />
+                </div>
+                <p className="text-muted-foreground font-medium">Ni skupinskih voženj</p>
+                <p className="text-xs text-muted-foreground mt-1">Ustvarite prvo skupinsko vožnjo!</p>
               </div>
             ) : (
               <div className="grid sm:grid-cols-2 gap-4">
                 {groupRides.map(gr => (
-                  <Card key={gr.id} className="overflow-hidden hover:border-primary/30 transition-all group">
-                    <div className="h-1 bg-gradient-to-r from-primary/60 via-accent/40 to-primary/20" />
+                  <Card key={gr.id} className="rounded-xl overflow-hidden hover:border-primary/30 transition-all group">
+                    <div className={`h-0.5 bg-gradient-to-r ${categoryGradient(gr.category)}`} />
                     <CardContent className="p-4">
                       <div className="flex items-start gap-3">
                         <div className="size-10 rounded-xl bg-primary/15 flex items-center justify-center text-lg shrink-0">
@@ -787,12 +913,12 @@ export default function ExploreTab({ rides, routes, leaderboard, onOpenDetail, o
                           <h3 className="font-bold text-sm group-hover:text-primary transition-colors truncate">{gr.title}</h3>
                           <p className="text-xs text-muted-foreground mt-0.5 line-clamp-2">{gr.description || 'Skupinska motorna vožnja'}</p>
                           <div className="flex items-center gap-3 mt-2 text-xs text-muted-foreground">
-                            <span>📅 {new Date(gr.date).toLocaleDateString('sl-SI', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}</span>
-                            <span>📍 {gr.meetingPlace}</span>
+                            <span className="flex items-center gap-1"><Calendar className="size-3" /> {new Date(gr.date).toLocaleDateString('sl-SI', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}</span>
+                            <span className="flex items-center gap-1"><MapPin className="size-3" /> {gr.meetingPlace}</span>
                           </div>
                           <div className="flex items-center gap-2 mt-1.5">
                             <Badge variant="outline" className="text-[9px]">{gr.category === 'twisty' ? 'Vijugasta' : gr.category === 'offroad' ? 'Off-road' : gr.category === 'city' ? 'Mestna' : 'Scenična'}</Badge>
-                            <span className="text-[10px] text-muted-foreground">👥 {gr.participantCount}/{gr.maxRiders}</span>
+                            <span className="text-[10px] text-muted-foreground flex items-center gap-0.5"><Users className="size-3" /> {gr.participantCount}/{gr.maxRiders}</span>
                             <Badge variant="outline" className={`text-[9px] ${gr.status === 'upcoming' ? 'bg-emerald-500/15 text-emerald-500 border-emerald-500/30' : gr.status === 'active' ? 'bg-green-500/15 text-green-500 border-green-500/30' : 'bg-muted text-muted-foreground'}`}>
                               {gr.status === 'upcoming' ? 'Prihajajoča' : gr.status === 'active' ? 'Aktivna' : gr.status === 'completed' ? 'Zaključena' : gr.status}
                             </Badge>
@@ -938,7 +1064,7 @@ export default function ExploreTab({ rides, routes, leaderboard, onOpenDetail, o
             {/* Header with create button */}
             <div className="flex items-center justify-between">
               <h2 className="text-lg font-bold flex items-center gap-2">
-                <Sparkles className="size-5 text-primary" /> Moto skupnosti
+                <Users className="size-5 text-primary" /> Moto skupnosti
               </h2>
               {userId && (
                 <Button size="sm" className="text-xs gap-1" onClick={() => setShowCreateCommunity(true)}>
@@ -950,8 +1076,8 @@ export default function ExploreTab({ rides, routes, leaderboard, onOpenDetail, o
             {/* Communities grid */}
             <div className="grid sm:grid-cols-2 gap-4">
               {communities.map(community => (
-                <Card key={community.id} className="overflow-hidden hover:border-primary/30 transition-all group">
-                  <div className="h-1 bg-gradient-to-r from-primary/60 via-accent/40 to-primary/20" />
+                <Card key={community.id} className="rounded-xl overflow-hidden hover:border-primary/30 transition-all group">
+                  <div className="h-0.5 bg-gradient-to-r from-primary/60 via-accent/40 to-primary/20" />
                   <CardContent className="p-4">
                     <div className="flex items-start gap-3">
                       <div className="size-12 rounded-xl bg-primary/15 flex items-center justify-center text-2xl shrink-0">
@@ -1007,62 +1133,112 @@ export default function ExploreTab({ rides, routes, leaderboard, onOpenDetail, o
             </div>
 
             {communities.length === 0 && (
-              <div className="text-center py-12">
-                <Users className="size-12 text-muted-foreground mx-auto mb-4" />
-                <p className="text-muted-foreground">Ni skupnosti. Ustvarite prvo!</p>
+              <div className="text-center py-16">
+                <div className="size-16 rounded-full bg-muted/50 flex items-center justify-center mx-auto mb-4">
+                  <Users className="size-8 text-muted-foreground" />
+                </div>
+                <p className="text-muted-foreground font-medium">Ni skupnosti</p>
+                <p className="text-xs text-muted-foreground mt-1">Ustvarite prvo motociklistično skupnost!</p>
               </div>
             )}
           </div>
         ) : exploreSection === 'challenges' ? (
           /* ====== CHALLENGES SECTION ====== */
           <div className="space-y-4">
+            <h2 className="text-lg font-bold flex items-center gap-2">
+              <Trophy className="size-5 text-primary" /> Izzivi
+            </h2>
             <ChallengesPanel userId={userId} />
           </div>
         ) : exploreSection === 'services' ? (
           /* ====== SERVICES SECTION ====== */
           <div className="space-y-4">
+            <h2 className="text-lg font-bold flex items-center gap-2">
+              <Wrench className="size-5 text-primary" /> Servisi
+            </h2>
             <ServiceLocator userId={userId} />
           </div>
         ) : exploreSection === 'fuel' ? (
           /* ====== FUEL PRICES SECTION ====== */
           <div className="space-y-4">
+            <h2 className="text-lg font-bold flex items-center gap-2">
+              <Fuel className="size-5 text-primary" /> Gorivo
+            </h2>
             <FuelPriceCard userId={userId} />
           </div>
         ) : (
           /* ====== DISCOVER SECTION ====== */
           <>
-            {/* Featured route */}
-            {routes.length > 0 && (() => {
-              const featured = [...routes].sort((a, b) => b.likes - a.likes)[0]
-              return (
-                <Card className="mb-6 overflow-hidden border-primary/20 cursor-pointer group hover:border-primary/30 transition-all duration-300 hover:-translate-y-0.5 hover:shadow-lg hover:shadow-primary/5" onClick={() => onOpenDetail(featured, 'route')}>
-                  <div className="h-1 bg-gradient-to-r from-primary/80 via-accent/70 to-primary/50" />
-                  <div className="bg-gradient-to-br from-primary/8 via-card to-card p-4">
-                    <div className="flex items-center gap-2 mb-2">
-                      <div className="flex items-center justify-center size-6 rounded-full bg-amber-400/15">
-                        <Star className="size-3.5 text-amber-400 fill-amber-400" />
-                      </div>
-                      <span className="text-xs font-semibold text-amber-400 uppercase tracking-wider">Izpostavljena pot</span>
-                    </div>
-                    <h3 className="font-bold text-lg group-hover:text-primary transition-colors">{featured.title}</h3>
-                    {featured.description && <p className="text-sm text-muted-foreground mt-1 line-clamp-2">{featured.description}</p>}
-                    <div className="flex items-center gap-4 mt-3">
-                      <Badge variant="outline" className={categoryColor(featured.category)}>{categoryLabel(featured.category)}</Badge>
-                      <span className="flex items-center gap-1 text-xs text-muted-foreground"><Route className="size-3" />{featured.distance} km</span>
-                      <span className="flex items-center gap-1 text-xs text-muted-foreground"><Heart className="size-3" />{featured.likes}</span>
-                      <span className="flex items-center gap-1 text-xs text-muted-foreground"><User className="size-3" />{featured.user?.name || 'Neznan'}</span>
-                    </div>
-                  </div>
-                </Card>
-              )
-            })()}
-
-            {/* Stats */}
-            <div className="grid grid-cols-3 gap-3 mb-6">
-              <Card className="text-center overflow-hidden group hover:border-primary/20 transition-colors"><div className="h-0.5 bg-gradient-to-r from-primary/50 to-primary/20" /><CardContent className="p-4"><Bike className="size-5 text-primary mx-auto mb-1.5" /><p className="text-2xl font-bold">{exploreStats.totalRides}</p><p className="text-xs text-muted-foreground">Voženj</p></CardContent></Card>
-              <Card className="text-center overflow-hidden group hover:border-primary/20 transition-colors"><div className="h-0.5 bg-gradient-to-r from-primary/50 to-primary/20" /><CardContent className="p-4"><Route className="size-5 text-primary mx-auto mb-1.5" /><p className="text-2xl font-bold">{exploreStats.totalRoutes}</p><p className="text-xs text-muted-foreground">Poti</p></CardContent></Card>
-              <Card className="text-center overflow-hidden group hover:border-primary/20 transition-colors"><div className="h-0.5 bg-gradient-to-r from-primary/50 to-primary/20" /><CardContent className="p-4"><TrendingUp className="size-5 text-primary mx-auto mb-1.5" /><p className="text-2xl font-bold">{exploreStats.totalDistance}</p><p className="text-xs text-muted-foreground">km skupaj</p></CardContent></Card>
+            {/* Stats bar */}
+            <div className="flex items-center justify-center gap-3 py-3 px-4 bg-secondary/50 rounded-xl mb-6 text-sm">
+              <span className="flex items-center gap-1.5">
+                <Bike className="size-4 text-primary" />
+                <span className="font-bold">{exploreStats.totalRides}</span>
+                <span className="text-muted-foreground">voženj</span>
+              </span>
+              <span className="text-muted-foreground/50">·</span>
+              <span className="flex items-center gap-1.5">
+                <Route className="size-4 text-primary" />
+                <span className="font-bold">{exploreStats.totalRoutes}</span>
+                <span className="text-muted-foreground">poti</span>
+              </span>
+              <span className="text-muted-foreground/50">·</span>
+              <span className="flex items-center gap-1.5">
+                <TrendingUp className="size-4 text-primary" />
+                <span className="font-bold">{exploreStats.totalDistance}</span>
+                <span className="text-muted-foreground">km skupaj</span>
+              </span>
             </div>
+
+            {/* Popular Routes Featured Section */}
+            {popularRoutes.length > 0 && (
+              <div className="mb-6">
+                <h3 className="text-lg font-bold flex items-center gap-2 mb-3">
+                  <Star className="size-5 text-amber-400 fill-amber-400" /> Popularne poti
+                </h3>
+                <div className="grid sm:grid-cols-3 gap-3">
+                  {popularRoutes.map((route, idx) => (
+                    <Card
+                      key={route.id}
+                      className={`rounded-xl overflow-hidden hover:border-primary/30 transition-all cursor-pointer group hover:-translate-y-0.5 hover:shadow-lg hover:shadow-primary/5 ${
+                        idx === 0 ? 'sm:col-span-1 sm:row-span-1 border-amber-500/20' : ''
+                      }`}
+                      onClick={() => onOpenDetail(route, 'route')}
+                    >
+                      <div className={`h-0.5 bg-gradient-to-r ${categoryGradient(route.category)}`} />
+                      <CardContent className={`p-4 ${idx === 0 ? '' : ''}`}>
+                        <div className="flex items-center gap-2 mb-2">
+                          <div className={`flex items-center justify-center size-7 rounded-full shrink-0 ${
+                            idx === 0 ? 'bg-amber-400/15' : 'bg-primary/15'
+                          }`}>
+                            {idx === 0 ? (
+                              <Star className="size-3.5 text-amber-400 fill-amber-400" />
+                            ) : (
+                              <Route className="size-3.5 text-primary" />
+                            )}
+                          </div>
+                          <span className="font-semibold text-sm truncate group-hover:text-primary transition-colors">{route.title}</span>
+                        </div>
+                        {route.description && (
+                          <p className="text-xs text-muted-foreground line-clamp-2 mb-2">{route.description}</p>
+                        )}
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <span className="flex items-center gap-1 text-xs text-muted-foreground">
+                            <Route className="size-3" /> {route.distance} km
+                          </span>
+                          <Badge variant="outline" className={`text-[9px] px-1.5 py-0 ${categoryColor(route.category)}`}>
+                            {categoryLabel(route.category)}
+                          </Badge>
+                          <span className="flex items-center gap-1 text-xs text-muted-foreground">
+                            <Heart className="size-3" /> {route.likes}
+                          </span>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  ))}
+                </div>
+              </div>
+            )}
 
             {/* Search + Filters */}
             <div className="space-y-3 mb-6">
@@ -1071,49 +1247,77 @@ export default function ExploreTab({ rides, routes, leaderboard, onOpenDetail, o
                 <Input placeholder="Išči po imenu ali opisu..." value={searchQuery} onChange={e => setSearchQuery(e.target.value)} className="pl-9" />
                 {searchQuery && <Button variant="ghost" size="sm" className="absolute right-1 top-1/2 -translate-y-1/2 h-7 w-7 p-0" onClick={() => setSearchQuery('')}><X className="size-3" /></Button>}
               </div>
-              <div className="flex flex-wrap items-center gap-2">
-                <div className="flex gap-1 bg-secondary/50 rounded-lg p-1">
-                  {(['all', 'rides', 'routes'] as const).map(f => (
-                    <Button key={f} variant={exploreFilter === f ? 'default' : 'ghost'} size="sm" className="text-xs" onClick={() => setExploreFilter(f)}>
-                      {f === 'all' ? 'Vse' : f === 'rides' ? 'Vožnje' : 'Poti'}
-                    </Button>
-                  ))}
-                </div>
-                <Separator orientation="vertical" className="h-6" />
-                <div className="flex gap-1">
-                  {['all', 'scenic', 'twisty', 'offroad', 'city'].map(cat => (
-                    <Button key={cat} variant={exploreCategory === cat ? 'default' : 'outline'} size="sm" className="text-xs" onClick={() => setExploreCategory(cat)}>
-                      {cat === 'all' ? 'Vse' : categoryLabel(cat)}
-                    </Button>
-                  ))}
-                </div>
+              <div className="flex flex-wrap items-center gap-1.5">
+                {/* Type filter pills */}
+                {(['all', 'rides', 'routes'] as const).map(f => (
+                  <button
+                    key={f}
+                    onClick={() => setExploreFilter(f)}
+                    className={`px-3 py-1 rounded-full text-xs font-medium transition-colors ${
+                      exploreFilter === f
+                        ? 'bg-primary text-primary-foreground'
+                        : 'text-muted-foreground hover:bg-secondary hover:text-foreground'
+                    }`}
+                  >
+                    {f === 'all' ? 'Vse' : f === 'rides' ? 'Vožnje' : 'Poti'}
+                  </button>
+                ))}
+                <Separator orientation="vertical" className="h-5 mx-1" />
+                {/* Category filter pills */}
+                {['all', 'scenic', 'twisty', 'offroad', 'city'].map(cat => (
+                  <button
+                    key={cat}
+                    onClick={() => setExploreCategory(cat)}
+                    className={`px-3 py-1 rounded-full text-xs font-medium transition-colors ${
+                      exploreCategory === cat
+                        ? 'bg-primary text-primary-foreground'
+                        : 'text-muted-foreground hover:bg-secondary hover:text-foreground'
+                    }`}
+                  >
+                    {cat === 'all' ? 'Vse' : categoryLabel(cat)}
+                  </button>
+                ))}
               </div>
             </div>
 
             {/* Grid */}
             {filteredItems.length === 0 ? (
-              <div className="text-center py-12"><Compass className="size-12 text-muted-foreground mx-auto mb-4" /><p className="text-muted-foreground">Ni najdenih voženj ali poti</p></div>
+              <div className="text-center py-16">
+                <div className="size-16 rounded-full bg-muted/50 flex items-center justify-center mx-auto mb-4">
+                  <Compass className="size-8 text-muted-foreground" />
+                </div>
+                <p className="text-muted-foreground font-medium">Ni najdenih voženj ali poti</p>
+                <p className="text-xs text-muted-foreground mt-1">Poskusite spremeniti filtre ali iskalni niz</p>
+              </div>
             ) : (
               <div className="grid sm:grid-cols-2 gap-4">
                 {filteredItems.map(item => (
-                  <Card key={item.data.id + item.type} className="hover:border-primary/30 transition-all cursor-pointer hover:-translate-y-0.5" onClick={() => onOpenDetail(item.data, item.type)}>
-                    <CardHeader className="p-4 pb-2">
-                      <div className="flex items-start justify-between">
-                        <div>
-                          <CardTitle className="text-sm">{item.data.title}</CardTitle>
-                          <CardDescription className="text-xs mt-1 line-clamp-2">{item.data.description}</CardDescription>
+                  <Card key={item.data.id + item.type} className="rounded-xl overflow-hidden hover:border-primary/30 transition-all cursor-pointer hover:-translate-y-0.5 hover:shadow-md" onClick={() => onOpenDetail(item.data, item.type)}>
+                    <div className={`h-0.5 bg-gradient-to-r ${categoryGradient(item.category)}`} />
+                    <CardContent className="p-4">
+                      <div className="flex items-start gap-3">
+                        <div className={`size-9 rounded-lg flex items-center justify-center shrink-0 ${
+                          item.type === 'ride' ? 'bg-amber-500/15 text-amber-500' : 'bg-primary/15 text-primary'
+                        }`}>
+                          {item.type === 'ride' ? <Bike className="size-4" /> : <Route className="size-4" />}
                         </div>
-                        <Badge variant="outline" className={`text-[10px] shrink-0 ml-2 ${item.type === 'ride' ? 'bg-amber-500/20 text-amber-400 border-amber-500/30' : categoryColor((item.data as RouteData).category)}`}>
-                          {item.type === 'ride' ? 'Vožnja' : categoryLabel((item.data as RouteData).category)}
-                        </Badge>
-                      </div>
-                    </CardHeader>
-                    <CardContent className="p-4 pt-0">
-                      <div className="flex items-center gap-4 text-xs text-muted-foreground">
-                        <span className="flex items-center gap-1"><Route className="size-3" />{item.data.distance} km</span>
-                        {item.type === 'ride' && <span className="flex items-center gap-1"><Clock className="size-3" />{formatDuration((item.data as RideData).duration)}</span>}
-                        {item.type === 'route' && <span className="flex items-center gap-1"><Heart className="size-3" />{(item.data as RouteData).likes}</span>}
-                        <span className="flex items-center gap-1"><User className="size-3" />{item.data.user?.name || 'Neznan'}</span>
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-start justify-between gap-2">
+                            <p className="font-semibold text-sm truncate group-hover:text-primary transition-colors">{item.data.title}</p>
+                            <Badge variant="outline" className={`text-[9px] shrink-0 ${item.type === 'ride' ? 'bg-amber-500/20 text-amber-400 border-amber-500/30' : categoryColor((item.data as RouteData).category)}`}>
+                              {item.type === 'ride' ? 'Vožnja' : categoryLabel((item.data as RouteData).category)}
+                            </Badge>
+                          </div>
+                          {item.data.description && (
+                            <p className="text-xs text-muted-foreground mt-0.5 line-clamp-1">{item.data.description}</p>
+                          )}
+                          <div className="flex items-center gap-3 mt-2 text-xs text-muted-foreground">
+                            <span className="flex items-center gap-1"><Route className="size-3" />{item.data.distance} km</span>
+                            {item.type === 'ride' && <span className="flex items-center gap-1"><Clock className="size-3" />{formatDuration((item.data as RideData).duration)}</span>}
+                            {item.type === 'route' && <span className="flex items-center gap-1"><Heart className="size-3" />{(item.data as RouteData).likes}</span>}
+                            <span className="flex items-center gap-1"><User className="size-3" />{item.data.user?.name || 'Neznan'}</span>
+                          </div>
+                        </div>
                       </div>
                     </CardContent>
                   </Card>
@@ -1124,15 +1328,17 @@ export default function ExploreTab({ rides, routes, leaderboard, onOpenDetail, o
             {/* Leaderboard */}
             {leaderboard.length > 0 && (
               <div className="mt-8">
-                <h3 className="text-lg font-bold flex items-center gap-2 mb-4"><Trophy className="size-5 text-primary" />Lestvica motoristov</h3>
+                <h3 className="text-lg font-bold flex items-center gap-2 mb-4">
+                  <Trophy className="size-5 text-primary" /> Lestvica motoristov
+                </h3>
                 <div className="space-y-2">
                   {leaderboard.map((u, i) => (
-                    <Card key={u.id} className="hover:border-primary/30 transition-all cursor-pointer" onClick={() => onSwitchUser(u.id)}>
-                      <CardContent className="p-3 flex items-center gap-3">
+                    <Card key={u.id} className="rounded-xl hover:border-primary/30 transition-all cursor-pointer" onClick={() => onSwitchUser(u.id)}>
+                      <CardContent className="p-4 flex items-center gap-3">
                         <div className={`flex items-center justify-center size-8 rounded-full shrink-0 ${i === 0 ? 'bg-amber-500/20 text-amber-400' : i === 1 ? 'bg-slate-400/20 text-slate-300' : i === 2 ? 'bg-orange-500/20 text-orange-400' : 'bg-secondary text-muted-foreground'}`}>
                           {i === 0 ? <Crown className="size-4" /> : i === 1 ? <Medal className="size-4" /> : i === 2 ? <Medal className="size-4" /> : <span className="text-xs font-bold">{i + 1}</span>}
                         </div>
-                        <Avatar className="size-9"><AvatarFallback className="text-xs bg-primary/20 text-primary">{u.name.charAt(0)}</AvatarFallback></Avatar>
+                        <Avatar className="size-9"><AvatarFallback className="text-xs bg-primary/20 text-primary font-semibold">{u.name.charAt(0)}</AvatarFallback></Avatar>
                         <div className="flex-1 min-w-0">
                           <p className="font-medium text-sm truncate">{u.name}</p>
                           <p className="text-xs text-muted-foreground">{u.bike || 'Motocikel'}</p>

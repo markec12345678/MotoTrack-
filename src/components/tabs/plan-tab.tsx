@@ -663,31 +663,34 @@ export default function PlanTab({
         />
       </div>
       <div className="lg:w-96 w-full bg-card border-t lg:border-t-0 lg:border-l border-border/50 p-4 overflow-y-auto max-h-[40vh] lg:max-h-full">
-        {/* Mode toggle - 3 options */}
-        <div className="flex items-center gap-0.5 mb-4 bg-secondary/50 rounded-lg p-1">
+        {/* Mode toggle - 3 options with icons */}
+        <div className="flex items-center gap-1 mb-4 bg-secondary/50 rounded-xl p-1">
           <button
-            className={`flex-1 text-xs font-medium py-2 px-2 rounded-md transition-all ${
-              mode === 'single' ? 'bg-primary text-primary-foreground shadow-sm' : 'text-muted-foreground hover:text-foreground'
+            className={`flex-1 flex items-center justify-center gap-1.5 text-xs font-medium py-2.5 px-2 rounded-lg transition-all ${
+              mode === 'single' ? 'bg-primary text-primary-foreground shadow-sm' : 'text-muted-foreground hover:text-foreground hover:bg-secondary/80'
             }`}
             onClick={() => { setMode('single'); setViewingTrip(null) }}
           >
-            Enodnevna pot
+            <Route className="size-3.5" />
+            <span>Enodnevna</span>
           </button>
           <button
-            className={`flex-1 text-xs font-medium py-2 px-2 rounded-md transition-all ${
-              mode === 'roundtrip' ? 'bg-primary text-primary-foreground shadow-sm' : 'text-muted-foreground hover:text-foreground'
+            className={`flex-1 flex items-center justify-center gap-1.5 text-xs font-medium py-2.5 px-2 rounded-lg transition-all ${
+              mode === 'roundtrip' ? 'bg-primary text-primary-foreground shadow-sm' : 'text-muted-foreground hover:text-foreground hover:bg-secondary/80'
             }`}
             onClick={() => { setMode('roundtrip'); setViewingTrip(null) }}
           >
-            Krožna pot
+            <RefreshCw className="size-3.5" />
+            <span>Krožna</span>
           </button>
           <button
-            className={`flex-1 text-xs font-medium py-2 px-2 rounded-md transition-all ${
-              mode === 'multiday' ? 'bg-primary text-primary-foreground shadow-sm' : 'text-muted-foreground hover:text-foreground'
+            className={`flex-1 flex items-center justify-center gap-1.5 text-xs font-medium py-2.5 px-2 rounded-lg transition-all ${
+              mode === 'multiday' ? 'bg-primary text-primary-foreground shadow-sm' : 'text-muted-foreground hover:text-foreground hover:bg-secondary/80'
             }`}
             onClick={() => { setMode('multiday'); setViewingTrip(null) }}
           >
-            Večdnevno potovanje
+            <Calendar className="size-3.5" />
+            <span>Večdnevno</span>
           </button>
         </div>
 

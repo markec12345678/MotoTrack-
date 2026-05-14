@@ -2,12 +2,13 @@
 
 import React, { useState, useEffect, useRef } from 'react'
 import dynamic from 'next/dynamic'
-import { Search, X, ChevronUp, ChevronDown, LocateFixed, Bike, Route as RouteIcon, Filter, MapPin, GitBranch, CloudRain, AlertTriangle, Radio, Plus, Send, Fuel, Users, Navigation, Trash2, Gauge, Star, Layers } from 'lucide-react'
+import { Search, X, ChevronUp, ChevronDown, LocateFixed, Bike, Route as RouteIcon, Filter, MapPin, GitBranch, CloudRain, AlertTriangle, Radio, Plus, Send, Fuel, Users, Navigation, Trash2, Gauge, Star, Layers, Shield, ChevronRight } from 'lucide-react'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { Dialog, DialogContent, DialogTitle } from '@/components/ui/dialog'
+import { Popover, PopoverTrigger, PopoverContent } from '@/components/ui/popover'
 import { Slider } from '@/components/ui/slider'
 import { Label } from '@/components/ui/label'
 import MapStyleSelector from '@/components/map-style-selector'
@@ -52,6 +53,7 @@ export default function MapTab({ rides, routes, onOpenDetail, userId }: MapTabPr
   const [filterRoutes, setFilterRoutes] = useState(true)
   const [filterCategory, setFilterCategory] = useState('all')
   const [showFilters, setShowFilters] = useState(false)
+  const [activePopover, setActivePopover] = useState<'layers' | 'safety' | 'navigation' | null>(null)
 
   // POI state
   const [pois, setPois] = useState<PoiData[]>([])
@@ -382,6 +384,15 @@ export default function MapTab({ rides, routes, onOpenDetail, userId }: MapTabPr
 
   const activePoiCount = activePoiTypes.length
 
+  // Grouped button active states
+  const filtersNonDefault = !filterRides || !filterRoutes || filterCategory !== 'all'
+  const layersActive = filtersNonDefault || activePoiCount > 0 || showRoadQuality || showTwistyRoads || showTraffic
+  const layersActiveCount = [filtersNonDefault, activePoiCount > 0, showRoadQuality, showTwistyRoads, showTraffic].filter(Boolean).length
+  const safetyActive = showHazards || showWeatherRadar || showLiveRide
+  const safetyActiveCount = [showHazards, showWeatherRadar, showLiveRide].filter(Boolean).length
+  const navActive = showNavigation || showFuelPanel || showParkingPanel || showFriendRides
+  const navActiveCount = [showNavigation, showFuelPanel, showParkingPanel, showFriendRides].filter(Boolean).length
+
   return (
     <div className="relative w-full h-[calc(100vh-64px)]">
       {/* Map */}
@@ -457,78 +468,103 @@ export default function MapTab({ rides, routes, onOpenDetail, userId }: MapTabPr
         </div>
       </div>
 
-      {/* Right side buttons */}
+      {/* Right side - Grouped category buttons */}
       <div className="absolute top-4 right-4 z-[1000] flex flex-col gap-2">
-        <Button size="icon" variant="secondary" className={`h-9 w-9 rounded-full shadow-lg backdrop-blur-md border border-border ${showFilters ? 'bg-primary text-primary-foreground' : 'bg-background/90 hover:bg-muted'}`} onClick={() => setShowFilters(!showFilters)}>
-          <Filter className="h-4 w-4" />
-        </Button>
-        <Button size="icon" variant="secondary" className={`h-9 w-9 rounded-full shadow-lg backdrop-blur-md border border-border relative ${activePoiCount > 0 ? 'bg-primary text-primary-foreground' : 'bg-background/90 hover:bg-muted'}`} onClick={() => setShowPoiPanel(!showPoiPanel)}>
-          <MapPin className="h-4 w-4" />
-          {activePoiCount > 0 && <span className="absolute -top-1 -right-1 bg-red-500 text-white text-[9px] font-bold rounded-full size-4 flex items-center justify-center">{activePoiCount}</span>}
-        </Button>
-        <Button size="icon" variant="secondary" className={`h-9 w-9 rounded-full shadow-lg backdrop-blur-md border border-border ${showTwistyRoads ? 'bg-amber-500 text-white' : 'bg-background/90 hover:bg-muted'}`} onClick={() => setShowTwistyRoads(!showTwistyRoads)} title="Vijugaste ceste">
-          <GitBranch className="h-4 w-4" />
-        </Button>
-        <Button size="icon" variant="secondary" className={`h-9 w-9 rounded-full shadow-lg backdrop-blur-md border border-border ${showWeatherRadar ? 'bg-sky-500 text-white' : 'bg-background/90 hover:bg-muted'}`} onClick={() => setShowWeatherRadar(!showWeatherRadar)} title="Vremenski radar">
-          <CloudRain className="h-4 w-4" />
-        </Button>
-        <Button size="icon" variant="secondary" className={`h-9 w-9 rounded-full shadow-lg backdrop-blur-md border border-border ${showHazards ? 'bg-red-500 text-white' : 'bg-background/90 hover:bg-muted'}`} onClick={() => setShowHazards(!showHazards)} title="Opozorila na nevarnosti">
-          <AlertTriangle className="h-4 w-4" />
-        </Button>
-        <Button size="icon" variant="secondary" className={`h-9 w-9 rounded-full shadow-lg backdrop-blur-md border border-border ${showLiveRide ? 'bg-green-500 text-white' : 'bg-background/90 hover:bg-muted'}`} onClick={() => setShowLiveRide(!showLiveRide)} title="LiveRIDE - sledi motoristom v živo">
-          <Radio className="h-4 w-4" />
-        </Button>
-        <Button size="icon" variant="secondary" className="h-9 w-9 rounded-full shadow-lg backdrop-blur-md border border-border bg-background/90 hover:bg-muted" onClick={() => setShowHazardReport(true)} title="Prijavi nevarnost">
-          <Plus className="h-4 w-4" />
-        </Button>
-        <Button size="icon" variant="secondary" className={`h-9 w-9 rounded-full shadow-lg backdrop-blur-md border border-border ${showFuelPanel ? 'bg-orange-500 text-white' : 'bg-background/90 hover:bg-muted'}`} onClick={() => setShowFuelPanel(!showFuelPanel)} title="Kazalnik dosega">
-          <Fuel className="h-4 w-4" />
-        </Button>
-        <Button size="icon" variant="secondary" className={`h-9 w-9 rounded-full shadow-lg backdrop-blur-md border border-border ${parkingData?.parkedLat != null ? 'bg-blue-500 text-white' : 'bg-background/90 hover:bg-muted'}`} onClick={() => setShowParkingPanel(!showParkingPanel)} title="Parkirišče">
-          <MapPin className="h-4 w-4" />
-        </Button>
-        <Button size="icon" variant="secondary" className={`h-9 w-9 rounded-full shadow-lg backdrop-blur-md border border-border ${showFriendRides ? 'bg-blue-500 text-white' : 'bg-background/90 hover:bg-muted'}`} onClick={() => setShowFriendRides(!showFriendRides)} title="Prijateljeve vožnje">
-          <Users className="h-4 w-4" />
-        </Button>
-        <Button size="icon" variant="secondary" className={`h-9 w-9 rounded-full shadow-lg backdrop-blur-md border border-border ${showNavigation ? 'bg-amber-500 text-white' : 'bg-background/90 hover:bg-muted'}`} onClick={async () => {
-          if (!showNavigation && routes.length > 0) {
-            // Use the first public route for navigation demo
-            const firstRoute = routes[0]
-            try {
-              let waypoints: Array<{lat: number; lng: number}> = []
-              if (firstRoute.waypoints) {
-                waypoints = JSON.parse(firstRoute.waypoints)
-              } else if (firstRoute.startLat && firstRoute.startLng) {
-                waypoints = [{ lat: firstRoute.startLat, lng: firstRoute.startLng }]
-              }
-              if (waypoints.length >= 2) {
-                const res = await fetch(`/api/navigation?waypoints=${encodeURIComponent(JSON.stringify(waypoints))}`)
-                if (res.ok) {
-                  const j = await res.json()
-                  setNavigationRoute(j.data)
-                  setShowNavigation(true)
-                  toast.success('Navigacija zagnana!')
-                } else {
-                  toast.error('Napaka pri navigaciji')
-                }
-              } else {
-                toast.error('Pot nima dovolj točk za navigacijo')
-              }
-            } catch {
-              toast.error('Napaka pri navigaciji')
-            }
-          } else {
-            setShowNavigation(!showNavigation)
-          }
-        }} title="Turn-by-turn navigacija">
-          <Navigation className="h-4 w-4" />
-        </Button>
-        <Button size="icon" variant="secondary" className={`h-9 w-9 rounded-full shadow-lg backdrop-blur-md border border-border ${showTraffic ? 'bg-orange-500 text-white' : 'bg-background/90 hover:bg-muted'}`} onClick={() => setShowTraffic(!showTraffic)} title="Promet v živo">
-          <Layers className="h-4 w-4" />
-        </Button>
-        <Button size="icon" variant="secondary" className={`h-9 w-9 rounded-full shadow-lg backdrop-blur-md border border-border ${showRoadQuality ? 'bg-emerald-500 text-white' : 'bg-background/90 hover:bg-muted'}`} onClick={() => setShowRoadQuality(!showRoadQuality)} title="Kakovost ceste">
-          <Gauge className="h-4 w-4" />
-        </Button>
+        {/* LAYERS group */}
+        <Popover>
+          <PopoverTrigger asChild>
+            <Button size="icon" variant="secondary" className={`h-10 w-10 rounded-full shadow-lg backdrop-blur-md border border-border ${showFilters || showTwistyRoads || showTraffic || showRoadQuality || activePoiCount > 0 ? 'bg-primary text-primary-foreground' : 'bg-background/90 hover:bg-muted'}`} title="Plasti">
+              <Layers className="h-4 w-4" />
+              {(activePoiCount > 0 || showTwistyRoads || showTraffic || showRoadQuality) && <span className="absolute -top-1 -right-1 bg-red-500 text-white text-[8px] font-bold rounded-full size-3.5 flex items-center justify-center">!</span>}
+            </Button>
+          </PopoverTrigger>
+          <PopoverContent side="left" align="start" className="w-56 p-3 rounded-xl border-border shadow-xl">
+            <p className="text-xs font-bold text-foreground mb-2 flex items-center gap-1.5"><Layers className="size-3.5 text-primary" /> Plasti & Filtri</p>
+            <div className="space-y-1">
+              <button onClick={() => setShowFilters(!showFilters)} className={`w-full flex items-center gap-2 px-2.5 py-2 rounded-lg text-xs font-medium transition-colors ${showFilters ? 'bg-primary/15 text-primary border border-primary/30' : 'bg-secondary/50 text-muted-foreground hover:bg-muted'}`}>
+                <Filter className="size-3.5" /> Filtri voženj/poti
+              </button>
+              <button onClick={() => setShowPoiPanel(!showPoiPanel)} className={`w-full flex items-center gap-2 px-2.5 py-2 rounded-lg text-xs font-medium transition-colors ${activePoiCount > 0 ? 'bg-primary/15 text-primary border border-primary/30' : 'bg-secondary/50 text-muted-foreground hover:bg-muted'}`}>
+                <MapPin className="size-3.5" /> Zanimive točke {activePoiCount > 0 && <Badge variant="secondary" className="ml-auto text-[9px] px-1 py-0">{activePoiCount}</Badge>}
+              </button>
+              <button onClick={() => setShowTwistyRoads(!showTwistyRoads)} className={`w-full flex items-center gap-2 px-2.5 py-2 rounded-lg text-xs font-medium transition-colors ${showTwistyRoads ? 'bg-amber-500/15 text-amber-500 border border-amber-500/30' : 'bg-secondary/50 text-muted-foreground hover:bg-muted'}`}>
+                <GitBranch className="size-3.5" /> Vijugaste ceste
+              </button>
+              <button onClick={() => setShowTraffic(!showTraffic)} className={`w-full flex items-center gap-2 px-2.5 py-2 rounded-lg text-xs font-medium transition-colors ${showTraffic ? 'bg-orange-500/15 text-orange-500 border border-orange-500/30' : 'bg-secondary/50 text-muted-foreground hover:bg-muted'}`}>
+                <Layers className="size-3.5" /> Promet v živo
+              </button>
+              <button onClick={() => setShowRoadQuality(!showRoadQuality)} className={`w-full flex items-center gap-2 px-2.5 py-2 rounded-lg text-xs font-medium transition-colors ${showRoadQuality ? 'bg-emerald-500/15 text-emerald-500 border border-emerald-500/30' : 'bg-secondary/50 text-muted-foreground hover:bg-muted'}`}>
+                <Gauge className="size-3.5" /> Kakovost ceste
+              </button>
+            </div>
+          </PopoverContent>
+        </Popover>
+
+        {/* SAFETY group */}
+        <Popover>
+          <PopoverTrigger asChild>
+            <Button size="icon" variant="secondary" className={`h-10 w-10 rounded-full shadow-lg backdrop-blur-md border border-border ${showHazards || showWeatherRadar || showLiveRide || showHazardReport ? 'bg-red-500/90 text-white' : 'bg-background/90 hover:bg-muted'}`} title="Varnost">
+              <Shield className="h-4 w-4" />
+              {showHazards && <span className="absolute -top-1 -right-1 bg-red-500 text-white text-[8px] font-bold rounded-full size-3.5 flex items-center justify-center">!</span>}
+            </Button>
+          </PopoverTrigger>
+          <PopoverContent side="left" align="start" className="w-56 p-3 rounded-xl border-border shadow-xl">
+            <p className="text-xs font-bold text-foreground mb-2 flex items-center gap-1.5"><Shield className="size-3.5 text-red-500" /> Varnost</p>
+            <div className="space-y-1">
+              <button onClick={() => setShowHazards(!showHazards)} className={`w-full flex items-center gap-2 px-2.5 py-2 rounded-lg text-xs font-medium transition-colors ${showHazards ? 'bg-red-500/15 text-red-500 border border-red-500/30' : 'bg-secondary/50 text-muted-foreground hover:bg-muted'}`}>
+                <AlertTriangle className="size-3.5" /> Opozorila
+              </button>
+              <button onClick={() => setShowHazardReport(true)} className="w-full flex items-center gap-2 px-2.5 py-2 rounded-lg text-xs font-medium bg-secondary/50 text-muted-foreground hover:bg-muted transition-colors">
+                <Plus className="size-3.5" /> Prijavi nevarnost
+              </button>
+              <button onClick={() => setShowWeatherRadar(!showWeatherRadar)} className={`w-full flex items-center gap-2 px-2.5 py-2 rounded-lg text-xs font-medium transition-colors ${showWeatherRadar ? 'bg-sky-500/15 text-sky-500 border border-sky-500/30' : 'bg-secondary/50 text-muted-foreground hover:bg-muted'}`}>
+                <CloudRain className="size-3.5" /> Vremenski radar
+              </button>
+              <button onClick={() => setShowLiveRide(!showLiveRide)} className={`w-full flex items-center gap-2 px-2.5 py-2 rounded-lg text-xs font-medium transition-colors ${showLiveRide ? 'bg-green-500/15 text-green-500 border border-green-500/30' : 'bg-secondary/50 text-muted-foreground hover:bg-muted'}`}>
+                <Radio className="size-3.5" /> LiveRIDE
+              </button>
+            </div>
+          </PopoverContent>
+        </Popover>
+
+        {/* NAVIGATION group */}
+        <Popover>
+          <PopoverTrigger asChild>
+            <Button size="icon" variant="secondary" className={`h-10 w-10 rounded-full shadow-lg backdrop-blur-md border border-border ${showNavigation || showFuelPanel || showParkingPanel || showFriendRides ? 'bg-amber-500/90 text-white' : 'bg-background/90 hover:bg-muted'}`} title="Navigacija">
+              <Navigation className="h-4 w-4" />
+            </Button>
+          </PopoverTrigger>
+          <PopoverContent side="left" align="start" className="w-56 p-3 rounded-xl border-border shadow-xl">
+            <p className="text-xs font-bold text-foreground mb-2 flex items-center gap-1.5"><Navigation className="size-3.5 text-amber-500" /> Navigacija</p>
+            <div className="space-y-1">
+              <button onClick={async () => {
+                if (!showNavigation && routes.length > 0) {
+                  const firstRoute = routes[0]
+                  try {
+                    let waypoints: Array<{lat: number; lng: number}> = []
+                    if (firstRoute.waypoints) waypoints = JSON.parse(firstRoute.waypoints)
+                    if (waypoints.length >= 2) {
+                      const res = await fetch(`/api/navigation?waypoints=${encodeURIComponent(JSON.stringify(waypoints))}`)
+                      if (res.ok) { const j = await res.json(); setNavigationRoute(j.data); setShowNavigation(true); toast.success('Navigacija zagnana!') }
+                      else toast.error('Napaka pri navigaciji')
+                    } else toast.error('Pot nima dovolj točk za navigacijo')
+                  } catch { toast.error('Napaka pri navigaciji') }
+                } else setShowNavigation(!showNavigation)
+              }} className={`w-full flex items-center gap-2 px-2.5 py-2 rounded-lg text-xs font-medium transition-colors ${showNavigation ? 'bg-amber-500/15 text-amber-500 border border-amber-500/30' : 'bg-secondary/50 text-muted-foreground hover:bg-muted'}`}>
+                <Navigation className="size-3.5" /> Navigacija
+              </button>
+              <button onClick={() => setShowFuelPanel(!showFuelPanel)} className={`w-full flex items-center gap-2 px-2.5 py-2 rounded-lg text-xs font-medium transition-colors ${showFuelPanel ? 'bg-orange-500/15 text-orange-500 border border-orange-500/30' : 'bg-secondary/50 text-muted-foreground hover:bg-muted'}`}>
+                <Fuel className="size-3.5" /> Kazalnik dosega
+              </button>
+              <button onClick={() => setShowParkingPanel(!showParkingPanel)} className={`w-full flex items-center gap-2 px-2.5 py-2 rounded-lg text-xs font-medium transition-colors ${parkingData?.parkedLat != null ? 'bg-blue-500/15 text-blue-500 border border-blue-500/30' : 'bg-secondary/50 text-muted-foreground hover:bg-muted'}`}>
+                <MapPin className="size-3.5" /> Parkirišče
+              </button>
+              <button onClick={() => setShowFriendRides(!showFriendRides)} className={`w-full flex items-center gap-2 px-2.5 py-2 rounded-lg text-xs font-medium transition-colors ${showFriendRides ? 'bg-blue-500/15 text-blue-500 border border-blue-500/30' : 'bg-secondary/50 text-muted-foreground hover:bg-muted'}`}>
+                <Users className="size-3.5" /> Prijateljeve vožnje
+              </button>
+            </div>
+          </PopoverContent>
+        </Popover>
       </div>
 
       {/* Filter panel */}
@@ -638,13 +674,28 @@ export default function MapTab({ rides, routes, onOpenDetail, userId }: MapTabPr
         </div>
       )}
 
-      {/* Nearby panel */}
+      {/* Nearby panel - compact strip */}
       <div className="absolute bottom-4 left-4 right-4 z-[1000]">
-        <div className={`bg-background/95 backdrop-blur-md border border-border rounded-2xl shadow-lg transition-all duration-300 ${nearbyExpanded ? 'max-h-[60vh]' : 'max-h-14'}`}>
-          <button onClick={() => setNearbyExpanded(!nearbyExpanded)} className="w-full flex items-center justify-between px-4 h-14 text-sm font-medium text-foreground hover:bg-muted/30 transition-colors rounded-t-2xl">
-            <span>
-              {totalCount} voženj in poti{activePoiCount > 0 ? ` · ${pois.filter(p => activePoiTypes.includes(p.type)).length} POI` : ''}{liveRiders.length > 0 ? ` · ${liveRiders.length} v živo` : ''}
-            </span>
+        <div className={`bg-background/95 backdrop-blur-md border border-border rounded-2xl shadow-lg transition-all duration-300 overflow-hidden ${nearbyExpanded ? 'max-h-[60vh]' : 'max-h-12'}`}>
+          <button onClick={() => setNearbyExpanded(!nearbyExpanded)} className="w-full flex items-center justify-between px-4 h-12 text-sm font-medium text-foreground hover:bg-muted/30 transition-colors rounded-t-2xl">
+            <div className="flex items-center gap-2">
+              <div className="flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-amber-500/15 text-amber-500 text-[10px] font-bold">
+                <Bike className="size-3" /> {rides.length}
+              </div>
+              <div className="flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-emerald-500/15 text-emerald-500 text-[10px] font-bold">
+                <RouteIcon className="size-3" /> {routes.length}
+              </div>
+              {activePoiCount > 0 && (
+                <div className="flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-primary/15 text-primary text-[10px] font-bold">
+                  <MapPin className="size-3" /> {pois.filter(p => activePoiTypes.includes(p.type)).length} POI
+                </div>
+              )}
+              {liveRiders.length > 0 && (
+                <div className="flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-green-500/15 text-green-500 text-[10px] font-bold">
+                  <Radio className="size-3 animate-pulse" /> {liveRiders.length}
+                </div>
+              )}
+            </div>
             {nearbyExpanded ? <ChevronDown className="h-4 w-4 text-muted-foreground" /> : <ChevronUp className="h-4 w-4 text-muted-foreground" />}
           </button>
           {nearbyExpanded && (

@@ -7,6 +7,7 @@ import {
   Phone, Heart, Droplets, AlertTriangle, Save,
   Bell, BellOff, Volume2, VolumeX, AlertOctagon,
   Receipt, Wrench, Plus, CheckCircle2, Calendar, Play,
+  ChevronDown, Zap, Wallet, Trophy,
 } from 'lucide-react'
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
@@ -21,6 +22,7 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Skeleton } from '@/components/ui/skeleton'
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible'
 import type { RideData, RouteData, UserData, PhotoData, EmergencyContactsData, SpeedAlertSettings, ExpenseData, MaintenanceReminderData, TrackPoint } from '@/components/tabs/types'
 import { formatDuration, formatDate, categoryLabel, categoryColor } from '@/components/tabs/types'
 import AchievementsPanel from '@/components/tabs/achievements-panel'
@@ -75,6 +77,19 @@ export default function ProfileTab({ user, allUsers, rides, routes, loading, onS
   const [mileageSaving, setMileageSaving] = useState(false)
   const [replayRide, setReplayRide] = useState<RideData | null>(null)
   const [replayTrackData, setReplayTrackData] = useState<TrackPoint[]>([])
+
+  // Collapsible section states — first section (Motocikel) expanded by default
+  const [sectionOpen, setSectionOpen] = useState<Record<string, boolean>>({
+    motocikel: true,
+    nadzor: false,
+    financije: false,
+    mediji: false,
+    dosezki: false,
+  })
+
+  const toggleSection = (key: string) => {
+    setSectionOpen(prev => ({ ...prev, [key]: !prev[key] }))
+  }
 
   const handleReplayRide = useCallback((ride: RideData) => {
     try {
@@ -413,17 +428,25 @@ export default function ProfileTab({ user, allUsers, rides, routes, loading, onS
     )
   }
 
+  // Count items for badges
+  const motocikelItemCount = [iceData.iceName1, iceData.iceName2, user.bike, currentMileage > 0].filter(Boolean).length + 2 // +2 for Bluetooth, OBD
+  const nadzorItemCount = 2 // speed alerts + crash detection
+  const financijeItemCount = expenses.length + reminders.filter(r => !r.completed).length
+  const medijiItemCount = photos.length + (rides.filter(r => r.userId === user.id).some(r => r.trackData) ? 1 : 0)
+  const dosezkiItemCount = 3 // achievements + points + performance
+
   return (
     <div className="w-full h-[calc(100vh-104px)] overflow-y-auto custom-scrollbar">
-      <div className="mx-auto max-w-lg px-4 py-6 space-y-6">
-        {/* User switcher */}
-        <Card>
-          <CardContent className="p-4">
-            <div className="flex items-center gap-2 mb-2"><Users className="size-4 text-muted-foreground" /><span className="text-xs text-muted-foreground font-medium">Preklopi uporabnika</span></div>
-            <div className="flex gap-2 flex-wrap">
+      <div className="mx-auto max-w-lg px-4 py-6 space-y-5">
+
+        {/* ── User Switcher ── */}
+        <Card className="rounded-xl">
+          <CardContent className="p-3">
+            <div className="flex items-center gap-2 mb-2"><Users className="size-3.5 text-muted-foreground" /><span className="text-[11px] text-muted-foreground font-medium">Preklopi uporabnika</span></div>
+            <div className="flex gap-1.5 flex-wrap">
               {allUsers.map(u => (
-                <Button key={u.id} variant={user.id === u.id ? 'default' : 'outline'} size="sm" className="text-xs gap-1.5" onClick={() => onSwitchUser(u.id)}>
-                  <Avatar className="size-5"><AvatarFallback className="text-[8px]">{u.name.charAt(0)}</AvatarFallback></Avatar>
+                <Button key={u.id} variant={user.id === u.id ? 'default' : 'outline'} size="sm" className="text-xs gap-1 h-7" onClick={() => onSwitchUser(u.id)}>
+                  <Avatar className="size-4"><AvatarFallback className="text-[7px]">{u.name.charAt(0)}</AvatarFallback></Avatar>
                   {u.name}
                 </Button>
               ))}
@@ -431,905 +454,1001 @@ export default function ProfileTab({ user, allUsers, rides, routes, loading, onS
           </CardContent>
         </Card>
 
-        {/* User card */}
-        <Card>
-          <CardContent className="p-6 text-center">
-            <Avatar className="size-20 mx-auto mb-4"><AvatarFallback className="text-2xl bg-primary/20 text-primary">{user.name.charAt(0)}</AvatarFallback></Avatar>
-            <h2 className="text-xl font-bold">{user.name}</h2>
-            <p className="text-sm text-muted-foreground">{user.email}</p>
-            {user.bike && <Badge className="mt-2 bg-primary/20 text-primary border-primary/30"><Bike className="size-3 mr-1" />{user.bike}</Badge>}
-            {user.bio && <p className="text-sm text-muted-foreground mt-3 leading-relaxed">{user.bio}</p>}
+        {/* ── Improved User Card ── */}
+        <Card className="rounded-xl overflow-hidden">
+          <div className="h-1 bg-gradient-to-r from-primary/70 via-primary/40 to-primary/10" />
+          <CardContent className="p-5">
+            <div className="flex items-center gap-4">
+              {/* Avatar with gradient ring */}
+              <div className="relative shrink-0">
+                <div className="absolute inset-0 rounded-full bg-gradient-to-br from-primary/60 to-primary/20 blur-[2px] scale-110" />
+                <Avatar className="size-16 relative ring-2 ring-background">
+                  <AvatarFallback className="text-xl bg-primary/15 text-primary font-bold">{user.name.charAt(0)}</AvatarFallback>
+                </Avatar>
+              </div>
+              <div className="flex-1 min-w-0">
+                <h2 className="text-lg font-bold truncate">{user.name}</h2>
+                <p className="text-xs text-muted-foreground truncate">{user.email}</p>
+                {user.bike && <Badge className="mt-1.5 bg-primary/15 text-primary border-primary/25 text-[10px] h-5"><Bike className="size-3 mr-1" />{user.bike}</Badge>}
+              </div>
+            </div>
+            {user.bio && <p className="text-xs text-muted-foreground mt-3 leading-relaxed">{user.bio}</p>}
+            {/* Stats horizontal strip */}
+            <div className="mt-4 flex items-center justify-between gap-1 bg-muted/40 rounded-lg px-3 py-2.5">
+              <div className="flex items-center gap-1.5 text-xs">
+                <Bike className="size-3.5 text-primary" />
+                <span className="font-bold">{user.stats.totalRides}</span>
+                <span className="text-muted-foreground">voženj</span>
+              </div>
+              <div className="w-px h-4 bg-border/50" />
+              <div className="flex items-center gap-1.5 text-xs">
+                <Route className="size-3.5 text-primary" />
+                <span className="font-bold">{user.stats.totalRoutes}</span>
+                <span className="text-muted-foreground">poti</span>
+              </div>
+              <div className="w-px h-4 bg-border/50" />
+              <div className="flex items-center gap-1.5 text-xs">
+                <TrendingUp className="size-3.5 text-primary" />
+                <span className="font-bold">{user.stats.totalDistance}</span>
+                <span className="text-muted-foreground">km</span>
+              </div>
+              <div className="w-px h-4 bg-border/50" />
+              <div className="flex items-center gap-1.5 text-xs">
+                <Mountain className="size-3.5 text-primary" />
+                <span className="font-bold">{user.stats.totalElevation}</span>
+                <span className="text-muted-foreground">m</span>
+              </div>
+            </div>
           </CardContent>
         </Card>
 
-        {/* Stats */}
-        <div className="grid grid-cols-2 gap-3">
-          <Card className="overflow-hidden"><CardContent className="p-4 text-center relative"><div className="absolute top-0 left-0 right-0 h-0.5 bg-gradient-to-r from-primary/60 to-primary/20" /><Bike className="size-5 text-primary mx-auto mb-1" /><p className="text-2xl font-bold">{user.stats.totalRides}</p><p className="text-xs text-muted-foreground">Voženj</p></CardContent></Card>
-          <Card className="overflow-hidden"><CardContent className="p-4 text-center relative"><div className="absolute top-0 left-0 right-0 h-0.5 bg-gradient-to-r from-primary/60 to-primary/20" /><Route className="size-5 text-primary mx-auto mb-1" /><p className="text-2xl font-bold">{user.stats.totalRoutes}</p><p className="text-xs text-muted-foreground">Poti</p></CardContent></Card>
-          <Card className="overflow-hidden"><CardContent className="p-4 text-center relative"><div className="absolute top-0 left-0 right-0 h-0.5 bg-gradient-to-r from-primary/60 to-primary/20" /><TrendingUp className="size-5 text-primary mx-auto mb-1" /><p className="text-2xl font-bold">{user.stats.totalDistance}</p><p className="text-xs text-muted-foreground">km skupaj</p></CardContent></Card>
-          <Card className="overflow-hidden"><CardContent className="p-4 text-center relative"><div className="absolute top-0 left-0 right-0 h-0.5 bg-gradient-to-r from-primary/60 to-primary/20" /><Mountain className="size-5 text-primary mx-auto mb-1" /><p className="text-2xl font-bold">{user.stats.totalElevation}</p><p className="text-xs text-muted-foreground">m višine</p></CardContent></Card>
-        </div>
-
-        {/* ICE Contacts Card */}
-        <Card className="overflow-hidden border-red-500/20">
-          <div className="h-0.5 bg-gradient-to-r from-red-500/80 via-red-400/60 to-red-500/40" />
-          <CardHeader className="p-4 pb-2">
-            <div className="flex items-center gap-2">
-              <div className="flex items-center justify-center size-7 rounded-lg bg-red-500/15">
-                <AlertTriangle className="size-4 text-red-500" />
-              </div>
-              <CardTitle className="text-sm">ICE Kontakti</CardTitle>
-              <Badge variant="outline" className="text-[9px] px-1.5 py-0 border-red-300 text-red-500">V sili</Badge>
-            </div>
-          </CardHeader>
-          <CardContent className="p-4 pt-0 space-y-4">
-            {/* ICE Contact 1 */}
-            <div className="space-y-2">
-              <div className="flex items-center gap-2">
-                <Phone className="size-3.5 text-red-500" />
-                <span className="text-xs font-medium">Stik v sili 1</span>
-              </div>
-              <div className="grid grid-cols-2 gap-2">
-                <div className="space-y-1">
-                  <Label className="text-[10px] text-muted-foreground">Ime</Label>
-                  <Input
-                    placeholder="Ime kontakta"
-                    value={iceData.iceName1 || ''}
-                    onChange={e => setIceData(prev => ({ ...prev, iceName1: e.target.value }))}
-                    className="h-8 text-xs"
-                  />
+        {/* ════════════════════════════════════════════════════════════════
+            COLLAPSIBLE SECTION 1: 🎮 Moj Motocikel
+            ICE contacts, bike info, mileage, Bluetooth, OBD
+        ════════════════════════════════════════════════════════════════ */}
+        <Collapsible open={sectionOpen.motocikel} onOpenChange={() => toggleSection('motocikel')}>
+          <Card className="rounded-xl overflow-hidden border-l-4 border-l-red-500/60">
+            <CollapsibleTrigger asChild>
+              <button className="w-full text-left">
+                <div className="p-4 pb-0 flex items-center gap-3">
+                  <div className="flex items-center justify-center size-8 rounded-lg bg-red-500/15 shrink-0">
+                    <Bike className="size-4 text-red-500" />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2">
+                      <CardTitle className="text-sm font-semibold">Moj Motocikel</CardTitle>
+                      <Badge variant="secondary" className="text-[9px] px-1.5 py-0 h-4 bg-red-500/10 text-red-500">{motocikelItemCount} postavk</Badge>
+                    </div>
+                    <p className="text-[10px] text-muted-foreground mt-0.5">ICE kontakti, kilometrina, povezave</p>
+                  </div>
+                  <ChevronDown className={`size-4 text-muted-foreground transition-transform duration-200 ${sectionOpen.motocikel ? 'rotate-180' : ''}`} />
                 </div>
-                <div className="space-y-1">
-                  <Label className="text-[10px] text-muted-foreground">Telefon</Label>
-                  <Input
-                    placeholder="+386 1 234 5678"
-                    value={iceData.icePhone1 || ''}
-                    onChange={e => setIceData(prev => ({ ...prev, icePhone1: e.target.value }))}
-                    className="h-8 text-xs"
-                  />
-                </div>
-              </div>
-            </div>
-
-            <Separator className="opacity-30" />
-
-            {/* ICE Contact 2 */}
-            <div className="space-y-2">
-              <div className="flex items-center gap-2">
-                <Phone className="size-3.5 text-red-500" />
-                <span className="text-xs font-medium">Stik v sili 2</span>
-              </div>
-              <div className="grid grid-cols-2 gap-2">
-                <div className="space-y-1">
-                  <Label className="text-[10px] text-muted-foreground">Ime</Label>
-                  <Input
-                    placeholder="Ime kontakta"
-                    value={iceData.iceName2 || ''}
-                    onChange={e => setIceData(prev => ({ ...prev, iceName2: e.target.value }))}
-                    className="h-8 text-xs"
-                  />
-                </div>
-                <div className="space-y-1">
-                  <Label className="text-[10px] text-muted-foreground">Telefon</Label>
-                  <Input
-                    placeholder="+386 1 234 5678"
-                    value={iceData.icePhone2 || ''}
-                    onChange={e => setIceData(prev => ({ ...prev, icePhone2: e.target.value }))}
-                    className="h-8 text-xs"
-                  />
-                </div>
-              </div>
-            </div>
-
-            <Separator className="opacity-30" />
-
-            {/* Blood type */}
-            <div className="space-y-2">
-              <div className="flex items-center gap-2">
-                <Droplets className="size-3.5 text-red-500" />
-                <span className="text-xs font-medium">Krvna skupina</span>
-              </div>
-              <Select
-                value={iceData.bloodType || ''}
-                onValueChange={val => setIceData(prev => ({ ...prev, bloodType: val }))}
-              >
-                <SelectTrigger className="h-8 text-xs">
-                  <SelectValue placeholder="Izberi krvno skupino" />
-                </SelectTrigger>
-                <SelectContent>
-                  {['A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-'].map(bt => (
-                    <SelectItem key={bt} value={bt} className="text-xs">
-                      {bt}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-
-            <Separator className="opacity-30" />
-
-            {/* Allergies */}
-            <div className="space-y-2">
-              <div className="flex items-center gap-2">
-                <Heart className="size-3.5 text-red-500" />
-                <span className="text-xs font-medium">Alergije</span>
-              </div>
-              <Input
-                placeholder="Znane alergije (npr. penicilin, latex...)"
-                value={iceData.allergies || ''}
-                onChange={e => setIceData(prev => ({ ...prev, allergies: e.target.value }))}
-                className="h-8 text-xs"
-              />
-            </div>
-
-            {/* Save button */}
-            <Button
-              size="sm"
-              className="w-full text-xs gap-2 bg-red-500 hover:bg-red-600 text-white"
-              onClick={saveIceContacts}
-              disabled={iceSaving}
-            >
-              <Save className="size-3.5" />
-              {iceSaving ? 'Shranjujem...' : 'Shrani ICE kontakti'}
-            </Button>
-          </CardContent>
-        </Card>
-
-        {/* Speed Alert Settings Card */}
-        <Card className="overflow-hidden border-amber-500/20">
-          <div className="h-0.5 bg-gradient-to-r from-amber-500/80 via-amber-400/60 to-amber-500/40" />
-          <CardHeader className="p-4 pb-2">
-            <div className="flex items-center gap-2">
-              <div className="flex items-center justify-center size-7 rounded-lg bg-amber-500/15">
-                <AlertOctagon className="size-4 text-amber-500" />
-              </div>
-              <CardTitle className="text-sm">Hitrostna opozorila</CardTitle>
-              <Badge variant="outline" className={`text-[9px] px-1.5 py-0 ${
-                speedSettings.speedAlertEnabled
-                  ? 'border-amber-300 text-amber-500'
-                  : 'border-muted text-muted-foreground'
-              }`}>
-                {speedSettings.speedAlertEnabled ? 'Vklopljeno' : 'Izklopljeno'}
-              </Badge>
-            </div>
-          </CardHeader>
-          <CardContent className="p-4 pt-0 space-y-4">
-            {/* Enable alerts toggle */}
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                {speedSettings.speedAlertEnabled ? (
-                  <Bell className="size-3.5 text-amber-500" />
-                ) : (
-                  <BellOff className="size-3.5 text-muted-foreground" />
-                )}
-                <span className="text-xs font-medium">Omogoči opozorila</span>
-              </div>
-              <button
-                onClick={() => setSpeedSettings(prev => ({ ...prev, speedAlertEnabled: !prev.speedAlertEnabled }))}
-                className={`relative inline-flex h-5 w-9 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${
-                  speedSettings.speedAlertEnabled ? 'bg-amber-500' : 'bg-muted'
-                }`}
-                role="switch"
-                aria-checked={speedSettings.speedAlertEnabled}
-              >
-                <span className={`pointer-events-none inline-block size-4 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out ${
-                  speedSettings.speedAlertEnabled ? 'translate-x-4' : 'translate-x-0'
-                }`} />
               </button>
-            </div>
+            </CollapsibleTrigger>
+            <CollapsibleContent>
+              <CardContent className="p-4 pt-3 space-y-4">
 
-            <Separator className="opacity-30" />
-
-            {/* Speed limit slider */}
-            <div className="space-y-2">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <Gauge className="size-3.5 text-amber-500" />
-                  <span className="text-xs font-medium">Omejitev hitrosti</span>
+                {/* ICE Contact 1 */}
+                <div className="space-y-2">
+                  <div className="flex items-center gap-2">
+                    <Phone className="size-3.5 text-red-500" />
+                    <span className="text-xs font-medium">Stik v sili 1</span>
+                  </div>
+                  <div className="grid grid-cols-2 gap-2">
+                    <div className="space-y-1">
+                      <Label className="text-[10px] text-muted-foreground">Ime</Label>
+                      <Input
+                        placeholder="Ime kontakta"
+                        value={iceData.iceName1 || ''}
+                        onChange={e => setIceData(prev => ({ ...prev, iceName1: e.target.value }))}
+                        className="h-7 text-xs"
+                      />
+                    </div>
+                    <div className="space-y-1">
+                      <Label className="text-[10px] text-muted-foreground">Telefon</Label>
+                      <Input
+                        placeholder="+386 1 234 5678"
+                        value={iceData.icePhone1 || ''}
+                        onChange={e => setIceData(prev => ({ ...prev, icePhone1: e.target.value }))}
+                        className="h-7 text-xs"
+                      />
+                    </div>
+                  </div>
                 </div>
-                <span className="text-xs font-bold text-amber-500">{speedSettings.speedLimit} km/h</span>
-              </div>
-              <input
-                type="range"
-                min={30}
-                max={200}
-                step={5}
-                value={speedSettings.speedLimit}
-                onChange={e => setSpeedSettings(prev => ({ ...prev, speedLimit: Number(e.target.value) }))}
-                className="w-full h-1.5 rounded-full appearance-none cursor-pointer accent-amber-500 bg-muted"
-              />
-              <div className="flex justify-between">
-                <span className="text-[9px] text-muted-foreground/50">30 km/h</span>
-                <span className="text-[9px] text-muted-foreground/50">200 km/h</span>
-              </div>
-              {/* Quick presets */}
-              <div className="flex gap-1.5 flex-wrap">
-                {[50, 90, 110, 130].map(preset => (
-                  <button
-                    key={preset}
-                    onClick={() => setSpeedSettings(prev => ({ ...prev, speedLimit: preset }))}
-                    className={`px-2 py-0.5 rounded text-[10px] font-medium transition-colors ${
-                      speedSettings.speedLimit === preset
-                        ? 'bg-amber-500 text-white'
-                        : 'bg-muted text-muted-foreground hover:bg-muted/80'
-                    }`}
+
+                <Separator className="opacity-30" />
+
+                {/* ICE Contact 2 */}
+                <div className="space-y-2">
+                  <div className="flex items-center gap-2">
+                    <Phone className="size-3.5 text-red-500" />
+                    <span className="text-xs font-medium">Stik v sili 2</span>
+                  </div>
+                  <div className="grid grid-cols-2 gap-2">
+                    <div className="space-y-1">
+                      <Label className="text-[10px] text-muted-foreground">Ime</Label>
+                      <Input
+                        placeholder="Ime kontakta"
+                        value={iceData.iceName2 || ''}
+                        onChange={e => setIceData(prev => ({ ...prev, iceName2: e.target.value }))}
+                        className="h-7 text-xs"
+                      />
+                    </div>
+                    <div className="space-y-1">
+                      <Label className="text-[10px] text-muted-foreground">Telefon</Label>
+                      <Input
+                        placeholder="+386 1 234 5678"
+                        value={iceData.icePhone2 || ''}
+                        onChange={e => setIceData(prev => ({ ...prev, icePhone2: e.target.value }))}
+                        className="h-7 text-xs"
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                <Separator className="opacity-30" />
+
+                {/* Blood type */}
+                <div className="space-y-2">
+                  <div className="flex items-center gap-2">
+                    <Droplets className="size-3.5 text-red-500" />
+                    <span className="text-xs font-medium">Krvna skupina</span>
+                  </div>
+                  <Select
+                    value={iceData.bloodType || ''}
+                    onValueChange={val => setIceData(prev => ({ ...prev, bloodType: val }))}
                   >
-                    {preset} km/h
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            <Separator className="opacity-30" />
-
-            {/* Sound alert toggle */}
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                {speedSettings.speedAlertSound ? (
-                  <Volume2 className="size-3.5 text-amber-500" />
-                ) : (
-                  <VolumeX className="size-3.5 text-muted-foreground" />
-                )}
-                <span className="text-xs font-medium">Zvočno opozorilo</span>
-              </div>
-              <button
-                onClick={() => setSpeedSettings(prev => ({ ...prev, speedAlertSound: !prev.speedAlertSound }))}
-                className={`relative inline-flex h-5 w-9 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${
-                  speedSettings.speedAlertSound ? 'bg-amber-500' : 'bg-muted'
-                }`}
-                role="switch"
-                aria-checked={speedSettings.speedAlertSound}
-              >
-                <span className={`pointer-events-none inline-block size-4 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out ${
-                  speedSettings.speedAlertSound ? 'translate-x-4' : 'translate-x-0'
-                }`} />
-              </button>
-            </div>
-
-            {/* Save button */}
-            <Button
-              size="sm"
-              className="w-full text-xs gap-2 bg-amber-500 hover:bg-amber-600 text-white"
-              onClick={saveSpeedSettings}
-              disabled={speedSaving}
-            >
-              <Save className="size-3.5" />
-              {speedSaving ? 'Shranjujem...' : 'Shrani hitrostna opozorila'}
-            </Button>
-          </CardContent>
-        </Card>
-
-        {/* Expense Tracker Card */}
-        <Card className="overflow-hidden border-emerald-500/20">
-          <div className="h-0.5 bg-gradient-to-r from-emerald-500/80 via-emerald-400/60 to-emerald-500/40" />
-          <CardHeader className="p-4 pb-2">
-            <div className="flex items-center gap-2">
-              <div className="flex items-center justify-center size-7 rounded-lg bg-emerald-500/15">
-                <Receipt className="size-4 text-emerald-500" />
-              </div>
-              <CardTitle className="text-sm">Stroški</CardTitle>
-              <Badge variant="outline" className="text-[9px] px-1.5 py-0 border-emerald-300 text-emerald-500">EUR</Badge>
-            </div>
-          </CardHeader>
-          <CardContent className="p-4 pt-0 space-y-4">
-            {/* Totals */}
-            <div className="grid grid-cols-2 gap-3">
-              <div className="rounded-lg bg-emerald-500/10 p-3 text-center">
-                <p className="text-lg font-bold text-emerald-600 dark:text-emerald-400">{expenseTotals.thisMonth.toFixed(2)} €</p>
-                <p className="text-[10px] text-muted-foreground">Ta mesec</p>
-              </div>
-              <div className="rounded-lg bg-emerald-500/10 p-3 text-center">
-                <p className="text-lg font-bold text-emerald-600 dark:text-emerald-400">{expenseTotals.allTime.toFixed(2)} €</p>
-                <p className="text-[10px] text-muted-foreground">Skupaj</p>
-              </div>
-            </div>
-
-            {/* By type mini breakdown */}
-            {Object.keys(expenseByType).length > 0 && (
-              <div className="flex flex-wrap gap-1.5">
-                {Object.entries(expenseByType).map(([t, amt]) => (
-                  <span key={t} className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] bg-muted">
-                    {t === 'fuel' ? '⛽' : t === 'maintenance' ? '🔧' : t === 'insurance' ? '🛡️' : t === 'parts' ? '🔩' : t === 'toll' ? '🛣️' : t === 'parking' ? '🅿️' : '📦'}
-                    {amt.toFixed(0)} €
-                  </span>
-                ))}
-              </div>
-            )}
-
-            <Separator className="opacity-30" />
-
-            {/* Add expense form */}
-            <div className="space-y-2">
-              <div className="flex items-center gap-2">
-                <Plus className="size-3.5 text-emerald-500" />
-                <span className="text-xs font-medium">Dodaj strošek</span>
-              </div>
-              <div className="grid grid-cols-2 gap-2">
-                <div className="space-y-1">
-                  <Label className="text-[10px] text-muted-foreground">Tip</Label>
-                  <Select value={newExpense.type} onValueChange={val => setNewExpense(prev => ({ ...prev, type: val }))}>
-                    <SelectTrigger className="h-8 text-xs">
-                      <SelectValue />
+                    <SelectTrigger className="h-7 text-xs">
+                      <SelectValue placeholder="Izberi krvno skupino" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="fuel" className="text-xs">⛽ Gorivo</SelectItem>
-                      <SelectItem value="maintenance" className="text-xs">🔧 Vzdrževanje</SelectItem>
-                      <SelectItem value="insurance" className="text-xs">🛡️ Zavarovanje</SelectItem>
-                      <SelectItem value="parts" className="text-xs">🔩 Deli</SelectItem>
-                      <SelectItem value="toll" className="text-xs">🛣️ Cestnina</SelectItem>
-                      <SelectItem value="parking" className="text-xs">🅿️ Parkiranje</SelectItem>
-                      <SelectItem value="other" className="text-xs">📦 Drugo</SelectItem>
+                      {['A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-'].map(bt => (
+                        <SelectItem key={bt} value={bt} className="text-xs">
+                          {bt}
+                        </SelectItem>
+                      ))}
                     </SelectContent>
                   </Select>
                 </div>
-                <div className="space-y-1">
-                  <Label className="text-[10px] text-muted-foreground">Znesek (€)</Label>
-                  <Input
-                    type="number"
-                    step="0.01"
-                    placeholder="0.00"
-                    value={newExpense.amount}
-                    onChange={e => setNewExpense(prev => ({ ...prev, amount: e.target.value }))}
-                    className="h-8 text-xs"
-                  />
-                </div>
-              </div>
-              <div className="grid grid-cols-2 gap-2">
-                <div className="space-y-1">
-                  <Label className="text-[10px] text-muted-foreground">Opis</Label>
-                  <Input
-                    placeholder="Opis stroška"
-                    value={newExpense.description}
-                    onChange={e => setNewExpense(prev => ({ ...prev, description: e.target.value }))}
-                    className="h-8 text-xs"
-                  />
-                </div>
-                <div className="space-y-1">
-                  <Label className="text-[10px] text-muted-foreground">Kilometrina</Label>
-                  <Input
-                    type="number"
-                    placeholder="km"
-                    value={newExpense.mileage}
-                    onChange={e => setNewExpense(prev => ({ ...prev, mileage: e.target.value }))}
-                    className="h-8 text-xs"
-                  />
-                </div>
-              </div>
-              <Button
-                size="sm"
-                className="w-full text-xs gap-2 bg-emerald-500 hover:bg-emerald-600 text-white"
-                onClick={addExpense}
-                disabled={expenseSaving || !newExpense.amount}
-              >
-                <Plus className="size-3.5" />
-                {expenseSaving ? 'Dodajam...' : 'Dodaj strošek'}
-              </Button>
-            </div>
 
-            <Separator className="opacity-30" />
+                <Separator className="opacity-30" />
 
-            {/* Recent expenses list */}
-            <div className="space-y-1">
-              <span className="text-xs font-medium">Zadnji stroški</span>
-              {expensesLoading ? (
-                <div className="space-y-2 mt-2">
-                  {[1, 2, 3].map(i => <Skeleton key={i} className="h-10 rounded" />)}
-                </div>
-              ) : expenses.length === 0 ? (
-                <div className="text-center py-4">
-                  <Receipt className="size-8 mx-auto mb-1 text-muted-foreground/30" />
-                  <p className="text-xs text-muted-foreground">Ni stroškov</p>
-                </div>
-              ) : (
-                <ScrollArea className="max-h-48">
-                  <div className="space-y-1">
-                    {expenses.map(exp => (
-                      <div key={exp.id} className="flex items-center justify-between py-1.5 px-2 rounded hover:bg-secondary/30 group">
-                        <div className="flex items-center gap-2">
-                          <span className="text-sm">
-                            {exp.type === 'fuel' ? '⛽' : exp.type === 'maintenance' ? '🔧' : exp.type === 'insurance' ? '🛡️' : exp.type === 'parts' ? '🔩' : exp.type === 'toll' ? '🛣️' : exp.type === 'parking' ? '🅿️' : '📦'}
-                          </span>
-                          <div>
-                            <p className="text-xs font-medium">{exp.description || (exp.type === 'fuel' ? 'Gorivo' : exp.type === 'maintenance' ? 'Vzdrževanje' : exp.type === 'insurance' ? 'Zavarovanje' : exp.type === 'parts' ? 'Deli' : exp.type === 'toll' ? 'Cestnina' : exp.type === 'parking' ? 'Parkiranje' : 'Drugo')}</p>
-                            <p className="text-[10px] text-muted-foreground">
-                              {formatDate(exp.date)}
-                              {exp.mileage ? ` • ${exp.mileage} km` : ''}
-                            </p>
-                          </div>
-                        </div>
-                        <div className="flex items-center gap-1.5">
-                          <span className="text-xs font-bold text-emerald-600 dark:text-emerald-400">{exp.amount.toFixed(2)} €</span>
-                          <button
-                            className="size-5 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity text-destructive hover:bg-destructive/10"
-                            onClick={() => deleteExpense(exp.id)}
-                          >
-                            <Trash2 className="size-3" />
-                          </button>
-                        </div>
-                      </div>
-                    ))}
+                {/* Allergies */}
+                <div className="space-y-2">
+                  <div className="flex items-center gap-2">
+                    <Heart className="size-3.5 text-red-500" />
+                    <span className="text-xs font-medium">Alergije</span>
                   </div>
-                </ScrollArea>
-              )}
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* Maintenance Reminders Card */}
-        <Card className="overflow-hidden border-violet-500/20">
-          <div className="h-0.5 bg-gradient-to-r from-violet-500/80 via-violet-400/60 to-violet-500/40" />
-          <CardHeader className="p-4 pb-2">
-            <div className="flex items-center gap-2">
-              <div className="flex items-center justify-center size-7 rounded-lg bg-violet-500/15">
-                <Wrench className="size-4 text-violet-500" />
-              </div>
-              <CardTitle className="text-sm">Vzdrževanje</CardTitle>
-              <Badge variant="outline" className="text-[9px] px-1.5 py-0 border-violet-300 text-violet-500">Opomniki</Badge>
-            </div>
-          </CardHeader>
-          <CardContent className="p-4 pt-0 space-y-4">
-            {/* Current mileage */}
-            <div className="space-y-2">
-              <div className="flex items-center gap-2">
-                <Gauge className="size-3.5 text-violet-500" />
-                <span className="text-xs font-medium">Trenutna kilometrina</span>
-              </div>
-              <div className="flex gap-2">
-                <div className="flex-1 relative">
                   <Input
-                    type="number"
-                    value={currentMileage}
-                    onChange={e => setCurrentMileage(parseInt(e.target.value) || 0)}
-                    className="h-8 text-xs pr-8"
+                    placeholder="Znane alergije (npr. penicilin, latex...)"
+                    value={iceData.allergies || ''}
+                    onChange={e => setIceData(prev => ({ ...prev, allergies: e.target.value }))}
+                    className="h-7 text-xs"
                   />
-                  <span className="absolute right-2 top-1/2 -translate-y-1/2 text-[10px] text-muted-foreground">km</span>
                 </div>
+
+                {/* Save ICE button */}
                 <Button
                   size="sm"
-                  className="h-8 text-xs gap-1 bg-violet-500 hover:bg-violet-600 text-white"
-                  onClick={saveMileage}
-                  disabled={mileageSaving}
+                  className="w-full text-xs gap-2 bg-red-500 hover:bg-red-600 text-white h-7"
+                  onClick={saveIceContacts}
+                  disabled={iceSaving}
                 >
                   <Save className="size-3" />
-                  {mileageSaving ? '...' : 'Shrani'}
+                  {iceSaving ? 'Shranjujem...' : 'Shrani ICE kontakti'}
                 </Button>
-              </div>
-            </div>
 
-            <Separator className="opacity-30" />
+                <Separator className="opacity-30" />
 
-            {/* Common presets */}
-            <div className="space-y-2">
-              <span className="text-xs font-medium">Hitri predloge</span>
-              <div className="flex flex-wrap gap-1.5">
-                {[
-                  { type: 'oil_change', title: 'Zamenjava olja', intervalKm: 5000, emoji: '🛢️' },
-                  { type: 'tire_change', title: 'Zamenjava pnevmatik', intervalKm: 10000, emoji: '🛞' },
-                  { type: 'chain_service', title: 'Veriga', intervalKm: 3000, emoji: '⛓️' },
-                  { type: 'brake_service', title: 'Zavore', intervalKm: 15000, emoji: '🛑' },
-                  { type: 'inspection', title: 'Pregled', intervalDays: 365, emoji: '📋' },
-                ].map(preset => (
-                  <button
-                    key={preset.type}
-                    className="inline-flex items-center gap-1 px-2 py-1 rounded-lg text-[10px] font-medium bg-violet-500/10 text-violet-600 dark:text-violet-400 hover:bg-violet-500/20 transition-colors"
-                    onClick={() => {
-                      const nextKm = preset.intervalKm ? currentMileage + preset.intervalKm : undefined
-                      const nextDt = preset.intervalDays
-                        ? new Date(Date.now() + preset.intervalDays * 24 * 60 * 60 * 1000).toISOString().split('T')[0]
-                        : ''
-                      setNewReminder({
-                        type: preset.type,
-                        title: preset.title,
-                        nextMileage: nextKm ? String(nextKm) : '',
-                        nextDate: nextDt,
-                        intervalKm: preset.intervalKm ? String(preset.intervalKm) : '',
-                        intervalDays: preset.intervalDays ? String(preset.intervalDays) : '',
-                      })
-                    }}
-                  >
-                    {preset.emoji} {preset.title}
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            <Separator className="opacity-30" />
-
-            {/* Add reminder form */}
-            <div className="space-y-2">
-              <div className="flex items-center gap-2">
-                <Plus className="size-3.5 text-violet-500" />
-                <span className="text-xs font-medium">Dodaj opomnik</span>
-              </div>
-              <div className="grid grid-cols-2 gap-2">
-                <div className="space-y-1">
-                  <Label className="text-[10px] text-muted-foreground">Tip</Label>
-                  <Select value={newReminder.type} onValueChange={val => setNewReminder(prev => ({ ...prev, type: val }))}>
-                    <SelectTrigger className="h-8 text-xs">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="oil_change" className="text-xs">🛢️ Zamenjava olja</SelectItem>
-                      <SelectItem value="tire_change" className="text-xs">🛞 Pnevmatike</SelectItem>
-                      <SelectItem value="chain_service" className="text-xs">⛓️ Veriga</SelectItem>
-                      <SelectItem value="brake_service" className="text-xs">🛑 Zavore</SelectItem>
-                      <SelectItem value="filter_change" className="text-xs">🔧 Filter</SelectItem>
-                      <SelectItem value="inspection" className="text-xs">📋 Pregled</SelectItem>
-                      <SelectItem value="custom" className="text-xs">⚙️ Po meri</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div className="space-y-1">
-                  <Label className="text-[10px] text-muted-foreground">Naslov</Label>
-                  <Input
-                    placeholder="Naslov opomnika"
-                    value={newReminder.title}
-                    onChange={e => setNewReminder(prev => ({ ...prev, title: e.target.value }))}
-                    className="h-8 text-xs"
-                  />
-                </div>
-              </div>
-              <div className="grid grid-cols-2 gap-2">
-                <div className="space-y-1">
-                  <Label className="text-[10px] text-muted-foreground">Naslednji pri km</Label>
-                  <Input
-                    type="number"
-                    placeholder="km"
-                    value={newReminder.nextMileage}
-                    onChange={e => setNewReminder(prev => ({ ...prev, nextMileage: e.target.value }))}
-                    className="h-8 text-xs"
-                  />
-                </div>
-                <div className="space-y-1">
-                  <Label className="text-[10px] text-muted-foreground">Naslednji pri datumu</Label>
-                  <Input
-                    type="date"
-                    value={newReminder.nextDate}
-                    onChange={e => setNewReminder(prev => ({ ...prev, nextDate: e.target.value }))}
-                    className="h-8 text-xs"
-                  />
-                </div>
-              </div>
-              <div className="grid grid-cols-2 gap-2">
-                <div className="space-y-1">
-                  <Label className="text-[10px] text-muted-foreground">Ponovi vsak X km</Label>
-                  <Input
-                    type="number"
-                    placeholder="npr. 5000"
-                    value={newReminder.intervalKm}
-                    onChange={e => setNewReminder(prev => ({ ...prev, intervalKm: e.target.value }))}
-                    className="h-8 text-xs"
-                  />
-                </div>
-                <div className="space-y-1">
-                  <Label className="text-[10px] text-muted-foreground">Ponovi vsak X dni</Label>
-                  <Input
-                    type="number"
-                    placeholder="npr. 365"
-                    value={newReminder.intervalDays}
-                    onChange={e => setNewReminder(prev => ({ ...prev, intervalDays: e.target.value }))}
-                    className="h-8 text-xs"
-                  />
-                </div>
-              </div>
-              <Button
-                size="sm"
-                className="w-full text-xs gap-2 bg-violet-500 hover:bg-violet-600 text-white"
-                onClick={addReminder}
-                disabled={reminderSaving || !newReminder.title}
-              >
-                <Plus className="size-3.5" />
-                {reminderSaving ? 'Dodajam...' : 'Dodaj opomnik'}
-              </Button>
-            </div>
-
-            <Separator className="opacity-30" />
-
-            {/* Active reminders list */}
-            <div className="space-y-2">
-              <span className="text-xs font-medium">Aktivni opomniki</span>
-              {remindersLoading ? (
+                {/* Current mileage */}
                 <div className="space-y-2">
-                  {[1, 2, 3].map(i => <Skeleton key={i} className="h-16 rounded" />)}
+                  <div className="flex items-center gap-2">
+                    <Gauge className="size-3.5 text-red-500" />
+                    <span className="text-xs font-medium">Trenutna kilometrina</span>
+                  </div>
+                  <div className="flex gap-2">
+                    <div className="flex-1 relative">
+                      <Input
+                        type="number"
+                        value={currentMileage}
+                        onChange={e => setCurrentMileage(parseInt(e.target.value) || 0)}
+                        className="h-7 text-xs pr-8"
+                      />
+                      <span className="absolute right-2 top-1/2 -translate-y-1/2 text-[10px] text-muted-foreground">km</span>
+                    </div>
+                    <Button
+                      size="sm"
+                      className="h-7 text-xs gap-1 bg-red-500 hover:bg-red-600 text-white"
+                      onClick={saveMileage}
+                      disabled={mileageSaving}
+                    >
+                      <Save className="size-3" />
+                      {mileageSaving ? '...' : 'Shrani'}
+                    </Button>
+                  </div>
                 </div>
-              ) : reminders.filter(r => !r.completed).length === 0 ? (
-                <div className="text-center py-4">
-                  <Wrench className="size-8 mx-auto mb-1 text-muted-foreground/30" />
-                  <p className="text-xs text-muted-foreground">Ni aktivnih opomnikov</p>
+
+                <Separator className="opacity-30" />
+
+                {/* Bluetooth & OBD sections */}
+                <BluetoothPanel />
+                <OBDPanel userId={user?.id} />
+              </CardContent>
+            </CollapsibleContent>
+          </Card>
+        </Collapsible>
+
+        {/* ════════════════════════════════════════════════════════════════
+            COLLAPSIBLE SECTION 2: ⚡ Vozniški Nadzor
+            Speed alerts, crash detection
+        ════════════════════════════════════════════════════════════════ */}
+        <Collapsible open={sectionOpen.nadzor} onOpenChange={() => toggleSection('nadzor')}>
+          <Card className="rounded-xl overflow-hidden border-l-4 border-l-amber-500/60">
+            <CollapsibleTrigger asChild>
+              <button className="w-full text-left">
+                <div className="p-4 pb-0 flex items-center gap-3">
+                  <div className="flex items-center justify-center size-8 rounded-lg bg-amber-500/15 shrink-0">
+                    <Zap className="size-4 text-amber-500" />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2">
+                      <CardTitle className="text-sm font-semibold">Vozniški Nadzor</CardTitle>
+                      <Badge variant="secondary" className="text-[9px] px-1.5 py-0 h-4 bg-amber-500/10 text-amber-500">{nadzorItemCount} nastavitve</Badge>
+                    </div>
+                    <p className="text-[10px] text-muted-foreground mt-0.5">Hitrostna opozorila, varnost</p>
+                  </div>
+                  <ChevronDown className={`size-4 text-muted-foreground transition-transform duration-200 ${sectionOpen.nadzor ? 'rotate-180' : ''}`} />
                 </div>
-              ) : (
-                <ScrollArea className="max-h-64">
-                  <div className="space-y-2">
-                    {reminders.filter(r => !r.completed).map(rem => {
-                      // Calculate progress
-                      let progress = 0
-                      let progressLabel = ''
-                      if (rem.nextMileage && currentMileage > 0) {
-                        const kmRemaining = rem.nextMileage - currentMileage
-                        progress = Math.max(0, Math.min(100, ((rem.nextMileage - kmRemaining) / rem.nextMileage) * 100))
-                        progressLabel = `${Math.max(0, kmRemaining).toLocaleString()} km do naslednjega`
-                      } else if (rem.nextDate) {
-                        const daysLeft = Math.ceil((new Date(rem.nextDate).getTime() - Date.now()) / (1000 * 60 * 60 * 24))
-                        progress = Math.max(0, Math.min(100, 100 - (daysLeft / 365) * 100))
-                        progressLabel = `${Math.max(0, daysLeft)} dni do naslednjega`
-                      }
+              </button>
+            </CollapsibleTrigger>
+            <CollapsibleContent>
+              <CardContent className="p-4 pt-3 space-y-4">
 
-                      const isOverdue = (rem.nextMileage && currentMileage >= rem.nextMileage) ||
-                        (rem.nextDate && new Date(rem.nextDate) <= new Date())
+                {/* Enable alerts toggle */}
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    {speedSettings.speedAlertEnabled ? (
+                      <Bell className="size-3.5 text-amber-500" />
+                    ) : (
+                      <BellOff className="size-3.5 text-muted-foreground" />
+                    )}
+                    <span className="text-xs font-medium">Omogoči opozorila</span>
+                  </div>
+                  <button
+                    onClick={() => setSpeedSettings(prev => ({ ...prev, speedAlertEnabled: !prev.speedAlertEnabled }))}
+                    className={`relative inline-flex h-5 w-9 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${
+                      speedSettings.speedAlertEnabled ? 'bg-amber-500' : 'bg-muted'
+                    }`}
+                    role="switch"
+                    aria-checked={speedSettings.speedAlertEnabled}
+                  >
+                    <span className={`pointer-events-none inline-block size-4 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out ${
+                      speedSettings.speedAlertEnabled ? 'translate-x-4' : 'translate-x-0'
+                    }`} />
+                  </button>
+                </div>
 
-                      return (
-                        <div
-                          key={rem.id}
-                          className={`rounded-lg border p-3 space-y-2 ${isOverdue ? 'border-red-300 bg-red-50 dark:bg-red-500/10' : 'border-border/50'}`}
-                        >
-                          <div className="flex items-center justify-between">
+                <Separator className="opacity-30" />
+
+                {/* Speed limit slider */}
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <Gauge className="size-3.5 text-amber-500" />
+                      <span className="text-xs font-medium">Omejitev hitrosti</span>
+                    </div>
+                    <span className="text-xs font-bold text-amber-500">{speedSettings.speedLimit} km/h</span>
+                  </div>
+                  <input
+                    type="range"
+                    min={30}
+                    max={200}
+                    step={5}
+                    value={speedSettings.speedLimit}
+                    onChange={e => setSpeedSettings(prev => ({ ...prev, speedLimit: Number(e.target.value) }))}
+                    className="w-full h-1.5 rounded-full appearance-none cursor-pointer accent-amber-500 bg-muted"
+                  />
+                  <div className="flex justify-between">
+                    <span className="text-[9px] text-muted-foreground/50">30 km/h</span>
+                    <span className="text-[9px] text-muted-foreground/50">200 km/h</span>
+                  </div>
+                  {/* Quick presets */}
+                  <div className="flex gap-1.5 flex-wrap">
+                    {[50, 90, 110, 130].map(preset => (
+                      <button
+                        key={preset}
+                        onClick={() => setSpeedSettings(prev => ({ ...prev, speedLimit: preset }))}
+                        className={`px-2 py-0.5 rounded text-[10px] font-medium transition-colors ${
+                          speedSettings.speedLimit === preset
+                            ? 'bg-amber-500 text-white'
+                            : 'bg-muted text-muted-foreground hover:bg-muted/80'
+                        }`}
+                      >
+                        {preset} km/h
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                <Separator className="opacity-30" />
+
+                {/* Sound alert toggle */}
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    {speedSettings.speedAlertSound ? (
+                      <Volume2 className="size-3.5 text-amber-500" />
+                    ) : (
+                      <VolumeX className="size-3.5 text-muted-foreground" />
+                    )}
+                    <span className="text-xs font-medium">Zvočno opozorilo</span>
+                  </div>
+                  <button
+                    onClick={() => setSpeedSettings(prev => ({ ...prev, speedAlertSound: !prev.speedAlertSound }))}
+                    className={`relative inline-flex h-5 w-9 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${
+                      speedSettings.speedAlertSound ? 'bg-amber-500' : 'bg-muted'
+                    }`}
+                    role="switch"
+                    aria-checked={speedSettings.speedAlertSound}
+                  >
+                    <span className={`pointer-events-none inline-block size-4 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out ${
+                      speedSettings.speedAlertSound ? 'translate-x-4' : 'translate-x-0'
+                    }`} />
+                  </button>
+                </div>
+
+                {/* Save button */}
+                <Button
+                  size="sm"
+                  className="w-full text-xs gap-2 bg-amber-500 hover:bg-amber-600 text-white h-7"
+                  onClick={saveSpeedSettings}
+                  disabled={speedSaving}
+                >
+                  <Save className="size-3" />
+                  {speedSaving ? 'Shranjujem...' : 'Shrani hitrostna opozorila'}
+                </Button>
+              </CardContent>
+            </CollapsibleContent>
+          </Card>
+        </Collapsible>
+
+        {/* ════════════════════════════════════════════════════════════════
+            COLLAPSIBLE SECTION 3: 💰 Financije
+            Expenses, maintenance reminders
+        ════════════════════════════════════════════════════════════════ */}
+        <Collapsible open={sectionOpen.financije} onOpenChange={() => toggleSection('financije')}>
+          <Card className="rounded-xl overflow-hidden border-l-4 border-l-emerald-500/60">
+            <CollapsibleTrigger asChild>
+              <button className="w-full text-left">
+                <div className="p-4 pb-0 flex items-center gap-3">
+                  <div className="flex items-center justify-center size-8 rounded-lg bg-emerald-500/15 shrink-0">
+                    <Wallet className="size-4 text-emerald-500" />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2">
+                      <CardTitle className="text-sm font-semibold">Financije</CardTitle>
+                      <Badge variant="secondary" className="text-[9px] px-1.5 py-0 h-4 bg-emerald-500/10 text-emerald-500">{financijeItemCount} postavk</Badge>
+                    </div>
+                    <p className="text-[10px] text-muted-foreground mt-0.5">Stroški, vzdrževanje, opomniki</p>
+                  </div>
+                  <ChevronDown className={`size-4 text-muted-foreground transition-transform duration-200 ${sectionOpen.financije ? 'rotate-180' : ''}`} />
+                </div>
+              </button>
+            </CollapsibleTrigger>
+            <CollapsibleContent>
+              <CardContent className="p-4 pt-3 space-y-4">
+
+                {/* Expense totals */}
+                <div className="grid grid-cols-2 gap-2">
+                  <div className="rounded-lg bg-emerald-500/10 p-2.5 text-center">
+                    <p className="text-base font-bold text-emerald-600 dark:text-emerald-400">{expenseTotals.thisMonth.toFixed(2)} €</p>
+                    <p className="text-[10px] text-muted-foreground">Ta mesec</p>
+                  </div>
+                  <div className="rounded-lg bg-emerald-500/10 p-2.5 text-center">
+                    <p className="text-base font-bold text-emerald-600 dark:text-emerald-400">{expenseTotals.allTime.toFixed(2)} €</p>
+                    <p className="text-[10px] text-muted-foreground">Skupaj</p>
+                  </div>
+                </div>
+
+                {/* By type mini breakdown */}
+                {Object.keys(expenseByType).length > 0 && (
+                  <div className="flex flex-wrap gap-1">
+                    {Object.entries(expenseByType).map(([t, amt]) => (
+                      <span key={t} className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full text-[10px] bg-muted">
+                        {t === 'fuel' ? '⛽' : t === 'maintenance' ? '🔧' : t === 'insurance' ? '🛡️' : t === 'parts' ? '🔩' : t === 'toll' ? '🛣️' : t === 'parking' ? '🅿️' : '📦'}
+                        {amt.toFixed(0)} €
+                      </span>
+                    ))}
+                  </div>
+                )}
+
+                <Separator className="opacity-30" />
+
+                {/* Add expense form */}
+                <div className="space-y-2">
+                  <div className="flex items-center gap-2">
+                    <Plus className="size-3.5 text-emerald-500" />
+                    <span className="text-xs font-medium">Dodaj strošek</span>
+                  </div>
+                  <div className="grid grid-cols-2 gap-2">
+                    <div className="space-y-1">
+                      <Label className="text-[10px] text-muted-foreground">Tip</Label>
+                      <Select value={newExpense.type} onValueChange={val => setNewExpense(prev => ({ ...prev, type: val }))}>
+                        <SelectTrigger className="h-7 text-xs">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="fuel" className="text-xs">⛽ Gorivo</SelectItem>
+                          <SelectItem value="maintenance" className="text-xs">🔧 Vzdrževanje</SelectItem>
+                          <SelectItem value="insurance" className="text-xs">🛡️ Zavarovanje</SelectItem>
+                          <SelectItem value="parts" className="text-xs">🔩 Deli</SelectItem>
+                          <SelectItem value="toll" className="text-xs">🛣️ Cestnina</SelectItem>
+                          <SelectItem value="parking" className="text-xs">🅿️ Parkiranje</SelectItem>
+                          <SelectItem value="other" className="text-xs">📦 Drugo</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div className="space-y-1">
+                      <Label className="text-[10px] text-muted-foreground">Znesek (€)</Label>
+                      <Input
+                        type="number"
+                        step="0.01"
+                        placeholder="0.00"
+                        value={newExpense.amount}
+                        onChange={e => setNewExpense(prev => ({ ...prev, amount: e.target.value }))}
+                        className="h-7 text-xs"
+                      />
+                    </div>
+                  </div>
+                  <div className="grid grid-cols-2 gap-2">
+                    <div className="space-y-1">
+                      <Label className="text-[10px] text-muted-foreground">Opis</Label>
+                      <Input
+                        placeholder="Opis stroška"
+                        value={newExpense.description}
+                        onChange={e => setNewExpense(prev => ({ ...prev, description: e.target.value }))}
+                        className="h-7 text-xs"
+                      />
+                    </div>
+                    <div className="space-y-1">
+                      <Label className="text-[10px] text-muted-foreground">Kilometrina</Label>
+                      <Input
+                        type="number"
+                        placeholder="km"
+                        value={newExpense.mileage}
+                        onChange={e => setNewExpense(prev => ({ ...prev, mileage: e.target.value }))}
+                        className="h-7 text-xs"
+                      />
+                    </div>
+                  </div>
+                  <Button
+                    size="sm"
+                    className="w-full text-xs gap-2 bg-emerald-500 hover:bg-emerald-600 text-white h-7"
+                    onClick={addExpense}
+                    disabled={expenseSaving || !newExpense.amount}
+                  >
+                    <Plus className="size-3" />
+                    {expenseSaving ? 'Dodajam...' : 'Dodaj strošek'}
+                  </Button>
+                </div>
+
+                <Separator className="opacity-30" />
+
+                {/* Recent expenses list */}
+                <div className="space-y-1">
+                  <span className="text-xs font-medium">Zadnji stroški</span>
+                  {expensesLoading ? (
+                    <div className="space-y-2 mt-2">
+                      {[1, 2, 3].map(i => <Skeleton key={i} className="h-8 rounded" />)}
+                    </div>
+                  ) : expenses.length === 0 ? (
+                    <div className="text-center py-3">
+                      <Receipt className="size-6 mx-auto mb-1 text-muted-foreground/30" />
+                      <p className="text-[10px] text-muted-foreground">Ni stroškov</p>
+                    </div>
+                  ) : (
+                    <ScrollArea className="max-h-40">
+                      <div className="space-y-0.5">
+                        {expenses.map(exp => (
+                          <div key={exp.id} className="flex items-center justify-between py-1 px-2 rounded hover:bg-secondary/30 group">
                             <div className="flex items-center gap-2">
-                              <span className="text-sm">
-                                {rem.type === 'oil_change' ? '🛢️' : rem.type === 'tire_change' ? '🛞' : rem.type === 'chain_service' ? '⛓️' : rem.type === 'brake_service' ? '🛑' : rem.type === 'filter_change' ? '🔧' : rem.type === 'inspection' ? '📋' : '⚙️'}
+                              <span className="text-xs">
+                                {exp.type === 'fuel' ? '⛽' : exp.type === 'maintenance' ? '🔧' : exp.type === 'insurance' ? '🛡️' : exp.type === 'parts' ? '🔩' : exp.type === 'toll' ? '🛣️' : exp.type === 'parking' ? '🅿️' : '📦'}
                               </span>
                               <div>
-                                <p className="text-xs font-medium">{rem.title}</p>
-                                <div className="flex items-center gap-2 text-[10px] text-muted-foreground">
-                                  {rem.nextMileage && <span>Ob {rem.nextMileage.toLocaleString()} km</span>}
-                                  {rem.nextDate && (
-                                    <span className="flex items-center gap-0.5">
-                                      <Calendar className="size-2.5" />
-                                      {new Date(rem.nextDate).toLocaleDateString('sl-SI')}
-                                    </span>
-                                  )}
-                                  {(rem.intervalKm || rem.intervalDays) && (
-                                    <span className="text-violet-500">
-                                      (vsak{rem.intervalKm ? ` ${rem.intervalKm.toLocaleString()} km` : ''}{rem.intervalKm && rem.intervalDays ? ' / ' : ''}{rem.intervalDays ? ` ${rem.intervalDays} dni` : ''})
-                                    </span>
-                                  )}
-                                </div>
+                                <p className="text-[11px] font-medium">{exp.description || (exp.type === 'fuel' ? 'Gorivo' : exp.type === 'maintenance' ? 'Vzdrževanje' : exp.type === 'insurance' ? 'Zavarovanje' : exp.type === 'parts' ? 'Deli' : exp.type === 'toll' ? 'Cestnina' : exp.type === 'parking' ? 'Parkiranje' : 'Drugo')}</p>
+                                <p className="text-[9px] text-muted-foreground">
+                                  {formatDate(exp.date)}
+                                  {exp.mileage ? ` · ${exp.mileage} km` : ''}
+                                </p>
                               </div>
                             </div>
-                            {isOverdue && (
-                              <Badge className="text-[9px] px-1.5 py-0 bg-red-500 text-white border-0">Zapadlo</Badge>
-                            )}
-                          </div>
-                          {/* Progress bar */}
-                          {(progress > 0 || isOverdue) && (
-                            <div className="space-y-1">
-                              <div className="relative h-2 rounded-full bg-muted overflow-hidden">
-                                <div
-                                  className={`absolute inset-y-0 left-0 rounded-full transition-all duration-500 ${isOverdue ? 'bg-red-500' : 'bg-violet-500'}`}
-                                  style={{ width: `${isOverdue ? 100 : Math.min(progress, 100)}%` }}
-                                />
-                              </div>
-                              <p className={`text-[10px] ${isOverdue ? 'text-red-500 font-medium' : 'text-muted-foreground'}`}>
-                                {isOverdue ? 'Potrebno vzdrževanje!' : progressLabel}
-                              </p>
+                            <div className="flex items-center gap-1">
+                              <span className="text-[11px] font-bold text-emerald-600 dark:text-emerald-400">{exp.amount.toFixed(2)} €</span>
+                              <button
+                                className="size-4 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity text-destructive hover:bg-destructive/10"
+                                onClick={() => deleteExpense(exp.id)}
+                              >
+                                <Trash2 className="size-2.5" />
+                              </button>
                             </div>
-                          )}
-                          <div className="flex gap-1.5">
-                            <Button
-                              size="sm"
-                              variant="outline"
-                              className="h-6 text-[10px] gap-1 flex-1 text-emerald-600 border-emerald-300 hover:bg-emerald-50 dark:hover:bg-emerald-500/10"
-                              onClick={() => completeReminder(rem.id)}
-                            >
-                              <CheckCircle2 className="size-3" />
-                              Opravljeno
-                            </Button>
-                            <Button
-                              size="sm"
-                              variant="outline"
-                              className="h-6 text-[10px] gap-1 text-destructive border-destructive/30 hover:bg-destructive/10"
-                              onClick={() => deleteReminder(rem.id)}
-                            >
-                              <Trash2 className="size-3" />
-                            </Button>
-                          </div>
-                        </div>
-                      )
-                    })}
-                  </div>
-                </ScrollArea>
-              )}
-
-              {/* Completed reminders */}
-              {reminders.filter(r => r.completed).length > 0 && (
-                <>
-                  <Separator className="opacity-30" />
-                  <div className="space-y-1">
-                    <div className="flex items-center gap-1.5">
-                      <CheckCircle2 className="size-3 text-muted-foreground" />
-                      <span className="text-[10px] text-muted-foreground font-medium">Opravljeno ({reminders.filter(r => r.completed).length})</span>
-                    </div>
-                    <ScrollArea className="max-h-32">
-                      <div className="space-y-1">
-                        {reminders.filter(r => r.completed).slice(0, 5).map(rem => (
-                          <div key={rem.id} className="flex items-center justify-between py-1 px-2 rounded opacity-50">
-                            <div className="flex items-center gap-2">
-                              <CheckCircle2 className="size-3 text-emerald-500" />
-                              <span className="text-xs line-through">{rem.title}</span>
-                            </div>
-                            <button
-                              className="size-4 rounded flex items-center justify-center text-muted-foreground hover:text-destructive"
-                              onClick={() => deleteReminder(rem.id)}
-                            >
-                              <Trash2 className="size-2.5" />
-                            </button>
                           </div>
                         ))}
                       </div>
                     </ScrollArea>
-                  </div>
-                </>
-              )}
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* Achievements */}
-        <AchievementsPanel userId={user.id} key={user.id} />
-
-        {/* Points & Level */}
-        <PointsDisplay userId={user.id} key={`pts-${user.id}`} />
-
-        {/* Bluetooth Helmet */}
-        <BluetoothPanel />
-
-        {/* OBD/IoT Connection */}
-        <OBDPanel userId={user?.id} />
-
-        {/* REWIND - 3D Ride Replay */}
-        {replayRide && replayTrackData.length > 1 ? (
-          <div className="space-y-2">
-            <RideReplay3D trackData={replayTrackData} title={`REWIND: ${replayRide.title}`} />
-            <Button variant="ghost" size="sm" className="w-full text-xs" onClick={() => { setReplayRide(null); setReplayTrackData([]) }}>
-              <X className="size-3 mr-1" /> Zapri predvajanje
-            </Button>
-          </div>
-        ) : rides.filter(r => r.userId === user.id).some(r => r.trackData) ? (
-          <Card className="border-amber-500/20">
-            <CardContent className="p-4">
-              <div className="flex items-center gap-3">
-                <div className="size-10 rounded-xl bg-amber-500/15 flex items-center justify-center shrink-0">
-                  <Play className="size-5 text-amber-500" />
+                  )}
                 </div>
-                <div className="flex-1">
-                  <p className="text-sm font-medium">REWIND — Predvajaj vožnjo</p>
-                  <p className="text-xs text-muted-foreground">Kliknite ▶ pri vožnji spodaj za 3D predvajanje</p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        ) : null}
 
-        {/* Photo Gallery */}
-        <Card className="overflow-hidden border-primary/15">
-          <div className="h-0.5 bg-gradient-to-r from-primary/80 via-accent/60 to-primary/40" />
-          <CardHeader className="p-4 pb-2">
-            <div className="flex items-center gap-2">
-              <div className="flex items-center justify-center size-7 rounded-lg bg-primary/15">
-                <Camera className="size-4 text-primary" />
-              </div>
-              <CardTitle className="text-sm">Foto galerija</CardTitle>
-              {photos.length > 0 && (
-                <Badge variant="secondary" className="text-[10px] px-1.5 py-0 ml-1">
-                  {photos.length}
-                </Badge>
-              )}
-            </div>
-          </CardHeader>
-          <CardContent className="p-4 pt-0">
-            {photosLoading ? (
-              <div className="grid grid-cols-3 gap-2">
-                {[1, 2, 3, 4, 5, 6].map(i => (
-                  <Skeleton key={i} className="aspect-square rounded-lg" />
-                ))}
-              </div>
-            ) : photos.length === 0 ? (
-              <div className="flex flex-col items-center py-8 text-muted-foreground">
-                <ImageIcon className="size-10 mb-2 opacity-30" />
-                <p className="text-sm">Ni fotografij</p>
-                <p className="text-xs opacity-60">Fotografije se pokažejo tukaj, ko jih dodate k vožnjam ali potem</p>
-              </div>
-            ) : (
-              <div className="grid grid-cols-3 gap-2">
-                {photos.slice(0, 12).map(photo => (
-                  <div
-                    key={photo.id}
-                    className="relative group aspect-square rounded-lg overflow-hidden border border-border/50 cursor-pointer hover:border-primary/50 transition-colors"
-                    onClick={() => setViewPhoto(photo)}
-                  >
-                    <img
-                      src={photo.url}
-                      alt={photo.caption || 'Fotografija'}
-                      className="size-full object-cover"
-                    />
-                    {/* Delete button for owner */}
-                    <button
-                      className="absolute top-1 right-1 size-5 rounded-full bg-destructive/80 text-destructive-foreground flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
-                      onClick={(e) => { e.stopPropagation(); handleDeletePhoto(photo.id) }}
-                    >
-                      <Trash2 className="size-3" />
-                    </button>
-                    {/* Caption overlay */}
-                    {photo.caption && (
-                      <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/60 to-transparent p-1">
-                        <p className="text-[8px] text-white truncate">{photo.caption}</p>
-                      </div>
+                <Separator className="opacity-30" />
+
+                {/* ── Maintenance Reminders ── */}
+                <div className="space-y-3">
+                  <div className="flex items-center gap-2">
+                    <Wrench className="size-3.5 text-violet-500" />
+                    <span className="text-xs font-medium">Vzdrževanje & opomniki</span>
+                    {reminders.filter(r => !r.completed).length > 0 && (
+                      <Badge variant="outline" className="text-[9px] px-1.5 py-0 border-violet-300 text-violet-500 h-4">{reminders.filter(r => !r.completed).length}</Badge>
                     )}
                   </div>
-                ))}
-              </div>
-            )}
-            {photos.length > 12 && (
-              <p className="text-xs text-muted-foreground text-center mt-2">
-                Prikažujem 12 od {photos.length} fotografij
-              </p>
-            )}
-          </CardContent>
-        </Card>
 
-        {/* Performance */}
-        <Card className="overflow-hidden border-primary/15">
-          <div className="h-0.5 bg-gradient-to-r from-primary/80 via-accent/60 to-primary/40" />
-          <CardHeader className="p-4 pb-2">
-            <div className="flex items-center gap-2">
-              <div className="flex items-center justify-center size-7 rounded-lg bg-primary/15">
-                <Award className="size-4 text-primary" />
-              </div>
-              <CardTitle className="text-sm">Uspešnost</CardTitle>
-            </div>
-          </CardHeader>
-          <CardContent className="p-4 pt-0 space-y-4">
-            {/* Avg speed */}
-            <div className="space-y-2">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <Gauge className="size-3.5 text-muted-foreground" />
-                  <span className="text-xs font-medium">Povprečna hitrost</span>
-                </div>
-                <span className="text-xs font-bold text-primary">{user.stats.avgSpeed} km/h</span>
-              </div>
-              <div className="relative">
-                <Progress value={Math.min((user.stats.avgSpeed / 80) * 100, 100)} className="h-2 progress-glow" />
-                <div className="flex justify-between mt-1">
-                  <span className="text-[9px] text-muted-foreground/50">0</span>
-                  <span className="text-[9px] text-muted-foreground/50">80 km/h</span>
-                </div>
-              </div>
-            </div>
+                  {/* Common presets */}
+                  <div className="flex flex-wrap gap-1">
+                    {[
+                      { type: 'oil_change', title: 'Zamenjava olja', intervalKm: 5000, emoji: '🛢️' },
+                      { type: 'tire_change', title: 'Zamenjava pnevmatik', intervalKm: 10000, emoji: '🛞' },
+                      { type: 'chain_service', title: 'Veriga', intervalKm: 3000, emoji: '⛓️' },
+                      { type: 'brake_service', title: 'Zavore', intervalKm: 15000, emoji: '🛑' },
+                      { type: 'inspection', title: 'Pregled', intervalDays: 365, emoji: '📋' },
+                    ].map(preset => (
+                      <button
+                        key={preset.type}
+                        className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-lg text-[10px] font-medium bg-violet-500/10 text-violet-600 dark:text-violet-400 hover:bg-violet-500/20 transition-colors"
+                        onClick={() => {
+                          const nextKm = preset.intervalKm ? currentMileage + preset.intervalKm : undefined
+                          const nextDt = preset.intervalDays
+                            ? new Date(Date.now() + preset.intervalDays * 24 * 60 * 60 * 1000).toISOString().split('T')[0]
+                            : ''
+                          setNewReminder({
+                            type: preset.type,
+                            title: preset.title,
+                            nextMileage: nextKm ? String(nextKm) : '',
+                            nextDate: nextDt,
+                            intervalKm: preset.intervalKm ? String(preset.intervalKm) : '',
+                            intervalDays: preset.intervalDays ? String(preset.intervalDays) : '',
+                          })
+                        }}
+                      >
+                        {preset.emoji} {preset.title}
+                      </button>
+                    ))}
+                  </div>
 
-            <Separator className="opacity-30" />
+                  {/* Add reminder form */}
+                  <div className="space-y-2">
+                    <div className="grid grid-cols-2 gap-2">
+                      <div className="space-y-1">
+                        <Label className="text-[10px] text-muted-foreground">Tip</Label>
+                        <Select value={newReminder.type} onValueChange={val => setNewReminder(prev => ({ ...prev, type: val }))}>
+                          <SelectTrigger className="h-7 text-xs">
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="oil_change" className="text-xs">🛢️ Zamenjava olja</SelectItem>
+                            <SelectItem value="tire_change" className="text-xs">🛞 Pnevmatike</SelectItem>
+                            <SelectItem value="chain_service" className="text-xs">⛓️ Veriga</SelectItem>
+                            <SelectItem value="brake_service" className="text-xs">🛑 Zavore</SelectItem>
+                            <SelectItem value="filter_change" className="text-xs">🔧 Filter</SelectItem>
+                            <SelectItem value="inspection" className="text-xs">📋 Pregled</SelectItem>
+                            <SelectItem value="custom" className="text-xs">⚙️ Po meri</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      <div className="space-y-1">
+                        <Label className="text-[10px] text-muted-foreground">Naslov</Label>
+                        <Input
+                          placeholder="Naslov opomnika"
+                          value={newReminder.title}
+                          onChange={e => setNewReminder(prev => ({ ...prev, title: e.target.value }))}
+                          className="h-7 text-xs"
+                        />
+                      </div>
+                    </div>
+                    <div className="grid grid-cols-2 gap-2">
+                      <div className="space-y-1">
+                        <Label className="text-[10px] text-muted-foreground">Naslednji pri km</Label>
+                        <Input
+                          type="number"
+                          placeholder="km"
+                          value={newReminder.nextMileage}
+                          onChange={e => setNewReminder(prev => ({ ...prev, nextMileage: e.target.value }))}
+                          className="h-7 text-xs"
+                        />
+                      </div>
+                      <div className="space-y-1">
+                        <Label className="text-[10px] text-muted-foreground">Naslednji pri datumu</Label>
+                        <Input
+                          type="date"
+                          value={newReminder.nextDate}
+                          onChange={e => setNewReminder(prev => ({ ...prev, nextDate: e.target.value }))}
+                          className="h-7 text-xs"
+                        />
+                      </div>
+                    </div>
+                    <div className="grid grid-cols-2 gap-2">
+                      <div className="space-y-1">
+                        <Label className="text-[10px] text-muted-foreground">Ponovi vsak X km</Label>
+                        <Input
+                          type="number"
+                          placeholder="npr. 5000"
+                          value={newReminder.intervalKm}
+                          onChange={e => setNewReminder(prev => ({ ...prev, intervalKm: e.target.value }))}
+                          className="h-7 text-xs"
+                        />
+                      </div>
+                      <div className="space-y-1">
+                        <Label className="text-[10px] text-muted-foreground">Ponovi vsak X dni</Label>
+                        <Input
+                          type="number"
+                          placeholder="npr. 365"
+                          value={newReminder.intervalDays}
+                          onChange={e => setNewReminder(prev => ({ ...prev, intervalDays: e.target.value }))}
+                          className="h-7 text-xs"
+                        />
+                      </div>
+                    </div>
+                    <Button
+                      size="sm"
+                      className="w-full text-xs gap-2 bg-violet-500 hover:bg-violet-600 text-white h-7"
+                      onClick={addReminder}
+                      disabled={reminderSaving || !newReminder.title}
+                    >
+                      <Plus className="size-3" />
+                      {reminderSaving ? 'Dodajam...' : 'Dodaj opomnik'}
+                    </Button>
+                  </div>
 
-            {/* Ride consistency */}
-            <div className="space-y-2">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <Flame className="size-3.5 text-muted-foreground" />
-                  <span className="text-xs font-medium">Vzdržljivost voženj</span>
-                </div>
-                <Badge variant="outline" className={`text-[10px] px-1.5 py-0 ${user.stats.totalRides > 5 ? 'bg-primary/15 text-primary border-primary/30' : 'bg-secondary text-muted-foreground border-border'}`}>
-                  {user.stats.totalRides > 5 ? 'Odlična' : 'Dobra'}
-                </Badge>
-              </div>
-              <div className="relative">
-                <Progress value={Math.min(user.stats.totalRides * 10, 100)} className="h-2 progress-glow" />
-                <div className="flex justify-between mt-1">
-                  <span className="text-[9px] text-muted-foreground/50">0</span>
-                  <span className="text-[9px] text-muted-foreground/50">10 voženj</span>
-                </div>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
+                  {/* Active reminders list */}
+                  <div className="space-y-2">
+                    <span className="text-[11px] font-medium">Aktivni opomniki</span>
+                    {remindersLoading ? (
+                      <div className="space-y-2">
+                        {[1, 2, 3].map(i => <Skeleton key={i} className="h-12 rounded" />)}
+                      </div>
+                    ) : reminders.filter(r => !r.completed).length === 0 ? (
+                      <div className="text-center py-3">
+                        <Wrench className="size-6 mx-auto mb-1 text-muted-foreground/30" />
+                        <p className="text-[10px] text-muted-foreground">Ni aktivnih opomnikov</p>
+                      </div>
+                    ) : (
+                      <ScrollArea className="max-h-56">
+                        <div className="space-y-1.5">
+                          {reminders.filter(r => !r.completed).map(rem => {
+                            let progress = 0
+                            let progressLabel = ''
+                            if (rem.nextMileage && currentMileage > 0) {
+                              const kmRemaining = rem.nextMileage - currentMileage
+                              progress = Math.max(0, Math.min(100, ((rem.nextMileage - kmRemaining) / rem.nextMileage) * 100))
+                              progressLabel = `${Math.max(0, kmRemaining).toLocaleString()} km do naslednjega`
+                            } else if (rem.nextDate) {
+                              const daysLeft = Math.ceil((new Date(rem.nextDate).getTime() - Date.now()) / (1000 * 60 * 60 * 24))
+                              progress = Math.max(0, Math.min(100, 100 - (daysLeft / 365) * 100))
+                              progressLabel = `${Math.max(0, daysLeft)} dni do naslednjega`
+                            }
 
-        {/* Recent activity - tabs for rides & routes */}
-        <Card>
+                            const isOverdue = (rem.nextMileage && currentMileage >= rem.nextMileage) ||
+                              (rem.nextDate && new Date(rem.nextDate) <= new Date())
+
+                            return (
+                              <div
+                                key={rem.id}
+                                className={`rounded-lg border p-2.5 space-y-1.5 ${isOverdue ? 'border-red-300 bg-red-50 dark:bg-red-500/10' : 'border-border/50'}`}
+                              >
+                                <div className="flex items-center justify-between">
+                                  <div className="flex items-center gap-1.5">
+                                    <span className="text-sm">
+                                      {rem.type === 'oil_change' ? '🛢️' : rem.type === 'tire_change' ? '🛞' : rem.type === 'chain_service' ? '⛓️' : rem.type === 'brake_service' ? '🛑' : rem.type === 'filter_change' ? '🔧' : rem.type === 'inspection' ? '📋' : '⚙️'}
+                                    </span>
+                                    <div>
+                                      <p className="text-[11px] font-medium">{rem.title}</p>
+                                      <div className="flex items-center gap-1.5 text-[9px] text-muted-foreground">
+                                        {rem.nextMileage && <span>Ob {rem.nextMileage.toLocaleString()} km</span>}
+                                        {rem.nextDate && (
+                                          <span className="flex items-center gap-0.5">
+                                            <Calendar className="size-2" />
+                                            {new Date(rem.nextDate).toLocaleDateString('sl-SI')}
+                                          </span>
+                                        )}
+                                        {(rem.intervalKm || rem.intervalDays) && (
+                                          <span className="text-violet-500">
+                                            (vsak{rem.intervalKm ? ` ${rem.intervalKm.toLocaleString()} km` : ''}{rem.intervalKm && rem.intervalDays ? ' / ' : ''}{rem.intervalDays ? ` ${rem.intervalDays} dni` : ''})
+                                          </span>
+                                        )}
+                                      </div>
+                                    </div>
+                                  </div>
+                                  {isOverdue && (
+                                    <Badge className="text-[8px] px-1 py-0 bg-red-500 text-white border-0 h-4">Zapadlo</Badge>
+                                  )}
+                                </div>
+                                {(progress > 0 || isOverdue) && (
+                                  <div className="space-y-0.5">
+                                    <div className="relative h-1.5 rounded-full bg-muted overflow-hidden">
+                                      <div
+                                        className={`absolute inset-y-0 left-0 rounded-full transition-all duration-500 ${isOverdue ? 'bg-red-500' : 'bg-violet-500'}`}
+                                        style={{ width: `${isOverdue ? 100 : Math.min(progress, 100)}%` }}
+                                      />
+                                    </div>
+                                    <p className={`text-[9px] ${isOverdue ? 'text-red-500 font-medium' : 'text-muted-foreground'}`}>
+                                      {isOverdue ? 'Potrebno vzdrževanje!' : progressLabel}
+                                    </p>
+                                  </div>
+                                )}
+                                <div className="flex gap-1">
+                                  <Button
+                                    size="sm"
+                                    variant="outline"
+                                    className="h-5 text-[9px] gap-0.5 flex-1 text-emerald-600 border-emerald-300 hover:bg-emerald-50 dark:hover:bg-emerald-500/10 px-1"
+                                    onClick={() => completeReminder(rem.id)}
+                                  >
+                                    <CheckCircle2 className="size-2.5" />
+                                    Opravljeno
+                                  </Button>
+                                  <Button
+                                    size="sm"
+                                    variant="outline"
+                                    className="h-5 text-[9px] gap-0.5 text-destructive border-destructive/30 hover:bg-destructive/10 px-1"
+                                    onClick={() => deleteReminder(rem.id)}
+                                  >
+                                    <Trash2 className="size-2.5" />
+                                  </Button>
+                                </div>
+                              </div>
+                            )
+                          })}
+                        </div>
+                      </ScrollArea>
+                    )}
+
+                    {/* Completed reminders */}
+                    {reminders.filter(r => r.completed).length > 0 && (
+                      <>
+                        <Separator className="opacity-30" />
+                        <div className="space-y-1">
+                          <div className="flex items-center gap-1.5">
+                            <CheckCircle2 className="size-3 text-muted-foreground" />
+                            <span className="text-[10px] text-muted-foreground font-medium">Opravljeno ({reminders.filter(r => r.completed).length})</span>
+                          </div>
+                          <ScrollArea className="max-h-24">
+                            <div className="space-y-0.5">
+                              {reminders.filter(r => r.completed).slice(0, 5).map(rem => (
+                                <div key={rem.id} className="flex items-center justify-between py-0.5 px-2 rounded opacity-50">
+                                  <div className="flex items-center gap-2">
+                                    <CheckCircle2 className="size-3 text-emerald-500" />
+                                    <span className="text-[11px] line-through">{rem.title}</span>
+                                  </div>
+                                  <button
+                                    className="size-4 rounded flex items-center justify-center text-muted-foreground hover:text-destructive"
+                                    onClick={() => deleteReminder(rem.id)}
+                                  >
+                                    <Trash2 className="size-2.5" />
+                                  </button>
+                                </div>
+                              ))}
+                            </div>
+                          </ScrollArea>
+                        </div>
+                      </>
+                    )}
+                  </div>
+                </div>
+              </CardContent>
+            </CollapsibleContent>
+          </Card>
+        </Collapsible>
+
+        {/* ════════════════════════════════════════════════════════════════
+            COLLAPSIBLE SECTION 4: 📸 Mediji
+            Photos, ride replay
+        ════════════════════════════════════════════════════════════════ */}
+        <Collapsible open={sectionOpen.mediji} onOpenChange={() => toggleSection('mediji')}>
+          <Card className="rounded-xl overflow-hidden border-l-4 border-l-pink-500/60">
+            <CollapsibleTrigger asChild>
+              <button className="w-full text-left">
+                <div className="p-4 pb-0 flex items-center gap-3">
+                  <div className="flex items-center justify-center size-8 rounded-lg bg-pink-500/15 shrink-0">
+                    <Camera className="size-4 text-pink-500" />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2">
+                      <CardTitle className="text-sm font-semibold">Mediji</CardTitle>
+                      <Badge variant="secondary" className="text-[9px] px-1.5 py-0 h-4 bg-pink-500/10 text-pink-500">{medijiItemCount} postavk</Badge>
+                    </div>
+                    <p className="text-[10px] text-muted-foreground mt-0.5">Fotografije, predvajanje voženj</p>
+                  </div>
+                  <ChevronDown className={`size-4 text-muted-foreground transition-transform duration-200 ${sectionOpen.mediji ? 'rotate-180' : ''}`} />
+                </div>
+              </button>
+            </CollapsibleTrigger>
+            <CollapsibleContent>
+              <CardContent className="p-4 pt-3 space-y-4">
+
+                {/* REWIND - 3D Ride Replay */}
+                {replayRide && replayTrackData.length > 1 ? (
+                  <div className="space-y-2">
+                    <RideReplay3D trackData={replayTrackData} title={`REWIND: ${replayRide.title}`} />
+                    <Button variant="ghost" size="sm" className="w-full text-xs h-7" onClick={() => { setReplayRide(null); setReplayTrackData([]) }}>
+                      <X className="size-3 mr-1" /> Zapri predvajanje
+                    </Button>
+                  </div>
+                ) : rides.filter(r => r.userId === user.id).some(r => r.trackData) ? (
+                  <div className="rounded-lg bg-amber-500/10 border border-amber-500/20 p-3 flex items-center gap-3">
+                    <div className="size-9 rounded-xl bg-amber-500/15 flex items-center justify-center shrink-0">
+                      <Play className="size-4 text-amber-500" />
+                    </div>
+                    <div className="flex-1">
+                      <p className="text-xs font-medium">REWIND — Predvajaj vožnjo</p>
+                      <p className="text-[10px] text-muted-foreground">Kliknite ▶ pri vožnji spodaj za 3D predvajanje</p>
+                    </div>
+                  </div>
+                ) : null}
+
+                {/* Photo Gallery */}
+                <div className="space-y-2">
+                  <div className="flex items-center gap-2">
+                    <ImageIcon className="size-3.5 text-pink-500" />
+                    <span className="text-xs font-medium">Foto galerija</span>
+                    {photos.length > 0 && (
+                      <Badge variant="secondary" className="text-[10px] px-1.5 py-0 h-4">
+                        {photos.length}
+                      </Badge>
+                    )}
+                  </div>
+                  {photosLoading ? (
+                    <div className="grid grid-cols-3 gap-1.5">
+                      {[1, 2, 3, 4, 5, 6].map(i => (
+                        <Skeleton key={i} className="aspect-square rounded-lg" />
+                      ))}
+                    </div>
+                  ) : photos.length === 0 ? (
+                    <div className="flex flex-col items-center py-6 text-muted-foreground">
+                      <ImageIcon className="size-8 mb-1 opacity-30" />
+                      <p className="text-xs">Ni fotografij</p>
+                      <p className="text-[10px] opacity-60">Fotografije se pokažejo tukaj, ko jih dodate k vožnjam</p>
+                    </div>
+                  ) : (
+                    <div className="grid grid-cols-3 gap-1.5">
+                      {photos.slice(0, 12).map(photo => (
+                        <div
+                          key={photo.id}
+                          className="relative group aspect-square rounded-lg overflow-hidden border border-border/50 cursor-pointer hover:border-primary/50 transition-colors"
+                          onClick={() => setViewPhoto(photo)}
+                        >
+                          <img
+                            src={photo.url}
+                            alt={photo.caption || 'Fotografija'}
+                            className="size-full object-cover"
+                          />
+                          {/* Delete button for owner */}
+                          <button
+                            className="absolute top-1 right-1 size-4 rounded-full bg-destructive/80 text-destructive-foreground flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
+                            onClick={(e) => { e.stopPropagation(); handleDeletePhoto(photo.id) }}
+                          >
+                            <Trash2 className="size-2.5" />
+                          </button>
+                          {/* Caption overlay */}
+                          {photo.caption && (
+                            <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/60 to-transparent p-1">
+                              <p className="text-[7px] text-white truncate">{photo.caption}</p>
+                            </div>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                  {photos.length > 12 && (
+                    <p className="text-[10px] text-muted-foreground text-center">
+                      Prikažujem 12 od {photos.length} fotografij
+                    </p>
+                  )}
+                </div>
+              </CardContent>
+            </CollapsibleContent>
+          </Card>
+        </Collapsible>
+
+        {/* ════════════════════════════════════════════════════════════════
+            COLLAPSIBLE SECTION 5: 🏆 Dosežki
+            Points, achievements, performance
+        ════════════════════════════════════════════════════════════════ */}
+        <Collapsible open={sectionOpen.dosezki} onOpenChange={() => toggleSection('dosezki')}>
+          <Card className="rounded-xl overflow-hidden border-l-4 border-l-orange-500/60">
+            <CollapsibleTrigger asChild>
+              <button className="w-full text-left">
+                <div className="p-4 pb-0 flex items-center gap-3">
+                  <div className="flex items-center justify-center size-8 rounded-lg bg-orange-500/15 shrink-0">
+                    <Trophy className="size-4 text-orange-500" />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2">
+                      <CardTitle className="text-sm font-semibold">Dosežki</CardTitle>
+                      <Badge variant="secondary" className="text-[9px] px-1.5 py-0 h-4 bg-orange-500/10 text-orange-500">{dosezkiItemCount} pogledi</Badge>
+                    </div>
+                    <p className="text-[10px] text-muted-foreground mt-0.5">Točke, dosežki, uspešnost</p>
+                  </div>
+                  <ChevronDown className={`size-4 text-muted-foreground transition-transform duration-200 ${sectionOpen.dosezki ? 'rotate-180' : ''}`} />
+                </div>
+              </button>
+            </CollapsibleTrigger>
+            <CollapsibleContent>
+              <CardContent className="p-4 pt-3 space-y-4">
+                {/* Achievements */}
+                <AchievementsPanel userId={user.id} key={user.id} />
+
+                {/* Points & Level */}
+                <PointsDisplay userId={user.id} key={`pts-${user.id}`} />
+
+                {/* Performance */}
+                <div className="space-y-3">
+                  <div className="flex items-center gap-2">
+                    <Award className="size-3.5 text-orange-500" />
+                    <span className="text-xs font-medium">Uspešnost</span>
+                  </div>
+
+                  {/* Avg speed */}
+                  <div className="space-y-1.5">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <Gauge className="size-3 text-muted-foreground" />
+                        <span className="text-[11px] font-medium">Povprečna hitrost</span>
+                      </div>
+                      <span className="text-[11px] font-bold text-primary">{user.stats.avgSpeed} km/h</span>
+                    </div>
+                    <div className="relative">
+                      <Progress value={Math.min((user.stats.avgSpeed / 80) * 100, 100)} className="h-1.5 progress-glow" />
+                      <div className="flex justify-between mt-0.5">
+                        <span className="text-[8px] text-muted-foreground/50">0</span>
+                        <span className="text-[8px] text-muted-foreground/50">80 km/h</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  <Separator className="opacity-30" />
+
+                  {/* Ride consistency */}
+                  <div className="space-y-1.5">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <Flame className="size-3 text-muted-foreground" />
+                        <span className="text-[11px] font-medium">Vzdržljivost voženj</span>
+                      </div>
+                      <Badge variant="outline" className={`text-[9px] px-1.5 py-0 h-4 ${user.stats.totalRides > 5 ? 'bg-primary/15 text-primary border-primary/30' : 'bg-secondary text-muted-foreground border-border'}`}>
+                        {user.stats.totalRides > 5 ? 'Odlična' : 'Dobra'}
+                      </Badge>
+                    </div>
+                    <div className="relative">
+                      <Progress value={Math.min(user.stats.totalRides * 10, 100)} className="h-1.5 progress-glow" />
+                      <div className="flex justify-between mt-0.5">
+                        <span className="text-[8px] text-muted-foreground/50">0</span>
+                        <span className="text-[8px] text-muted-foreground/50">10 voženj</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </CardContent>
+            </CollapsibleContent>
+          </Card>
+        </Collapsible>
+
+        {/* ── Recent Activity (always visible) ── */}
+        <Card className="rounded-xl overflow-hidden">
+          <div className="h-1 bg-gradient-to-r from-primary/60 via-primary/30 to-primary/10" />
           <Tabs defaultValue="rides">
             <CardHeader className="p-4 pb-0">
               <div className="flex items-center justify-between">
-                <TabsList className="h-8">
-                  <TabsTrigger value="rides" className="text-xs gap-1.5 px-3">
+                <TabsList className="h-7">
+                  <TabsTrigger value="rides" className="text-[11px] gap-1 px-2.5">
                     <Bike className="size-3" /> Vožnje ({rides.filter(r => r.userId === user.id).length})
                   </TabsTrigger>
-                  <TabsTrigger value="routes" className="text-xs gap-1.5 px-3">
+                  <TabsTrigger value="routes" className="text-[11px] gap-1 px-2.5">
                     <Route className="size-3" /> Poti ({routes.filter(r => r.userId === user.id).length})
                   </TabsTrigger>
                 </TabsList>
@@ -1337,22 +1456,22 @@ export default function ProfileTab({ user, allUsers, rides, routes, loading, onS
             </CardHeader>
             <TabsContent value="rides" className="mt-0">
               <CardContent className="p-4 pt-2">
-                <ScrollArea className="max-h-60">
+                <ScrollArea className="max-h-52">
                   {rides.filter(r => r.userId === user.id).length === 0 ? (
-                    <p className="text-sm text-muted-foreground text-center py-4">Ni voženj</p>
+                    <p className="text-xs text-muted-foreground text-center py-4">Ni voženj</p>
                   ) : (
                     rides.filter(r => r.userId === user.id).slice(0, 10).map(ride => (
-                      <div key={ride.id} className="flex items-center justify-between py-2 border-b border-border/30 last:border-0 cursor-pointer hover:bg-secondary/30 rounded px-2 -mx-2" onClick={() => onOpenDetail(ride, 'ride')}>
-                        <div><p className="text-sm font-medium">{ride.title}</p><p className="text-xs text-muted-foreground">{formatDate(ride.createdAt)}</p></div>
+                      <div key={ride.id} className="flex items-center justify-between py-1.5 border-b border-border/30 last:border-0 cursor-pointer hover:bg-secondary/30 rounded px-2 -mx-2" onClick={() => onOpenDetail(ride, 'ride')}>
+                        <div><p className="text-xs font-medium">{ride.title}</p><p className="text-[10px] text-muted-foreground">{formatDate(ride.createdAt)}</p></div>
                         <div className="flex items-center gap-2">
                           <button
-                            className="size-6 rounded-full bg-amber-500/20 text-amber-500 flex items-center justify-center hover:bg-amber-500/30 transition-colors"
+                            className="size-5 rounded-full bg-amber-500/20 text-amber-500 flex items-center justify-center hover:bg-amber-500/30 transition-colors"
                             title="REWIND - Predvajaj vožnjo"
                             onClick={(e) => { e.stopPropagation(); handleReplayRide(ride) }}
                           >
-                            <Play className="size-3" />
+                            <Play className="size-2.5" />
                           </button>
-                          <div className="text-right"><p className="text-sm font-bold text-primary">{ride.distance} km</p><p className="text-xs text-muted-foreground">{formatDuration(ride.duration)}</p></div>
+                          <div className="text-right"><p className="text-xs font-bold text-primary">{ride.distance} km</p><p className="text-[10px] text-muted-foreground">{formatDuration(ride.duration)}</p></div>
                         </div>
                       </div>
                     ))
@@ -1362,17 +1481,17 @@ export default function ProfileTab({ user, allUsers, rides, routes, loading, onS
             </TabsContent>
             <TabsContent value="routes" className="mt-0">
               <CardContent className="p-4 pt-2">
-                <ScrollArea className="max-h-60">
+                <ScrollArea className="max-h-52">
                   {routes.filter(r => r.userId === user.id).length === 0 ? (
-                    <p className="text-sm text-muted-foreground text-center py-4">Ni poti</p>
+                    <p className="text-xs text-muted-foreground text-center py-4">Ni poti</p>
                   ) : (
                     routes.filter(r => r.userId === user.id).slice(0, 10).map(route => (
-                      <div key={route.id} className="flex items-center justify-between py-2 border-b border-border/30 last:border-0 cursor-pointer hover:bg-secondary/30 rounded px-2 -mx-2" onClick={() => onOpenDetail(route, 'route')}>
+                      <div key={route.id} className="flex items-center justify-between py-1.5 border-b border-border/30 last:border-0 cursor-pointer hover:bg-secondary/30 rounded px-2 -mx-2" onClick={() => onOpenDetail(route, 'route')}>
                         <div className="flex items-center gap-2">
-                          <Badge variant="outline" className={`${categoryColor(route.category)} text-[10px] px-1.5 py-0`}>{categoryLabel(route.category)}</Badge>
-                          <div><p className="text-sm font-medium">{route.title}</p><p className="text-xs text-muted-foreground">{formatDate(route.createdAt)}</p></div>
+                          <Badge variant="outline" className={`${categoryColor(route.category)} text-[9px] px-1 py-0 h-4`}>{categoryLabel(route.category)}</Badge>
+                          <div><p className="text-xs font-medium">{route.title}</p><p className="text-[10px] text-muted-foreground">{formatDate(route.createdAt)}</p></div>
                         </div>
-                        <div className="text-right"><p className="text-sm font-bold text-primary">{route.distance} km</p><p className="text-xs text-muted-foreground">❤️ {route.likes}</p></div>
+                        <div className="text-right"><p className="text-xs font-bold text-primary">{route.distance} km</p><p className="text-[10px] text-muted-foreground">❤️ {route.likes}</p></div>
                       </div>
                     ))
                   )}
@@ -1398,33 +1517,23 @@ export default function ProfileTab({ user, allUsers, rides, routes, loading, onS
               <img
                 src={viewPhoto.url}
                 alt={viewPhoto.caption || 'Fotografija'}
-                className="w-full max-h-[70vh] object-contain"
+                className="w-full h-auto max-h-[80vh] object-contain"
               />
               {viewPhoto.caption && (
-                <div className="px-4 py-3 bg-black/60">
-                  <p className="text-sm text-white">{viewPhoto.caption}</p>
+                <div className="p-4 bg-background/80 backdrop-blur-sm">
+                  <p className="text-sm text-foreground">{viewPhoto.caption}</p>
                 </div>
               )}
-              <div className="px-4 py-2 bg-black/40 flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <Avatar className="size-6">
-                    <AvatarFallback className="text-[9px] bg-primary/20 text-primary">
-                      {viewPhoto.user?.name?.charAt(0) || '?'}
-                    </AvatarFallback>
-                  </Avatar>
-                  <span className="text-xs text-white/80">{viewPhoto.user?.name || 'Neznan'}</span>
-                  <span className="text-[10px] text-white/50">{formatDate(viewPhoto.createdAt)}</span>
-                </div>
-                {user && user.id === viewPhoto.userId && (
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    className="h-7 gap-1 text-xs text-red-400 hover:text-red-300 hover:bg-red-500/10"
-                    onClick={() => { handleDeletePhoto(viewPhoto.id); setViewPhoto(null) }}
-                  >
-                    <Trash2 className="size-3" /> Izbriši
-                  </Button>
-                )}
+              <div className="flex justify-between items-center p-3 bg-background/60">
+                <p className="text-xs text-muted-foreground">{formatDate(viewPhoto.createdAt)}</p>
+                <Button
+                  variant="destructive"
+                  size="sm"
+                  className="text-xs gap-1.5 h-7"
+                  onClick={() => { handleDeletePhoto(viewPhoto.id); setViewPhoto(null) }}
+                >
+                  <Trash2 className="size-3" /> Izbriši
+                </Button>
               </div>
             </div>
           </DialogContent>
