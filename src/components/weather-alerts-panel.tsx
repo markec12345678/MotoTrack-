@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useState, useEffect, useCallback, useRef } from 'react'
+import React, { useState, useEffect, useRef } from 'react'
 import { Cloud, AlertTriangle, Wind, Thermometer, CloudRain, Snowflake, Eye, Zap, RefreshCw } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
@@ -43,25 +43,16 @@ export default function WeatherAlertsPanel({ lat, lng, isTracking }: WeatherAler
   const [expanded, setExpanded] = useState(false)
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null)
 
-  const fetchAlerts = useCallback(async () => {
-    if (!lat || !lng) return
-    setLoading(true)
-    try {
-      const res = await fetch(`/api/weather-alerts?lat=${lat}&lng=${lng}&radius=100`)
-      if (res.ok) {
-        const j = await res.json()
-        setAlerts(j.data || [])
-      }
-    } catch {
-      // silent fail
-    }
-    setLoading(false)
-  }, [lat, lng])
-
-  // Fetch on mount and when coords change
+  // Fetch alerts on mount and when coords change
   useEffect(() => {
-    fetchAlerts()
-  }, [fetchAlerts])
+    if (!lat || !lng) return
+    let cancelled = false
+    fetch(`/api/weather-alerts?lat=${lat}&lng=${lng}&radius=100`)
+      .then(r => r.ok ? r.json() : null)
+      .then(j => { if (!cancelled) { setAlerts(j?.data || []); setLoading(false) } })
+      .catch(() => { if (!cancelled) setLoading(false) })
+    return () => { cancelled = true }
+  }, [lat, lng])
 
   // Auto-refresh every 10 minutes when tracking
   useEffect(() => {
@@ -70,12 +61,17 @@ export default function WeatherAlertsPanel({ lat, lng, isTracking }: WeatherAler
       intervalRef.current = null
     }
     if (isTracking && lat && lng) {
-      intervalRef.current = setInterval(fetchAlerts, 600000) // 10 min
+      intervalRef.current = setInterval(() => {
+        fetch(`/api/weather-alerts?lat=${lat}&lng=${lng}&radius=100`)
+          .then(r => r.ok ? r.json() : null)
+          .then(j => { if (j) setAlerts(j.data || []) })
+          .catch(() => {})
+      }, 600000) // 10 min
     }
     return () => {
       if (intervalRef.current) clearInterval(intervalRef.current)
     }
-  }, [isTracking, lat, lng, fetchAlerts])
+  }, [isTracking, lat, lng])
 
   const highAlerts = alerts.filter(a => a.severity === 'high' || a.severity === 'extreme')
 

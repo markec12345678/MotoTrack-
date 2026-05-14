@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useState, useEffect, useCallback } from 'react'
+import React, { useState, useEffect } from 'react'
 import { Calendar, MapPin, Plus, ExternalLink, Filter, Star, Globe } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
@@ -50,22 +50,15 @@ export default function BalkanEventsPanel({ userId }: BalkanEventsPanelProps) {
   const [newLat, setNewLat] = useState('46.0569')
   const [newLng, setNewLng] = useState('14.5058')
 
-  const fetchEvents = useCallback(async () => {
-    setLoading(true)
-    try {
-      let url = '/api/events?upcoming=true&limit=50'
-      if (filterCountry !== 'all') url += `&country=${filterCountry}`
-      if (filterCategory !== 'all') url += `&category=${filterCategory}`
-      const res = await fetch(url)
-      if (res.ok) {
-        const j = await res.json()
-        setEvents(j.data || [])
-      }
-    } catch { /* ignore */ }
-    setLoading(false)
+  // Fetch events on mount and when filters change
+  useEffect(() => {
+    let cancelled = false
+    fetch(`/api/events?upcoming=true&limit=50${filterCountry !== 'all' ? `&country=${filterCountry}` : ''}${filterCategory !== 'all' ? `&category=${filterCategory}` : ''}`)
+      .then(r => r.ok ? r.json() : null)
+      .then(j => { if (!cancelled) { setEvents(j?.data || []); setLoading(false) } })
+      .catch(() => { if (!cancelled) setLoading(false) })
+    return () => { cancelled = true }
   }, [filterCountry, filterCategory])
-
-  useEffect(() => { fetchEvents() }, [fetchEvents])
 
   const handleCreate = async () => {
     if (!newTitle || !newDate || !newLocation) {

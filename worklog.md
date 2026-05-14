@@ -217,3 +217,81 @@ Stage Summary:
 - ✅ All existing functionality preserved
 - ✅ No new lint errors introduced
 - ✅ Dev server running successfully
+
+---
+Task ID: 9
+Agent: Main
+Task: Add 3D map viewer with MapLibre GL JS
+
+Work Log:
+- Created new component `/src/components/map-3d-viewer.tsx`:
+  - Full MapLibre GL JS 3D map with terrain DEM from AWS elevation tiles
+  - Hillshade layer for visual terrain representation
+  - Track/route data rendering with glow effects and start/end markers
+  - Pitch control slider (0°-85°) for 3D viewing angle
+  - Terrain exaggeration toggle (1.5x)
+  - Navigation controls (zoom in/out, reset view)
+  - Dark overlay UI with backdrop blur
+  - Close button to return to 2D map
+- Added 3D toggle to `map-tab.tsx`:
+  - Mountain icon button next to Locate button
+  - Green highlight when 3D is active
+  - Full-screen 3D overlay at z-index 1200
+  - Passes first ride's track data and first route's coordinates
+  - Dynamic import for code splitting
+
+Stage Summary:
+- ✅ 3D map viewer with MapLibre GL JS and terrain DEM
+- ✅ Pitch/bearing/zoom controls
+- ✅ Track and route visualization in 3D
+- ✅ Toggle button integrated into map controls
+- ✅ Lint clean
+
+---
+Task ID: 4
+Agent: Main
+Task: Improve Off-Road planner with terrain algorithm
+
+Work Log:
+- Rewrote `/api/twisty-route/route.ts` with terrain-aware routing:
+  - Added `getElevations()` function using Open-Meteo elevation API
+  - Added `classifySurface()` heuristic for road surface classification
+  - Added `calculateDifficulty()` based on gradient and surface type
+  - For off-road mode, generates intermediate waypoints perpendicular to direct line for more interesting routes
+  - Uses OSRM cycling profile for off-road to prefer smaller roads
+  - Falls back to driving profile if cycling fails
+  - Returns terrain analysis with:
+    - Gradient per segment
+    - Total ascent/descent
+    - Max gradient
+    - Min/max elevation
+    - Difficulty breakdown (easy/moderate/hard/extreme)
+    - Surface breakdown for off-road (paved/gravel/dirt/mixed)
+    - Terrain score for off-road routes
+
+Stage Summary:
+- ✅ Terrain-aware off-road routing with elevation analysis
+- ✅ Gradient calculation per segment
+- ✅ Difficulty classification based on gradient + surface
+- ✅ Intermediate waypoints for more interesting off-road routes
+- ✅ OSRM cycling profile for smaller roads
+- ✅ Comprehensive terrain data in API response
+- ✅ Lint clean
+
+---
+Task ID: polish
+Agent: Main
+Task: Fix lint errors and verify application
+
+Work Log:
+- Fixed 4 pre-existing lint errors in balkan panels and weather alerts:
+  - Replaced `useCallback` + `useEffect` pattern with direct `useEffect` + `.then()` chains
+  - Moved `setLoading()` calls from sync effect body to async `.then()` callbacks
+  - Removed unused `useCallback` imports from 4 files
+- Verified dev server starts and serves pages correctly
+- Confirmed all API endpoints responding with 200
+
+Stage Summary:
+- ✅ All lint errors resolved - `bun run lint` passes clean
+- ✅ Dev server running on port 3000
+- ✅ All 11 features now implemented and integrated

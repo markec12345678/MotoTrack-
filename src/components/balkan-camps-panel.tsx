@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useState, useEffect, useCallback } from 'react'
+import React, { useState, useEffect } from 'react'
 import { Tent, MapPin, Star, Phone, Globe, ExternalLink, Filter, Plus } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
@@ -49,21 +49,15 @@ export default function BalkanCampsPanel({ userId: _userId }: BalkanCampsPanelPr
   const [newLat, setNewLat] = useState('45.8000')
   const [newLng, setNewLng] = useState('15.9500')
 
-  const fetchCamps = useCallback(async () => {
-    setLoading(true)
-    try {
-      let url = '/api/camps?limit=50'
-      if (filterCountry !== 'all') url += `&country=${filterCountry}`
-      const res = await fetch(url)
-      if (res.ok) {
-        const j = await res.json()
-        setCamps(j.data || [])
-      }
-    } catch { /* ignore */ }
-    setLoading(false)
+  // Fetch camps on mount and when filter changes
+  useEffect(() => {
+    let cancelled = false
+    fetch(`/api/camps?limit=50${filterCountry !== 'all' ? `&country=${filterCountry}` : ''}`)
+      .then(r => r.ok ? r.json() : null)
+      .then(j => { if (!cancelled) { setCamps(j?.data || []); setLoading(false) } })
+      .catch(() => { if (!cancelled) setLoading(false) })
+    return () => { cancelled = true }
   }, [filterCountry])
-
-  useEffect(() => { fetchCamps() }, [fetchCamps])
 
   const handleCreate = async () => {
     if (!newName || !newCountry) { toast.error('Izpolnite ime in državo'); return }
