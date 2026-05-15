@@ -66,8 +66,8 @@ export default function RoundTripGenerator({ onGenerate, startLat = 46.05, start
       setResult(data)
       onGenerate?.(data)
       toast.success(`Krožna ruta ustvarjena: ${Math.round(data.totalDistance / 1000)} km`)
-    } catch (err: any) {
-      setError(err.message || 'Napaka pri generiranju route')
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : 'Napaka pri generiranju route')
       toast.error('Napaka pri generiranju route', { description: err.message })
     } finally {
       setIsGenerating(false)

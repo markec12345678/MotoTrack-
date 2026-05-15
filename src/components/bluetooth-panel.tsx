@@ -37,8 +37,8 @@ export default function BluetoothPanel() {
         setConnected(true)
         toast.success(`Simulirana povezava: ${name}`)
       }
-    } catch (err: any) {
-      toast.error('Napaka pri povezovanju: ' + (err.message || 'Brah'))
+    } catch (err: unknown) {
+      toast.error('Napaka pri povezovanju: ' + (err instanceof Error ? err.message : 'Brah'))
     }
   }
 

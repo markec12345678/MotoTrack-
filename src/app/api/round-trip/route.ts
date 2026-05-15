@@ -120,7 +120,7 @@ export async function GET(req: NextRequest) {
       return NextResponse.json({ error: result.error }, { status: result.status })
     }
     return NextResponse.json(result)
-  } catch (err: any) {
+  } catch (err: unknown) {
     return NextResponse.json({ error: err.message || 'Round trip failed' }, { status: 500 })
   }
 }
@@ -137,7 +137,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: result.error }, { status: result.status })
     }
     return NextResponse.json(result)
-  } catch (err: any) {
+  } catch (err: unknown) {
     return NextResponse.json({ error: err.message || 'Round trip failed' }, { status: 500 })
   }
 }

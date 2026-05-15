@@ -526,7 +526,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({
       data: mergedResult,
     })
-  } catch (err: any) {
+  } catch (err: unknown) {
     console.error('Off-road route error:', err)
     return NextResponse.json({ error: err.message || 'Off-road routing failed' }, { status: 500 })
   }

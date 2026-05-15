@@ -24,8 +24,8 @@ export async function POST(req: NextRequest) {
         viewerCount: 0,
       }
     })
-  } catch (err: any) {
-    return NextResponse.json({ error: err.message }, { status: 500 })
+  } catch (err: unknown) {
+    return NextResponse.json({ error: err instanceof Error ? err.message : String(err) }, { status: 500 })
   }
 }
 
@@ -40,8 +40,8 @@ export async function PUT(req: NextRequest) {
     })
 
     return NextResponse.json({ data: { updated: true, lastPingAt: session.lastPingAt } })
-  } catch (err: any) {
-    return NextResponse.json({ error: err.message }, { status: 500 })
+  } catch (err: unknown) {
+    return NextResponse.json({ error: err instanceof Error ? err.message : String(err) }, { status: 500 })
   }
 }
 
@@ -52,8 +52,8 @@ export async function DELETE(req: NextRequest) {
 
     await db.liveTrackingSession.update({ where: { id: sessionId }, data: { isActive: false } })
     return NextResponse.json({ data: { ended: true } })
-  } catch (err: any) {
-    return NextResponse.json({ error: err.message }, { status: 500 })
+  } catch (err: unknown) {
+    return NextResponse.json({ error: err instanceof Error ? err.message : String(err) }, { status: 500 })
   }
 }
 
@@ -71,7 +71,7 @@ export async function GET(req: NextRequest) {
     })
 
     return NextResponse.json({ data: sessions.map(s => ({ ...s, viewerCount: s._count.viewers })) })
-  } catch (err: any) {
-    return NextResponse.json({ error: err.message }, { status: 500 })
+  } catch (err: unknown) {
+    return NextResponse.json({ error: err instanceof Error ? err.message : String(err) }, { status: 500 })
   }
 }

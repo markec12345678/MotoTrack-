@@ -337,7 +337,7 @@ export default function OBDPanel({ userId }: { userId?: string }) {
       if (btReadings) {
         setReadings(btReadings)
       }
-    } catch (err: any) {
+    } catch (err: unknown) {
       if (err.name === 'NotFoundError') {
         toast.info('Brez izbire naprave')
       } else {

@@ -249,8 +249,8 @@ export async function GET(req: NextRequest) {
     if (!osrmData.routes?.length) return NextResponse.json({ error: 'No route found' }, { status: 404 })
 
     const route = osrmData.routes[0]
-    const steps = route.legs.flatMap((leg: any) =>
-      leg.steps.map((step: any) => ({
+    const steps = route.legs.flatMap((leg: { steps: Array<{ maneuver: { type: string; modifier?: string; location: [number, number] }; name?: string; distance: number; duration: number }> }) =>
+      leg.steps.map((step) => ({
         instruction: translateInstruction(step.maneuver.type, step.maneuver.modifier, step.name),
         type: step.maneuver.type,
         modifier: step.maneuver.modifier || null,
@@ -321,8 +321,8 @@ export async function GET(req: NextRequest) {
             const turnAwareData = await turnAwareRes.json()
             if (turnAwareData.routes?.length) {
               const turnAwareRoute = turnAwareData.routes[0]
-              const turnAwareSteps = turnAwareRoute.legs.flatMap((leg: any) =>
-                leg.steps.map((step: any) => ({
+              const turnAwareSteps = turnAwareRoute.legs.flatMap((leg: { steps: Array<{ maneuver: { type: string; modifier?: string; location: [number, number] }; name?: string; distance: number; duration: number }> }) =>
+                leg.steps.map((step) => ({
                   instruction: translateInstruction(step.maneuver.type, step.maneuver.modifier, step.name),
                   type: step.maneuver.type,
                   modifier: step.maneuver.modifier || null,
@@ -381,7 +381,7 @@ export async function GET(req: NextRequest) {
           : undefined,
       }
     })
-  } catch (err: any) {
-    return NextResponse.json({ error: err.message || 'Navigation failed' }, { status: 500 })
+  } catch (err: unknown) {
+    return NextResponse.json({ error: err instanceof Error ? err.message : 'Navigation failed' }, { status: 500 })
   }
 }

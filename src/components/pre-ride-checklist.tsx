@@ -28,23 +28,16 @@ interface PreRideChecklistProps {
 }
 
 export default function PreRideChecklist({ open, onClose, onStartRide }: PreRideChecklistProps) {
-  const [checked, setChecked] = useState<Record<string, boolean>>({})
-
-  // Load from localStorage on open
-  useEffect(() => {
-    if (open) {
-      try {
-        const saved = localStorage.getItem(STORAGE_KEY)
-        // eslint-disable-next-line react-hooks/set-state-in-effect
-        if (saved) setChecked(JSON.parse(saved))
-        // eslint-disable-next-line react-hooks/set-state-in-effect
-        else setChecked({})
-      } catch {
-        // eslint-disable-next-line react-hooks/set-state-in-effect
-        setChecked({})
-      }
+  // Initialize from localStorage
+  const [checked, setChecked] = useState<Record<string, boolean>>(() => {
+    if (typeof window === 'undefined') return {}
+    try {
+      const saved = localStorage.getItem(STORAGE_KEY)
+      return saved ? JSON.parse(saved) : {}
+    } catch {
+      return {}
     }
-  }, [open])
+  })
 
   // Save to localStorage on change
   useEffect(() => {

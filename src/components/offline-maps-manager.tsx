@@ -306,11 +306,11 @@ export default function OfflineMapsManager({ userId }: Props) {
             toast.error(errJson.error || 'Napaka pri shranjevanju')
           }
         }
-      } catch (err: any) {
+      } catch (err: unknown) {
         if (err.name === 'AbortError') {
           toast.info('Prenos preklican')
         } else {
-          toast.error(err.message || 'Napaka pri prenosu')
+          toast.error(err instanceof Error ? err.message : 'Napaka pri prenosu')
         }
       }
 

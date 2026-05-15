@@ -44,7 +44,7 @@ async function getElevations(points: Array<{ lat: number; lng: number }>): Promi
 }
 
 // Classify surface based on road name/OSM tags heuristic
-function classifySurface(segment: any): 'paved' | 'gravel' | 'dirt' | 'mixed' {
+function classifySurface(segment: { name?: string; ref?: string }): 'paved' | 'gravel' | 'dirt' | 'mixed' {
   const name = (segment.name || '').toLowerCase()
   const ref = (segment.ref || '').toLowerCase()
 
@@ -127,12 +127,13 @@ export async function POST(req: NextRequest) {
     if (!osrmData.routes?.length) return NextResponse.json({ error: 'No route found' }, { status: 404 })
 
     return processRoute(osrmData.routes[0], curviness, isOffroad)
-  } catch (err: any) {
-    return NextResponse.json({ error: err.message || 'Twisty route failed' }, { status: 500 })
+  } catch (err: unknown) {
+    const message = err instanceof Error ? err.message : 'Twisty route failed'
+    return NextResponse.json({ error: message }, { status: 500 })
   }
 }
 
-async function processRoute(route: any, curviness: number, isOffroad: boolean) {
+async function processRoute(route: { geometry: { coordinates: [number, number][] }; distance: number; duration: number }, curviness: number, isOffroad: boolean) {
   const coordsList = route.geometry.coordinates
 
   // Calculate twisty score based on angle changes between segments
@@ -160,13 +161,13 @@ async function processRoute(route: any, curviness: number, isOffroad: boolean) {
   const curvesPct = 100 - straightPct - tightCurvesPct
 
   // Sample waypoints for output
-  const waypoints = coordsList.filter((_: any, i: number) => i % Math.max(1, Math.floor(coordsList.length / 20)) === 0 || i === coordsList.length - 1)
-    .map((c: number[]) => ({ lat: c[1], lng: c[0] }))
+  const waypoints = coordsList.filter((_: [number, number], i: number) => i % Math.max(1, Math.floor(coordsList.length / 20)) === 0 || i === coordsList.length - 1)
+    .map((c: [number, number]) => ({ lat: c[1], lng: c[0] }))
 
   // Get elevation profile for terrain analysis
   const sampledPoints = coordsList
-    .filter((_: any, i: number) => i % Math.max(1, Math.floor(coordsList.length / 40)) === 0 || i === coordsList.length - 1)
-    .map((c: number[]) => ({ lat: c[1], lng: c[0] }))
+    .filter((_: [number, number], i: number) => i % Math.max(1, Math.floor(coordsList.length / 40)) === 0 || i === coordsList.length - 1)
+    .map((c: [number, number]) => ({ lat: c[1], lng: c[0] }))
 
   const elevations = await getElevations(sampledPoints)
 
@@ -244,7 +245,7 @@ async function processRoute(route: any, curviness: number, isOffroad: boolean) {
       totalDistance: Math.round(route.distance),
       estimatedDuration: Math.round(route.duration),
       twistyScore,
-      geometry: coordsList.map((c: number[]) => [c[1], c[0]] as [number, number]),
+      geometry: coordsList.map((c: [number, number]) => [c[1], c[0]] as [number, number]),
       curvinessReport: {
         straight: Math.max(0, straightPct),
         curves: Math.max(0, curvesPct),

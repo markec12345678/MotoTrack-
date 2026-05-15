@@ -172,8 +172,8 @@ async function webSearch(query: string): Promise<SearchResult[]> {
     }
 
     return []
-  } catch (error: any) {
-    console.error('Web search error:', error?.message || error)
+  } catch (error: unknown) {
+    console.error('Web search error:', error instanceof Error ? error.message : error)
     return []
   }
 }
@@ -269,11 +269,11 @@ async function callOpenRouter(messages: Array<{ role: string; content: string }>
 
       console.log('OpenRouter: Success with model', model)
       return content
-    } catch (error: any) {
-      if (error?.name === 'AbortError') {
+    } catch (error: unknown) {
+      if (error instanceof Error && error.name === 'AbortError') {
         console.error(`OpenRouter: Timeout (5s) with ${model}`)
       } else {
-        console.error(`OpenRouter fetch error with ${model}:`, error?.message || error)
+        console.error(`OpenRouter fetch error with ${model}:`, error instanceof Error ? error.message : error)
       }
       continue
     }
@@ -369,8 +369,8 @@ export async function POST(request: NextRequest) {
       try {
         aiResponse = await callZAI(apiMessages)
         provider = 'z-ai'
-      } catch (e: any) {
-        console.error('z-ai also failed:', e?.message || e)
+      } catch (e: unknown) {
+        console.error('z-ai also failed:', e instanceof Error ? e.message : e)
         aiResponse = null
       }
     }
@@ -412,8 +412,8 @@ export async function POST(request: NextRequest) {
       searched,
       sources,
     })
-  } catch (error: any) {
-    console.error('Chat API error:', error?.message || error)
+  } catch (error: unknown) {
+    console.error('Chat API error:', error instanceof Error ? error.message : error)
     return NextResponse.json(
       { success: false, error: 'Napaka pri komunikaciji z AI. Poskusite znova.' },
       { status: 500 }

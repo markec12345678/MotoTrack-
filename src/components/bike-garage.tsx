@@ -126,12 +126,16 @@ interface BikeGarageProps {
 }
 
 export default function BikeGarage({ userId, currentMileage }: BikeGarageProps) {
-  const [bikes, setBikes] = useState<GarageBike[]>([])
-  const [selectedBikeId, setSelectedBikeId] = useState<string>('')
-  const [maintenanceEntries, setMaintenanceEntries] = useState<MaintenanceEntry[]>([])
+  // Load bikes - derive from localStorage using useState initializer
+  const [bikes, setBikes] = useState<GarageBike[]>(() => loadBikes(userId))
+  const [selectedBikeId, setSelectedBikeId] = useState<string>(() => {
+    const loaded = loadBikes(userId)
+    return loaded.length > 0 ? loaded[0].id : ''
+  })
   const [showAddBike, setShowAddBike] = useState(false)
   const [showAddMaintenance, setShowAddMaintenance] = useState(false)
   const [editingBike, setEditingBike] = useState<string | null>(null)
+  const [maintenanceVersion, setMaintenanceVersion] = useState(0)
 
   // New bike form
   const [newBike, setNewBike] = useState<Partial<GarageBike>>({
@@ -144,21 +148,11 @@ export default function BikeGarage({ userId, currentMileage }: BikeGarageProps) 
     type: 'oil_change', title: '', date: new Date().toISOString().split('T')[0], mileage: '', cost: '', notes: '',
   })
 
-  // Load bikes on mount
-  useEffect(() => {
-    const loaded = loadBikes(userId)
-    // eslint-disable-next-line react-hooks/set-state-in-effect
-    setBikes(loaded)
-    if (loaded.length > 0) setSelectedBikeId(loaded[0].id)
-  }, [userId])
-
-  // Load maintenance when bike selected
-  useEffect(() => {
-    if (!selectedBikeId) return
-    const loaded = loadMaintenance(selectedBikeId, userId)
-    // eslint-disable-next-line react-hooks/set-state-in-effect
-    setMaintenanceEntries(loaded)
-  }, [selectedBikeId, userId])
+  // Derive maintenance from selected bike
+  const maintenanceEntries = useMemo(
+    () => selectedBikeId ? loadMaintenance(selectedBikeId, userId) : [],
+    [selectedBikeId, userId, maintenanceVersion]
+  )
 
   const selectedBike = bikes.find(b => b.id === selectedBikeId)
 
@@ -223,10 +217,9 @@ export default function BikeGarage({ userId, currentMileage }: BikeGarageProps) 
       notes: newMaint.notes,
     }
     const updated = [entry, ...maintenanceEntries]
-    setMaintenanceEntries(updated)
     saveMaintenance(updated, selectedBikeId, userId)
 
-    // Update bike's last service & next service
+    // Force re-render by updating bikes (which triggers maintenanceEntries memo)
     const bikesUpdated = bikes.map(b => {
       if (b.id === selectedBikeId) {
         return {
@@ -240,6 +233,7 @@ export default function BikeGarage({ userId, currentMileage }: BikeGarageProps) 
     })
     setBikes(bikesUpdated)
     saveBikes(bikesUpdated, userId)
+    setMaintenanceVersion(v => v + 1)
 
     setShowAddMaintenance(false)
     setNewMaint({ type: 'oil_change', title: '', date: new Date().toISOString().split('T')[0], mileage: '', cost: '', notes: '' })

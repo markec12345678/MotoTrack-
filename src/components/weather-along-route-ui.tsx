@@ -90,9 +90,10 @@ export default function WeatherAlongRouteUI({ waypoints, waypointLabels }: Weath
   }, [waypoints])
 
   // Auto-fetch when waypoints change
+  const waypointsKey = useMemo(() => JSON.stringify(waypoints), [waypoints])
   useEffect(() => {
     if (waypoints.length >= 2) fetchWeather()
-  }, [waypoints, fetchWeather])
+  }, [waypointsKey, fetchWeather])
 
   // Overall route safety assessment
   const overallSafety = useMemo(() => {

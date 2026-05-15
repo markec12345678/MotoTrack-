@@ -13,8 +13,8 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
     if (!challenge) return NextResponse.json({ error: 'Challenge not found' }, { status: 404 })
 
     return NextResponse.json({ data: challenge })
-  } catch (err: any) {
-    return NextResponse.json({ error: err.message }, { status: 500 })
+  } catch (err: unknown) {
+    return NextResponse.json({ error: err instanceof Error ? err.message : String(err) }, { status: 500 })
   }
 }
 
@@ -29,7 +29,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
 
     const participant = await db.challengeParticipant.create({ data: { challengeId: id, userId } })
     return NextResponse.json({ data: participant })
-  } catch (err: any) {
-    return NextResponse.json({ error: err.message }, { status: 500 })
+  } catch (err: unknown) {
+    return NextResponse.json({ error: err instanceof Error ? err.message : String(err) }, { status: 500 })
   }
 }

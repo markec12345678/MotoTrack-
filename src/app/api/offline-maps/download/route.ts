@@ -139,7 +139,7 @@ export async function POST(req: NextRequest) {
       totalTiles: tiles.length,
       tiles,
     })
-  } catch (err: any) {
-    return NextResponse.json({ error: err.message }, { status: 500 })
+  } catch (err: unknown) {
+    return NextResponse.json({ error: err instanceof Error ? err.message : String(err) }, { status: 500 })
   }
 }

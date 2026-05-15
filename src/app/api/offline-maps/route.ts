@@ -48,8 +48,8 @@ export async function GET(req: NextRequest) {
     }))
 
     return NextResponse.json({ data })
-  } catch (err: any) {
-    return NextResponse.json({ error: err.message }, { status: 500 })
+  } catch (err: unknown) {
+    return NextResponse.json({ error: err instanceof Error ? err.message : String(err) }, { status: 500 })
   }
 }
 
@@ -100,8 +100,8 @@ export async function POST(req: NextRequest) {
         downloadedAt: offlineMap.downloadedAt.toISOString(),
       },
     })
-  } catch (err: any) {
-    return NextResponse.json({ error: err.message }, { status: 500 })
+  } catch (err: unknown) {
+    return NextResponse.json({ error: err instanceof Error ? err.message : String(err) }, { status: 500 })
   }
 }
 
@@ -123,7 +123,7 @@ export async function DELETE(req: NextRequest) {
     await db.offlineMap.delete({ where: { id: existing.id } })
 
     return NextResponse.json({ success: true })
-  } catch (err: any) {
-    return NextResponse.json({ error: err.message }, { status: 500 })
+  } catch (err: unknown) {
+    return NextResponse.json({ error: err instanceof Error ? err.message : String(err) }, { status: 500 })
   }
 }

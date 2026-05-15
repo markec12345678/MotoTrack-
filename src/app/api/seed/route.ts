@@ -864,10 +864,11 @@ async function seedDatabase() {
         challenges: challenges.length,
       },
     })
-  } catch (error: any) {
-    console.error('Seed error:', error?.message || error, error?.stack || '')
+  } catch (error: unknown) {
+    const message = error instanceof Error ? error.message : 'Failed to seed database'
+    console.error('Seed error:', message, error instanceof Error ? error.stack : '')
     return NextResponse.json(
-      { success: false, error: error?.message || 'Failed to seed database' },
+      { success: false, error: message },
       { status: 500 }
     )
   }

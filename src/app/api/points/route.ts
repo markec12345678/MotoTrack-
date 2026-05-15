@@ -42,8 +42,8 @@ export async function GET(req: NextRequest) {
         recentTransactions: transactions,
       }
     })
-  } catch (err: any) {
-    return NextResponse.json({ error: err.message }, { status: 500 })
+  } catch (err: unknown) {
+    return NextResponse.json({ error: err instanceof Error ? err.message : String(err) }, { status: 500 })
   }
 }
 
@@ -71,7 +71,7 @@ export async function POST(req: NextRequest) {
     await db.userPoints.update({ where: { userId }, data: { level: newLevel } })
 
     return NextResponse.json({ data: { transaction: tx, totalPoints: points.totalPoints + amount, level: newLevel } })
-  } catch (err: any) {
-    return NextResponse.json({ error: err.message }, { status: 500 })
+  } catch (err: unknown) {
+    return NextResponse.json({ error: err instanceof Error ? err.message : String(err) }, { status: 500 })
   }
 }

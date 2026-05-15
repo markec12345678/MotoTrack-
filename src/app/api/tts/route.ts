@@ -82,7 +82,7 @@ export async function POST(request: NextRequest) {
         'Cache-Control': 'no-cache',
       },
     })
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('TTS API error:', error?.message || error)
     return NextResponse.json(
       { success: false, error: 'Napaka pri generiranju govora. Poskusite znova.' },

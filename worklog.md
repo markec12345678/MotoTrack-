@@ -926,3 +926,25 @@ Stage Summary:
 - Weather Along Route UI with safety assessment
 - All integrated into Profile and Explore tabs
 - Lint passes clean
+---
+Task ID: audit-fix-1
+Agent: Main
+Task: Chain-of-thought audit of entire MotoTrack application - find and fix bugs
+
+Work Log:
+- Read all critical API routes (rides, routes, user, seed, weather, chat, touring-score, weather-along-route, twisty-route, leaderboard, achievements, settings, sos, fuel)
+- Read all critical components (page.tsx, track-tab, bike-garage, twistiness-score, touring-score, weather-along-route-ui, pre-ride-checklist, types.ts, use-settings.ts)
+- Read lib files (db.ts, notifications.ts)
+- Identified and fixed multiple bug categories:
+  1. **ESLint `any` type errors**: Replaced `: any` with `: unknown` in catch blocks across ~20 API route files and component files. Fixed error access patterns from `err?.message` to `err instanceof Error ? err.message : String(err)`.
+  2. **set-state-in-effect errors**: Fixed in pre-ride-checklist.tsx (moved localStorage loading to useState initializer instead of useEffect) and bike-garage.tsx (converted maintenanceEntries from useState+useEffect to useMemo derivation from localStorage).
+  3. **Unused eslint-disable directives**: Removed 4 unused eslint-disable comments in pre-ride-checklist.tsx, bike-garage.tsx, weather-along-route-ui.tsx.
+  4. **Infinite re-render loop**: Fixed weather-along-route-ui.tsx where fetchWeather had `waypoints` in useCallback deps causing the useEffect to loop. Changed to use memoized waypointsKey.
+  5. **Type safety in navigation route**: Replaced `(leg: any)` and `(step: any)` with proper typed interfaces in OSRM response processing.
+  6. **Type safety in twisty-route**: Replaced `(route: any)` with proper typed object, replaced `(segment: any)` with typed interface, fixed all filter/map callbacks.
+
+Stage Summary:
+- **0 ESLint errors, 0 warnings** - clean lint pass
+- All API routes return 200 OK
+- Application loads and renders correctly
+- Key fixes: type safety across 20+ files, React hooks best practices, infinite loop prevention

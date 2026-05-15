@@ -358,11 +358,11 @@ export default function LiveTrackingPanel({ userId, onSessionChange }: LiveTrack
       startPositionUpdates(json.data.id, shareToken)
 
       toast.success('Sledenje v živo začeto!')
-    } catch (err: any) {
+    } catch (err: unknown) {
       if (err instanceof GeolocationPositionError) {
         toast.error('Dostop do lokacije zavrnjen. Omogočite GPS.')
       } else {
-        toast.error(err.message || 'Napaka pri začetku sledenja')
+        toast.error(err instanceof Error ? err.message : 'Napaka pri začetku sledenja')
       }
     } finally {
       setLoading(false)
@@ -402,8 +402,8 @@ export default function LiveTrackingPanel({ userId, onSessionChange }: LiveTrack
       setSession(null)
 
       toast.success('Sledenje v živo ustavljeno')
-    } catch (err: any) {
-      toast.error(err.message || 'Napaka pri ustavitvi sledenja')
+    } catch (err: unknown) {
+      toast.error(err instanceof Error ? err.message : 'Napaka pri ustavitvi sledenja')
     }
   }
 

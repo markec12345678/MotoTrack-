@@ -84,8 +84,8 @@ export async function GET(req: NextRequest) {
       data: filtered,
       lastUpdated: new Date().toISOString(),
     })
-  } catch (err: any) {
-    return NextResponse.json({ error: err.message }, { status: 500 })
+  } catch (err: unknown) {
+    return NextResponse.json({ error: err instanceof Error ? err.message : String(err) }, { status: 500 })
   }
 }
 
@@ -138,7 +138,7 @@ export async function POST(req: NextRequest) {
         updatedAt: hazard.createdAt.toISOString(),
       },
     })
-  } catch (err: any) {
-    return NextResponse.json({ error: err.message }, { status: 500 })
+  } catch (err: unknown) {
+    return NextResponse.json({ error: err instanceof Error ? err.message : String(err) }, { status: 500 })
   }
 }
