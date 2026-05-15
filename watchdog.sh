@@ -1,11 +1,16 @@
 #!/bin/bash
-cd /home/z/my-project
+cd /home/z/my-project/.next/standalone
+export PORT=3000
+export HOSTNAME=0.0.0.0
+export NODE_OPTIONS="--max-old-space-size=4096"
+
 while true; do
-  if ! lsof -i :3000 > /dev/null 2>&1; then
-    echo "$(date): Starting server..." >> /tmp/mototrack-watchdog.log
-    node --max-old-space-size=2048 node_modules/.bin/next dev -p 3000 >> /tmp/mototrack-next.log 2>&1 &
-    sleep 15
-  else
-    sleep 5
-  fi
+  node server.js &
+  SERVER_PID=$!
+  
+  # Wait for the server to die
+  wait $SERVER_PID 2>/dev/null
+  
+  # Small delay before restart
+  sleep 1
 done
