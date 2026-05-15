@@ -84,27 +84,70 @@ const tabs: { id: TabId; label: string; icon: React.ElementType }[] = [
   { id: 'profile', label: 'Profil', icon: User },
 ]
 
+// Shared loading skeleton — used by both Suspense fallback and Home loading state
+// to prevent hydration mismatch (server and client must render identical HTML)
+function LoadingSkeleton() {
+  return (
+    <div className="min-h-screen flex flex-col bg-background">
+      {/* Header skeleton */}
+      <header className="fixed top-0 left-0 right-0 z-[1400] h-12 flex items-center px-4 bg-background/95 backdrop-blur-md border-b border-border/30">
+        <div className="flex items-center gap-2 flex-1">
+          <div className="flex items-center justify-center size-8 rounded-xl bg-primary/20 shadow-sm shadow-primary/20">
+            <Bike className="size-[18px] text-primary" strokeWidth={2.5} />
+          </div>
+          <div className="flex flex-col -space-y-0.5">
+            <span className="font-black text-[15px] tracking-tight text-primary leading-none">MotoTrack</span>
+            <span className="text-[8px] text-muted-foreground/70 uppercase tracking-[0.2em] font-semibold leading-none hidden sm:block">GPS Sledenje</span>
+            <span className="text-[8px] text-primary/50 font-semibold leading-none hidden sm:block">by Markec</span>
+          </div>
+        </div>
+      </header>
+      <div className="header-gradient-line fixed top-12 left-0 right-0 z-[1400]" />
+
+      <main className="flex-1 pt-12 pb-20 px-4 max-w-lg mx-auto w-full">
+        <div className="py-6 space-y-6">
+          <Skeleton className="w-full h-48 rounded-xl" />
+          <div className="grid grid-cols-3 gap-4">
+            <div className="space-y-2">
+              <Skeleton className="size-8 rounded-full mx-auto" />
+              <Skeleton className="h-5 w-12 mx-auto" />
+              <Skeleton className="h-3 w-16 mx-auto" />
+            </div>
+            <div className="space-y-2">
+              <Skeleton className="size-8 rounded-full mx-auto" />
+              <Skeleton className="h-5 w-12 mx-auto" />
+              <Skeleton className="h-3 w-16 mx-auto" />
+            </div>
+            <div className="space-y-2">
+              <Skeleton className="size-8 rounded-full mx-auto" />
+              <Skeleton className="h-5 w-12 mx-auto" />
+              <Skeleton className="h-3 w-16 mx-auto" />
+            </div>
+          </div>
+          <Skeleton className="h-24 rounded-xl" />
+          <Skeleton className="h-24 rounded-xl" />
+          <Skeleton className="h-20 rounded-xl" />
+        </div>
+      </main>
+
+      {/* Bottom nav skeleton */}
+      <nav className="fixed bottom-0 left-0 right-0 z-[1500] bg-black/95 backdrop-blur-xl border-t border-white/5" style={{ paddingBottom: 'env(safe-area-inset-bottom, 0px)' }}>
+        <div className="flex items-center justify-around max-w-lg mx-auto h-[72px]">
+          {[1,2,3,4,5].map(i => (
+            <div key={i} className="flex flex-col items-center gap-1 px-4 py-2">
+              <Skeleton className="size-5 rounded bg-white/10" />
+              <Skeleton className="h-2.5 w-8 bg-white/10" />
+            </div>
+          ))}
+        </div>
+      </nav>
+    </div>
+  )
+}
+
 export default function HomePage() {
   return (
-    <Suspense fallback={
-      <div className="min-h-screen flex flex-col bg-background">
-        <header className="fixed top-0 left-0 right-0 z-[1400] h-12 flex items-center px-4 bg-background/95 backdrop-blur-md border-b border-border/30">
-          <div className="flex items-center gap-2">
-            <div className="flex items-center justify-center size-8 rounded-xl bg-primary/20">
-              <Bike className="size-[18px] text-primary" strokeWidth={2.5} />
-            </div>
-            <span className="font-black text-[15px] tracking-tight text-primary">MotoTrack</span>
-          </div>
-        </header>
-        <div className="header-gradient-line fixed top-12 left-0 right-0 z-[1400]" />
-        <main className="flex-1 pt-12 pb-20 px-4 max-w-lg mx-auto w-full">
-          <div className="py-6 space-y-6">
-            <Skeleton className="w-full h-48 rounded-xl" />
-            <Skeleton className="h-24 rounded-xl" />
-          </div>
-        </main>
-      </div>
-    }>
+    <Suspense fallback={<LoadingSkeleton />}>
       <Home />
     </Suspense>
   )
@@ -435,66 +478,9 @@ function Home() {
 
   // Prevent hydration mismatch: show skeleton until client-mounted
   // This ensures SSR and client render identical HTML on first paint
+  // Uses the same LoadingSkeleton as Suspense fallback for consistency
   if (!mounted || loading) {
-    return (
-      <div className="min-h-screen flex flex-col bg-background">
-        {/* Header skeleton */}
-        <header className="fixed top-0 left-0 right-0 z-[1400] h-12 flex items-center px-4 bg-background/95 backdrop-blur-md border-b border-border/30">
-          <div className="flex items-center gap-2 flex-1">
-            <div className="flex items-center justify-center size-8 rounded-xl bg-primary/20 shadow-sm shadow-primary/20">
-              <Bike className="size-[18px] text-primary" strokeWidth={2.5} />
-            </div>
-            <div className="flex flex-col -space-y-0.5">
-              <span className="font-black text-[15px] tracking-tight text-primary leading-none">MotoTrack</span>
-              <span className="text-[8px] text-muted-foreground/70 uppercase tracking-[0.2em] font-semibold leading-none hidden sm:block">GPS Sledenje</span>
-              <span className="text-[8px] text-primary/50 font-semibold leading-none hidden sm:block">by Markec</span>
-            </div>
-          </div>
-        </header>
-        <div className="header-gradient-line fixed top-12 left-0 right-0 z-[1400]" />
-
-        <main className="flex-1 pt-12 pb-20 px-4 max-w-lg mx-auto w-full">
-          <div className="py-6 space-y-6">
-            {/* Map placeholder skeleton */}
-            <Skeleton className="w-full h-48 rounded-xl" />
-            {/* Stats row */}
-            <div className="grid grid-cols-3 gap-4">
-              <div className="space-y-2">
-                <Skeleton className="size-8 rounded-full mx-auto" />
-                <Skeleton className="h-5 w-12 mx-auto" />
-                <Skeleton className="h-3 w-16 mx-auto" />
-              </div>
-              <div className="space-y-2">
-                <Skeleton className="size-8 rounded-full mx-auto" />
-                <Skeleton className="h-5 w-12 mx-auto" />
-                <Skeleton className="h-3 w-16 mx-auto" />
-              </div>
-              <div className="space-y-2">
-                <Skeleton className="size-8 rounded-full mx-auto" />
-                <Skeleton className="h-5 w-12 mx-auto" />
-                <Skeleton className="h-3 w-16 mx-auto" />
-              </div>
-            </div>
-            {/* Card skeletons */}
-            <Skeleton className="h-24 rounded-xl" />
-            <Skeleton className="h-24 rounded-xl" />
-            <Skeleton className="h-20 rounded-xl" />
-          </div>
-        </main>
-
-        {/* Bottom nav skeleton - dark REVER style */}
-        <nav className="fixed bottom-0 left-0 right-0 z-[1500] bg-black/95 backdrop-blur-xl border-t border-white/5" style={{ paddingBottom: 'env(safe-area-inset-bottom, 0px)' }}>
-          <div className="flex items-center justify-around max-w-lg mx-auto h-[72px]">
-            {[1,2,3,4,5].map(i => (
-              <div key={i} className="flex flex-col items-center gap-1 px-4 py-2">
-                <Skeleton className="size-5 rounded bg-white/10" />
-                <Skeleton className="h-2.5 w-8 bg-white/10" />
-              </div>
-            ))}
-          </div>
-        </nav>
-      </div>
-    )
+    return <LoadingSkeleton />
   }
 
   return (
