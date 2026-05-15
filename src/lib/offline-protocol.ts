@@ -171,7 +171,7 @@ export async function registerOfflineProtocol(): Promise<void> {
   if (typeof window === 'undefined') return
 
   try {
-    const maplibregl = (await import('maplibre-gl')).default
+    const maplibregl = await import('maplibre-gl')
 
     // Define the tile source mapping
     const tileSourceMap: Record<string, string[]> = {

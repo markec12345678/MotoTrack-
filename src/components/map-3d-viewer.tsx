@@ -214,7 +214,7 @@ export default function Map3DViewer({
 
     const initMap = async () => {
       try {
-        const maplibregl = (await import('maplibre-gl')).default
+        const maplibregl = await import('maplibre-gl')
         await import('maplibre-gl/dist/maplibre-gl.css')
 
         maplibreRef.current = maplibregl
