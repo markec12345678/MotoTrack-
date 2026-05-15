@@ -31,6 +31,9 @@ import PointsDisplay from '@/components/points-display'
 import BluetoothPanel from '@/components/bluetooth-panel'
 import OBDPanel from '@/components/obd-panel'
 import RideReplay3D from '@/components/ride-replay-3d'
+import TouringScore from '@/components/touring-score'
+import BikeGarage from '@/components/bike-garage'
+import RideReplayPlayer from '@/components/ride-replay-player'
 import { toast } from 'sonner'
 import { useSettingsStore, saveSettings, type UnitSystem, formatDistance, formatElevation, distanceUnit, elevationUnit } from '@/hooks/use-settings'
 import { MapPin, Shield, Moon, Timer, Ruler, CircleDot, Trash2 as Trash2Icon } from 'lucide-react'
@@ -520,6 +523,28 @@ export default function ProfileTab({ user, allUsers, rides, routes, loading, onS
             STATISTIKA VOŽENJ (always visible)
         ════════════════════════════════════════════════════════════════ */}
         <RideStatsDashboard rides={rides} userId={user.id} />
+
+        {/* ════════════════════════════════════════════════════════════════
+            TOURING SCORE (always visible)
+        ════════════════════════════════════════════════════════════════ */}
+        <TouringScore rides={rides} routes={routes} userId={user.id} />
+
+        {/* ════════════════════════════════════════════════════════════════
+            BIKE GARAGE (always visible)
+        ════════════════════════════════════════════════════════════════ */}
+        <BikeGarage userId={user.id} currentMileage={currentMileage} />
+
+        {/* ════════════════════════════════════════════════════════════════
+            RIDE REPLAY (always visible - for last ride)
+        ════════════════════════════════════════════════════════════════ */}
+        {rides.length > 0 && rides[0].trackData && (
+          <RideReplayPlayer
+            trackData={rides[0].trackData}
+            maxSpeed={rides[0].maxSpeed}
+            distance={rides[0].distance}
+            duration={rides[0].duration}
+          />
+        )}
 
         {/* ════════════════════════════════════════════════════════════════
             COLLAPSIBLE SECTION 1: 🎮 Moj Motocikel

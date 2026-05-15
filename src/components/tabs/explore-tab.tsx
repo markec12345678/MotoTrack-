@@ -33,6 +33,8 @@ import BalkanRoadsPanel from '@/components/balkan-roads-panel'
 import NearbyRoadsPanel from '@/components/nearby-roads-panel'
 import WeatherSuitability from '@/components/weather-suitability'
 import RoadConditionsPanel from '@/components/road-conditions-panel'
+import TouringScore from '@/components/touring-score'
+import BikeGarage from '@/components/bike-garage'
 import dynamic from 'next/dynamic'
 
 const MoviePlayer = dynamic(() => import('@/components/movie-player'), { ssr: false, loading: () => null })
@@ -81,7 +83,7 @@ const ExploreTabInner = React.memo(function ExploreTabInner({ rides, routes, lea
   const [exploreCategory, setExploreCategory] = useState<string>('all')
   const [searchQuery, setSearchQuery] = useState('')
   const debouncedSearchQuery = useDebounce(searchQuery, 200)
-  const [exploreSection, setExploreSection] = useState<'discover' | 'feed' | 'favorites' | 'communities' | 'friends' | 'grouprides' | 'challenges' | 'services' | 'fuel' | 'consumption' | 'comparison' | 'events' | 'camps' | 'balkanroads' | 'nearbyroads' | 'weather' | 'roadconditions' | 'cinema'>('discover')
+  const [exploreSection, setExploreSection] = useState<'discover' | 'feed' | 'favorites' | 'communities' | 'friends' | 'grouprides' | 'challenges' | 'services' | 'fuel' | 'consumption' | 'comparison' | 'events' | 'camps' | 'balkanroads' | 'nearbyroads' | 'weather' | 'roadconditions' | 'cinema' | 'garage' | 'touring'>('discover')
 
   // Cinema state
   const [cinemaRideId, setCinemaRideId] = useState<string | null>(null)
@@ -590,6 +592,18 @@ const ExploreTabInner = React.memo(function ExploreTabInner({ rides, routes, lea
               onClick={() => setExploreSection('roadconditions')}
               icon={<AlertTriangle className="size-3.5" />}
               label="Ceste stanje"
+            />
+            <TabPill
+              active={exploreSection === 'touring'}
+              onClick={() => setExploreSection('touring')}
+              icon={<Trophy className="size-3.5" />}
+              label="Ocena"
+            />
+            <TabPill
+              active={exploreSection === 'garage'}
+              onClick={() => setExploreSection('garage')}
+              icon={<Bike className="size-3.5" />}
+              label="Garaža"
             />
           </div>
         </div>
@@ -1705,6 +1719,32 @@ const ExploreTabInner = React.memo(function ExploreTabInner({ rides, routes, lea
                 Fotografije se samodejno prikažejo ob ustreznih točkah!
               </p>
             </div>
+          </div>
+        ) : exploreSection === 'touring' ? (
+          /* ====== TOURING SCORE SECTION ====== */
+          <div className="space-y-4">
+            <div className="flex items-center justify-between">
+              <h2 className="text-lg font-bold flex items-center gap-2">
+                <Trophy className="size-5 text-primary" /> Touring Score
+              </h2>
+              <Badge variant="outline" className="bg-primary/20 text-primary border-primary/30 text-[9px]">
+                GAMIFIKACIJA
+              </Badge>
+            </div>
+            <TouringScore rides={rides} routes={routes} userId={userId} />
+          </div>
+        ) : exploreSection === 'garage' ? (
+          /* ====== BIKE GARAGE SECTION ====== */
+          <div className="space-y-4">
+            <div className="flex items-center justify-between">
+              <h2 className="text-lg font-bold flex items-center gap-2">
+                <Bike className="size-5 text-primary" /> Garaža
+              </h2>
+              <Badge variant="outline" className="bg-red-500/20 text-red-400 border-red-500/30 text-[9px]">
+                MOTOCIKLI
+              </Badge>
+            </div>
+            <BikeGarage userId={userId} />
           </div>
         ) : (
           /* ====== DISCOVER SECTION ====== */

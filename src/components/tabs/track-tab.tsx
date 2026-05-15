@@ -14,6 +14,7 @@ const LiveTrackingPanel = dynamic(() => import('@/components/live-tracking-panel
 const LeanAngleDisplay = dynamic(() => import('@/components/lean-angle-display'), { ssr: false })
 const WeatherAlertsPanel = dynamic(() => import('@/components/weather-alerts-panel'), { ssr: false })
 const GradientAnalysis = dynamic(() => import('@/components/gradient-analysis'), { ssr: false })
+const TwistinessScore = dynamic(() => import('@/components/twistiness-score'), { ssr: false })
 const RideShareCard = dynamic(() => import('@/components/ride-share-card'), { ssr: false })
 const PreRideChecklist = dynamic(() => import('@/components/pre-ride-checklist'), { ssr: false })
 
@@ -160,6 +161,7 @@ export default function TrackTab({
           </button>
           {showFeatures && (
             <div className="mt-2 space-y-2 max-h-80 overflow-y-auto custom-scrollbar">
+              <TwistinessScore trackPoints={trackPoints} distance={distance} />
               <WeatherAlertsPanel lat={trackPoints.length > 0 ? trackPoints[trackPoints.length - 1].lat : null} lng={trackPoints.length > 0 ? trackPoints[trackPoints.length - 1].lng : null} isTracking={isTracking} />
               <GradientAnalysis points={trackPoints} />
               <CrashDetectionPanel userId={userId} />
@@ -279,6 +281,13 @@ export default function TrackTab({
                 </div>
               )}
 
+              {/* Twistiness Score - real-time during ride */}
+              {trackPoints.length >= 2 && (
+                <div className="mb-2">
+                  <TwistinessScore trackPoints={trackPoints} distance={distance} />
+                </div>
+              )}
+
               {/* Weather alerts during ride */}
               {trackPoints.length > 0 && (
                 <div className="mb-2">
@@ -333,6 +342,10 @@ export default function TrackTab({
                   <p className="text-xl font-bold text-white/70">{displayMaxSpeed}</p>
                   <p className="text-[10px] text-white/40 uppercase tracking-wider">max</p>
                 </div>
+              </div>
+              {/* Twistiness Score Summary */}
+              <div className="w-full">
+                <TwistinessScore trackPoints={trackPoints} distance={distance} />
               </div>
               {/* Gradient Analysis Summary */}
               <div className="w-full max-h-48 overflow-y-auto custom-scrollbar">

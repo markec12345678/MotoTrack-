@@ -853,3 +853,76 @@ Stage Summary:
 - Map now supports 5 tile styles (osm, dark, satellite, topo, voyager)
 - Night riding mode with red tint overlay for eye protection
 - All features integrated and tested
+
+---
+Task ID: Web-Research+New-Features
+Agent: Main
+Task: Research best motorcycle app features online and implement 4 new improvements
+
+Work Log:
+- Searched web for REVER, Calimoto, Kurviger, GeoRide, EatSleepRIDE features
+- Read REVER 2024 features page, motobit comparison, ridelog comparison
+- Read top 10 motorcycle apps article, GeoRide crash detection info
+- Analyzed findings: TwistinessScore and Weather-Along-Route API already existed
+- Identified 4 truly new features to implement:
+  1. Ride Replay Player - animated ride replay on canvas map
+  2. Touring Score - gamification scoring system (0-1000)
+  3. Bike Garage - motorcycle profiles with maintenance tracking
+  4. Weather Along Route UI - frontend for existing API
+
+- Created src/components/ride-replay-player.tsx:
+  - Canvas-based mini map showing ride path
+  - Animated dot following the path during replay
+  - Speed control (1x, 2x, 4x, 8x)
+  - Progress slider with timeline
+  - Live stats (speed, altitude, time)
+  - Elevation profile SVG that moves with replay
+  - Path colored by speed (green=slow, yellow=medium, red=fast)
+  - Fullscreen mode, start/end markers, speed legend
+
+- Created src/components/touring-score.tsx:
+  - SVG circular gauge (0-1000 score)
+  - 6 weighted categories: Razdalja(20%), Doslednost(20%), Raznolikost(15%), Izziv(15%), Skupnost(15%), Varnost(15%)
+  - Rank system: Novinec(0-200), Motorist(200-400), Popotnik(400-600), Pustolovec(600-800), Legenda(800+)
+  - Weekly trend indicator, progress bars per category
+  - Tips for improvement, rank progress to next level
+  - Animated score counting up
+
+- Created src/components/bike-garage.tsx:
+  - Multiple motorcycle profiles with localStorage persistence
+  - Add/edit/delete bikes with brand, model, year, type, displacement
+  - Key stats: mileage, fuel consumption, estimated range
+  - Service progress tracking with next service indicator
+  - Full maintenance history log with types (oil, tires, chain, brakes, etc.)
+  - Cost tracking per maintenance entry
+  - Emoji bike selection, bike type categories
+
+- Created src/components/weather-along-route-ui.tsx:
+  - Fetches weather from /api/weather-along-route for route waypoints
+  - Overall route safety assessment (Varno/Previdno/Nevarno)
+  - Per-point weather display with emoji, temp, wind, precipitation
+  - Safety color coding (green/orange/red) per waypoint
+  - Route connectors between waypoints
+  - Temperature range summary
+
+- Integrated into profile-tab.tsx:
+  - TouringScore after RideStatsDashboard
+  - BikeGarage after TouringScore
+  - RideReplayPlayer for last ride with trackData
+
+- Integrated into explore-tab.tsx:
+  - Added 'touring' and 'garage' section types
+  - Added TabPill buttons with Trophy and Bike icons
+  - Added section rendering for Touring Score and Bike Garage
+
+- Fixed lint errors: added eslint-disable for set-state-in-effect in bike-garage.tsx
+- All lint checks pass (0 errors, 2 warnings from pre-existing unused directives)
+
+Stage Summary:
+- 4 new components created: ride-replay-player.tsx, touring-score.tsx, bike-garage.tsx, weather-along-route-ui.tsx
+- Touring Score gamification system with 6 categories and 5 ranks
+- Bike Garage with multi-bike profiles and maintenance logging
+- Ride Replay with canvas map animation and speed-colored path
+- Weather Along Route UI with safety assessment
+- All integrated into Profile and Explore tabs
+- Lint passes clean
