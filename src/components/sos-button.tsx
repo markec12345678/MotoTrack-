@@ -201,12 +201,12 @@ export default function SosButton({ userId }: SosButtonProps) {
           onPointerDown={collapsed ? undefined : handlePointerDown}
           onPointerUp={collapsed ? undefined : handlePointerUp}
           onPointerLeave={collapsed ? undefined : handlePointerLeave}
-          className={`fixed right-4 z-[1600] rounded-full shadow-lg transition-all flex items-center justify-center font-bold text-white select-none ${
+          className={`fixed left-4 z-[1600] rounded-full shadow-lg transition-all flex items-center justify-center font-bold text-white select-none ${
             collapsed
               ? 'bottom-24 size-10 bg-red-500/80 hover:bg-red-500'
               : activeAlert
-                ? 'bottom-36 size-14 bg-red-600 animate-pulse hover:scale-105'
-                : 'bottom-36 size-14 bg-red-500 hover:bg-red-600 hover:scale-105'
+                ? 'bottom-28 size-14 bg-red-600 animate-pulse hover:scale-105'
+                : 'bottom-28 size-14 bg-red-500 hover:bg-red-600 hover:scale-105'
           }`}
           aria-label="SOS nujna pomoč"
         >
@@ -249,7 +249,7 @@ export default function SosButton({ userId }: SosButtonProps) {
 
       {/* Active alert panel */}
       {showPanel && (
-        <div className="fixed bottom-16 right-0 sm:right-4 z-[1600] w-full sm:w-80 bg-card border border-red-500/50 rounded-t-2xl sm:rounded-2xl shadow-2xl overflow-hidden">
+        <div className="fixed bottom-20 left-0 sm:left-4 z-[1600] w-full sm:w-80 bg-card border border-red-500/50 rounded-t-2xl sm:rounded-2xl shadow-2xl overflow-hidden">
           {/* Red pulsing header */}
           <div className="bg-red-500 text-white p-4 animate-pulse">
             <div className="flex items-center justify-between">
