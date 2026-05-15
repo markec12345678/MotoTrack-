@@ -179,12 +179,14 @@ function Home() {
 
   // PWA shortcut support - read ?tab= from URL on first load
   const searchParams = useSearchParams()
-  const initialTab = useMemo(() => {
+  const [activeTab, setActiveTab] = useState<TabId>('map')
+  // Read tab from URL after mount to avoid hydration mismatch
+  useEffect(() => {
     const tab = searchParams.get('tab')
-    if (tab === 'plan' || tab === 'track' || tab === 'explore' || tab === 'profile') return tab
-    return 'map' as TabId
-  }, [])
-  const [activeTab, setActiveTab] = useState<TabId>(initialTab)
+    if (tab === 'plan' || tab === 'track' || tab === 'explore' || tab === 'profile') {
+      setActiveTab(tab)
+    }
+  }, [searchParams])
 
   // Exit fullscreen when switching away from explore tab
   useEffect(() => {
@@ -431,8 +433,9 @@ function Home() {
     } catch { toast.error('Napaka pri preklopu') }
   }, [])
 
-  // Loading skeleton for initial data fetch
-  if (loading) {
+  // Prevent hydration mismatch: show skeleton until client-mounted
+  // This ensures SSR and client render identical HTML on first paint
+  if (!mounted || loading) {
     return (
       <div className="min-h-screen flex flex-col bg-background">
         {/* Header skeleton */}
