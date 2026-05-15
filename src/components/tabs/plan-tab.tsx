@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react'
 import dynamic from 'next/dynamic'
-import { Route, Trash2, Save, MapPin, X, Upload, Plus, Calendar, Minus, Hotel, Fuel, ChevronDown, ChevronUp, Eye, Clock, RefreshCw, Navigation, ArrowLeft, ArrowRight, Cloud, Wind, AlertTriangle, Thermometer, Search, Activity, BarChart3, Mountain, TreePine } from 'lucide-react'
+import { Route, Trash2, Save, MapPin, X, Upload, Plus, Calendar, Minus, Hotel, Fuel, ChevronDown, ChevronUp, Eye, Clock, RefreshCw, Navigation, ArrowLeft, ArrowRight, Cloud, Wind, AlertTriangle, Thermometer, Search, Activity, BarChart3, Mountain, TreePine, Sparkles } from 'lucide-react'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
 import { Switch } from '@/components/ui/switch'
@@ -353,6 +353,144 @@ function WeatherAlongRoute({ waypoints }: { waypoints: { lat: number; lng: numbe
 
       {waypoints.length < 2 && (
         <p className="text-[10px] text-muted-foreground">Dodajte vsaj dve točki na zemljevid za vremensko napoved</p>
+      )}
+    </div>
+  )
+}
+
+// AI Route Planner mini-component
+function AiRoutePlanner({ userId, onRouteGenerated, currentLat, currentLng }: { userId: string; onRouteGenerated: (wps: { lat: number; lng: number }[]) => void; currentLat?: number; currentLng?: number }) {
+  const [style, setStyle] = useState<'scenic' | 'twisty' | 'touring' | 'offroad'>('scenic')
+  const [duration, setDuration] = useState(3)
+  const [loading, setLoading] = useState(false)
+  const [result, setResult] = useState<{
+    title: string; totalDistance: number; estimatedMinutes: number; styleName: string; styleEmoji: string; description: string; nearbyAttractions: string[]
+  } | null>(null)
+
+  const generateRoute = useCallback(async () => {
+    setLoading(true)
+    try {
+      const lat = currentLat ?? 46.0569
+      const lng = currentLng ?? 14.5058
+      const res = await fetch('/api/ai-route-planner', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ startLat: lat, startLng: lng, duration, style, maxDistance: duration * 70 }),
+      })
+      if (res.ok) {
+        const data = await res.json()
+        if (data.data?.waypoints?.length > 0) {
+          onRouteGenerated(data.data.waypoints)
+          setResult(data.data)
+          toast.success(`AI tura generirana! ${data.data.styleEmoji} ${Math.round(data.data.totalDistance)} km`)
+        }
+      } else {
+        toast.error('Napaka pri generiranju ture')
+      }
+    } catch {
+      toast.error('Napaka pri povezavi')
+    }
+    setLoading(false)
+  }, [currentLat, currentLng, duration, style, onRouteGenerated])
+
+  const styleOptions = [
+    { value: 'scenic' as const, label: 'Scenična', emoji: '🏔️', desc: 'Razgledi in pokrajina' },
+    { value: 'twisty' as const, label: 'Vijugasta', emoji: '🔄', desc: 'Ostri zavoji in krivine' },
+    { value: 'touring' as const, label: 'Turneja', emoji: '🛣️', desc: 'Daljša tura, daljše ravnine' },
+    { value: 'offroad' as const, label: 'Terenska', emoji: '🪨', desc: 'Makadam in gozdne ceste' },
+  ]
+
+  return (
+    <div className="rounded-lg border border-primary/30 bg-primary/5 p-3 space-y-3">
+      <div className="flex items-center gap-1.5">
+        <Sparkles className="size-4 text-primary" />
+        <h4 className="text-xs font-semibold text-primary">AI Načrtovalec poti</h4>
+        <span className="text-[9px] text-primary/50 ml-1">Novo!</span>
+      </div>
+
+      {/* Style selector */}
+      <div>
+        <label className="text-[10px] font-medium text-muted-foreground mb-1.5 block">Slog vožnje</label>
+        <div className="grid grid-cols-2 gap-1.5">
+          {styleOptions.map(opt => (
+            <button
+              key={opt.value}
+              className={`flex items-center gap-1.5 px-2.5 py-2 rounded-lg text-xs font-medium border transition-all ${
+                style === opt.value
+                  ? 'border-primary bg-primary/15 text-primary'
+                  : 'border-border/50 bg-secondary/30 text-muted-foreground hover:border-primary/30 hover:bg-secondary/50'
+              }`}
+              onClick={() => setStyle(opt.value)}
+            >
+              <span className="text-sm">{opt.emoji}</span>
+              <div className="text-left">
+                <div className="text-[10px] font-semibold">{opt.label}</div>
+                <div className="text-[8px] opacity-60">{opt.desc}</div>
+              </div>
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* Duration slider */}
+      <div>
+        <div className="flex items-center justify-between mb-1">
+          <label className="text-[10px] font-medium text-muted-foreground">Trajanje ture</label>
+          <span className="text-xs font-bold text-primary">{duration}h</span>
+        </div>
+        <Slider
+          value={[duration]}
+          min={1}
+          max={8}
+          step={1}
+          onValueChange={(v) => setDuration(v[0])}
+          className="w-full"
+        />
+        <div className="flex justify-between text-[9px] text-muted-foreground mt-0.5">
+          <span>1h</span>
+          <span>4h</span>
+          <span>8h</span>
+        </div>
+      </div>
+
+      {/* Generate button */}
+      <Button
+        className="w-full bg-primary hover:bg-primary/90 text-primary-foreground"
+        size="sm"
+        disabled={loading}
+        onClick={generateRoute}
+      >
+        {loading ? (
+          <span className="size-3.5 border-2 border-current border-t-transparent rounded-full animate-spin mr-1.5" />
+        ) : (
+          <Sparkles className="size-3.5 mr-1.5" />
+        )}
+        Generiraj AI turo
+      </Button>
+
+      {/* Result */}
+      {result && (
+        <div className="space-y-2 pt-1">
+          <div className="bg-primary/10 rounded-md p-2.5 border border-primary/20">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-xs font-bold text-primary">{result.styleEmoji} {result.styleName} tura</p>
+                <p className="text-[10px] text-muted-foreground mt-0.5">{result.description}</p>
+              </div>
+              <div className="text-right">
+                <p className="text-xs font-bold">{result.totalDistance.toFixed(0)} km</p>
+                <p className="text-[10px] text-muted-foreground">~{result.estimatedMinutes} min</p>
+              </div>
+            </div>
+          </div>
+          {result.nearbyAttractions.length > 0 && (
+            <div className="flex flex-wrap gap-1">
+              {result.nearbyAttractions.map((name, i) => (
+                <span key={i} className="text-[9px] bg-secondary/50 text-muted-foreground px-2 py-0.5 rounded-full">📍 {name}</span>
+              ))}
+            </div>
+          )}
+        </div>
       )}
     </div>
   )
@@ -1508,6 +1646,15 @@ export default function PlanTab({
             <Separator />
             <div className="space-y-3">
               <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Napredna orodja</h3>
+
+              {/* AI Route Planner */}
+              <AiRoutePlanner
+                userId={userId}
+                onRouteGenerated={(wps) => { setWaypoints(wps) }}
+                currentLat={rtStartDetected ? rtStartLat : undefined}
+                currentLng={rtStartDetected ? rtStartLng : undefined}
+              />
+
               <TwistyRoutePlanner userId={userId} onRouteGenerated={(wps) => { setWaypoints(wps) }} />
               <OfflineMapsManager userId={userId} />
               <GpxManager userId={userId} onRefresh={onRefresh} />

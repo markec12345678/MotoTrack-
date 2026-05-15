@@ -19,6 +19,7 @@ import type { RideData, RouteData, PoiData, LiveRider, HazardData, FuelData, Fri
 import { categoryLabel, categoryColor, poiTypeLabel, poiTypeEmoji } from '@/components/tabs/types'
 
 const MotoMap = dynamic(() => import('@/components/moto-map'), { ssr: false })
+const RideScoreCard = dynamic(() => import('@/components/ride-score-card').then(m => ({ default: m.RideScoreCard })), { ssr: false, loading: () => null })
 const Map3DViewer = dynamic(() => import('@/components/map-3d-viewer').catch(() => {
   // Return a fallback component if maplibre-gl chunk fails to load
   return { default: () => (
@@ -91,10 +92,12 @@ export default function MapTab({ rides, routes, onOpenDetail, userId }: MapTabPr
   // Map overlays state
   const [showTwistyRoads, setShowTwistyRoads] = useState(false)
   const [showBalkanRoads, setShowBalkanRoads] = useState(false)
+  const [showCurvyRoads, setShowCurvyRoads] = useState(false)
   const [showCamps, setShowCamps] = useState(false)
   const [camps, setCamps] = useState<CampSiteData[]>([])
   const [showWeatherRadar, setShowWeatherRadar] = useState(false)
   const [showHazards, setShowHazards] = useState(false)
+  const [showRideScore, setShowRideScore] = useState(true)
 
   // LiveRIDE state
   const [liveRiders, setLiveRiders] = useState<LiveRider[]>([])
@@ -460,6 +463,7 @@ export default function MapTab({ rides, routes, onOpenDetail, userId }: MapTabPr
         filterPoiTypes={activePoiTypes}
         showTwistyRoads={showTwistyRoads}
         showBalkanRoads={showBalkanRoads}
+        showCurvyRoads={showCurvyRoads}
         showCamps={showCamps}
         camps={camps}
         showWeatherRadar={showWeatherRadar}
@@ -550,6 +554,9 @@ export default function MapTab({ rides, routes, onOpenDetail, userId }: MapTabPr
               <button onClick={() => setShowRoadQuality(!showRoadQuality)} className={`w-full flex items-center gap-2 px-2.5 py-2 rounded-lg text-xs font-medium transition-colors ${showRoadQuality ? 'bg-emerald-500/15 text-emerald-500 border border-emerald-500/30' : 'bg-secondary/50 text-muted-foreground hover:bg-muted'}`}>
                 <Gauge className="size-3.5" /> Kakovost ceste
               </button>
+              <button onClick={() => setShowCurvyRoads(!showCurvyRoads)} className={`w-full flex items-center gap-2 px-2.5 py-2 rounded-lg text-xs font-medium transition-colors ${showCurvyRoads ? 'bg-orange-500/15 text-orange-500 border border-orange-500/30' : 'bg-secondary/50 text-muted-foreground hover:bg-muted'}`}>
+                <GitBranch className="size-3.5" /> Vijugavost cest
+              </button>
             </div>
           </PopoverContent>
         </Popover>
@@ -576,6 +583,9 @@ export default function MapTab({ rides, routes, onOpenDetail, userId }: MapTabPr
               </button>
               <button onClick={() => setShowLiveRide(!showLiveRide)} className={`w-full flex items-center gap-2 px-2.5 py-2 rounded-lg text-xs font-medium transition-colors ${showLiveRide ? 'bg-green-500/15 text-green-500 border border-green-500/30' : 'bg-secondary/50 text-muted-foreground hover:bg-muted'}`}>
                 <Radio className="size-3.5" /> LiveRIDE
+              </button>
+              <button onClick={() => setShowRideScore(!showRideScore)} className={`w-full flex items-center gap-2 px-2.5 py-2 rounded-lg text-xs font-medium transition-colors ${showRideScore ? 'bg-sky-500/15 text-sky-500 border border-sky-500/30' : 'bg-secondary/50 text-muted-foreground hover:bg-muted'}`}>
+                <CloudRain className="size-3.5" /> Ride Score
               </button>
             </div>
           </PopoverContent>
@@ -660,6 +670,15 @@ export default function MapTab({ rides, routes, onOpenDetail, userId }: MapTabPr
           {activePoiCount > 0 && (
             <button onClick={() => setActivePoiTypes([])} className="w-full mt-2 text-xs text-muted-foreground hover:text-foreground transition-colors py-1">Skrij vse</button>
           )}
+        </div>
+      )}
+
+      {/* Ride Score Widget */}
+      {showRideScore && (
+        <div className="absolute top-4 left-4 right-16 z-[999] mt-[52px]">
+          <div className="max-w-xs">
+            <RideScoreCard lat={fuelCenter.lat} lng={fuelCenter.lng} />
+          </div>
         </div>
       )}
 

@@ -107,6 +107,7 @@ interface MotoMapProps {
   showWeatherRadar?: boolean
   showHazards?: boolean
   showBalkanRoads?: boolean
+  showCurvyRoads?: boolean
   showCamps?: boolean
   camps?: CampMapData[]
   className?: string
@@ -236,6 +237,7 @@ export default function MotoMap({
   showWeatherRadar = false,
   showHazards = false,
   showBalkanRoads = false,
+  showCurvyRoads = false,
   showCamps = false,
   camps = [],
   className = '',
@@ -262,6 +264,7 @@ export default function MotoMap({
   const roadRatingsLayerRef = useRef<L.LayerGroup | null>(null)
   const tripLayerRef = useRef<L.LayerGroup | null>(null)
   const balkanRoadsLayerRef = useRef<L.LayerGroup | null>(null)
+  const curvyRoadsLayerRef = useRef<L.LayerGroup | null>(null)
   const campsLayerRef = useRef<L.LayerGroup | null>(null)
 
   // Initialize map
@@ -311,6 +314,8 @@ export default function MotoMap({
     tripLayerRef.current = tripLayer
     const balkanRoadsLayer = L.layerGroup().addTo(map)
     balkanRoadsLayerRef.current = balkanRoadsLayer
+    const curvyRoadsLayer = L.layerGroup().addTo(map)
+    curvyRoadsLayerRef.current = curvyRoadsLayer
     const campsLayer = L.layerGroup().addTo(map)
     campsLayerRef.current = campsLayer
 
@@ -709,6 +714,91 @@ export default function MotoMap({
 
     fetchAndRenderRoads()
   }, [showBalkanRoads])
+
+  // Update Curvy Roads overlay (Calimoto-style color-coded curvature)
+  useEffect(() => {
+    const layer = curvyRoadsLayerRef.current
+    if (!layer) return
+    layer.clearLayers()
+
+    if (!showCurvyRoads) return
+
+    const fetchAndRenderCurvyRoads = async () => {
+      try {
+        const res = await fetch('/api/curvy-roads')
+        if (!res.ok) return
+        const json = await res.json()
+        const roads: Array<{
+          id: string
+          name: string
+          country: string
+          curvature: number
+          color: string
+          segments: number[][]
+          lengthKm: number
+          description: string
+        }> = json.data || []
+
+        const curvatureLabels: Record<number, string> = {
+          1: 'Ravno', 2: 'Rahlo vijugasto', 3: 'Zmerno vijugasto', 4: 'Vijugasto', 5: 'Ekstremno vijugasto',
+        }
+
+        const countryFlags: Record<string, string> = {
+          SI: '🇸🇮', HR: '🇭🇷', BA: '🇧🇦', ME: '🇲🇪', RS: '🇷🇸', MK: '🇲🇰', AL: '🇦🇱', BG: '🇧🇬', RO: '🇷🇴', GR: '🇬🇷',
+        }
+
+        roads.forEach(road => {
+          // Draw polyline with curvature color
+          if (road.segments.length >= 2) {
+            const polyline = L.polyline(
+              road.segments.map((s: number[]) => [s[0], s[1]] as [number, number]),
+              {
+                color: road.color,
+                weight: 3 + road.curvature,
+                opacity: 0.85,
+                lineCap: 'round',
+                lineJoin: 'round',
+              }
+            ).addTo(layer)
+
+            const curvLabel = curvatureLabels[road.curvature] || 'Neznano'
+            const flag = countryFlags[road.country] || ''
+            const curvDots = '●'.repeat(road.curvature) + '○'.repeat(5 - road.curvature)
+
+            polyline.bindPopup(`
+              <div style="min-width:220px">
+                <strong style="font-size:14px">🔄 ${road.name}</strong><br/>
+                <span style="color:#666;font-size:12px;display:block;margin:4px 0">${road.description}</span>
+                <div style="display:flex;gap:4px;flex-wrap:wrap;margin:4px 0">
+                  <span style="background:${road.color}22;color:${road.color};padding:2px 8px;border-radius:4px;font-size:11px;display:inline-block;font-weight:700">${curvLabel}</span>
+                  <span style="background:#6b728022;color:#6b7280;padding:2px 8px;border-radius:4px;font-size:11px;display:inline-block">${flag} ${road.country}</span>
+                  <span style="background:#6b728022;color:#6b7280;padding:2px 8px;border-radius:4px;font-size:11px;display:inline-block">📏 ${road.lengthKm} km</span>
+                </div>
+                <div style="margin-top:4px;font-size:14px;letter-spacing:2px;color:${road.color}">${curvDots}</div>
+              </div>
+            `)
+
+            // Road name label
+            const midIdx = Math.floor(road.segments.length / 2)
+            const midPoint = road.segments[midIdx]
+            if (midPoint) {
+              const labelIcon = L.divIcon({
+                className: 'road-label',
+                html: `<div style="background:${road.color}dd;color:#fff;padding:1px 6px;border-radius:3px;font-size:9px;font-weight:700;white-space:nowrap;box-shadow:0 1px 4px rgba(0,0,0,0.3);line-height:1.4;">${road.name}</div>`,
+                iconSize: [0, 0],
+                iconAnchor: [0, -4],
+              })
+              L.marker([midPoint[0], midPoint[1]], { icon: labelIcon, interactive: false }).addTo(layer)
+            }
+          }
+        })
+      } catch {
+        // ignore
+      }
+    }
+
+    fetchAndRenderCurvyRoads()
+  }, [showCurvyRoads])
 
   // Update camps overlay
   useEffect(() => {
