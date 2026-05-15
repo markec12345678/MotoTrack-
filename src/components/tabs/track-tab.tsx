@@ -15,6 +15,7 @@ const LeanAngleDisplay = dynamic(() => import('@/components/lean-angle-display')
 const WeatherAlertsPanel = dynamic(() => import('@/components/weather-alerts-panel'), { ssr: false })
 const GradientAnalysis = dynamic(() => import('@/components/gradient-analysis'), { ssr: false })
 const RideShareCard = dynamic(() => import('@/components/ride-share-card'), { ssr: false })
+const PreRideChecklist = dynamic(() => import('@/components/pre-ride-checklist'), { ssr: false })
 
 const MotoMap = dynamic(() => import('@/components/moto-map'), { ssr: false })
 
@@ -54,6 +55,7 @@ export default function TrackTab({
     speedAlertSound: true,
   })
   const [flashOn, setFlashOn] = useState(false)
+  const [showChecklist, setShowChecklist] = useState(false)
   const audioCtxRef = useRef<AudioContext | null>(null)
   const hasPlayedBeepRef = useRef(false)
   const [showFeatures, setShowFeatures] = useState(false)
@@ -222,7 +224,7 @@ export default function TrackTab({
                 <span>Pripravljen na vožnjo</span>
               </div>
               <button
-                onClick={onStart}
+                onClick={() => setShowChecklist(true)}
                 className="relative w-16 h-16 rounded-full bg-primary flex items-center justify-center shadow-lg shadow-primary/40 active:scale-95 transition-transform"
               >
                 <Play className="size-7 text-white fill-white ml-1" />
@@ -230,6 +232,12 @@ export default function TrackTab({
                 <div className="absolute inset-0 rounded-full bg-primary/30 animate-ping" />
               </button>
               <span className="text-white/40 text-[10px]">Pritisni za začetek</span>
+              {/* Pre-Ride Checklist */}
+              <PreRideChecklist
+                open={showChecklist}
+                onClose={(skipped) => setShowChecklist(false)}
+                onStartRide={() => { setShowChecklist(false); onStart() }}
+              />
             </div>
           )}
 

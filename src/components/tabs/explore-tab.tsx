@@ -7,7 +7,7 @@ import {
   Users, Plus, LogOut, Shield, Sparkles, UserPlus,
   UserCheck, UserMinus, UserX, Send, MapPin, Calendar,
   ChevronRight, Trash2, Wrench, Fuel, GitCompare, ArrowLeft, Tent,
-  Gauge, Film, Play, Maximize2, Minimize2,
+  Gauge, Film, Play, Maximize2, Minimize2, Navigation, Cloud, AlertTriangle,
 } from 'lucide-react'
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
@@ -30,6 +30,9 @@ import SmartConsumptionPanel from '@/components/smart-consumption-panel'
 import BalkanEventsPanel from '@/components/balkan-events-panel'
 import BalkanCampsPanel from '@/components/balkan-camps-panel'
 import BalkanRoadsPanel from '@/components/balkan-roads-panel'
+import NearbyRoadsPanel from '@/components/nearby-roads-panel'
+import WeatherSuitability from '@/components/weather-suitability'
+import RoadConditionsPanel from '@/components/road-conditions-panel'
 import dynamic from 'next/dynamic'
 
 const MoviePlayer = dynamic(() => import('@/components/movie-player'), { ssr: false, loading: () => null })
@@ -78,7 +81,7 @@ const ExploreTabInner = React.memo(function ExploreTabInner({ rides, routes, lea
   const [exploreCategory, setExploreCategory] = useState<string>('all')
   const [searchQuery, setSearchQuery] = useState('')
   const debouncedSearchQuery = useDebounce(searchQuery, 200)
-  const [exploreSection, setExploreSection] = useState<'discover' | 'feed' | 'favorites' | 'communities' | 'friends' | 'grouprides' | 'challenges' | 'services' | 'fuel' | 'consumption' | 'comparison' | 'events' | 'camps' | 'balkanroads' | 'cinema'>('discover')
+  const [exploreSection, setExploreSection] = useState<'discover' | 'feed' | 'favorites' | 'communities' | 'friends' | 'grouprides' | 'challenges' | 'services' | 'fuel' | 'consumption' | 'comparison' | 'events' | 'camps' | 'balkanroads' | 'nearbyroads' | 'weather' | 'roadconditions' | 'cinema'>('discover')
 
   // Cinema state
   const [cinemaRideId, setCinemaRideId] = useState<string | null>(null)
@@ -569,6 +572,24 @@ const ExploreTabInner = React.memo(function ExploreTabInner({ rides, routes, lea
               onClick={() => setExploreSection('cinema')}
               icon={<Film className="size-3.5" />}
               label="Cinema"
+            />
+            <TabPill
+              active={exploreSection === 'nearbyroads'}
+              onClick={() => setExploreSection('nearbyroads')}
+              icon={<Navigation className="size-3.5" />}
+              label="Bližnje"
+            />
+            <TabPill
+              active={exploreSection === 'weather'}
+              onClick={() => setExploreSection('weather')}
+              icon={<Cloud className="size-3.5" />}
+              label="Vreme"
+            />
+            <TabPill
+              active={exploreSection === 'roadconditions'}
+              onClick={() => setExploreSection('roadconditions')}
+              icon={<AlertTriangle className="size-3.5" />}
+              label="Ceste stanje"
             />
           </div>
         </div>
@@ -1534,6 +1555,35 @@ const ExploreTabInner = React.memo(function ExploreTabInner({ rides, routes, lea
         ) : exploreSection === 'balkanroads' ? (
           /* ====== BALKAN ROADS SECTION ====== */
           <BalkanRoadsPanel />
+        ) : exploreSection === 'nearbyroads' ? (
+          /* ====== NEARBY ROADS SECTION ====== */
+          <NearbyRoadsPanel
+            userLat={undefined}
+            userLng={undefined}
+            onSelectRoad={(road) => {
+              // Could navigate map to the road
+            }}
+          />
+        ) : exploreSection === 'weather' ? (
+          /* ====== WEATHER SUITABILITY SECTION ====== */
+          <div className="space-y-4">
+            <div className="flex items-center justify-between">
+              <h2 className="text-lg font-bold flex items-center gap-2">
+                <Cloud className="size-5 text-primary" /> Vremenska primernost
+              </h2>
+            </div>
+            <WeatherSuitability />
+          </div>
+        ) : exploreSection === 'roadconditions' ? (
+          /* ====== ROAD CONDITIONS SECTION ====== */
+          <div className="space-y-4">
+            <div className="flex items-center justify-between">
+              <h2 className="text-lg font-bold flex items-center gap-2">
+                <AlertTriangle className="size-5 text-amber-500" /> Stanje na cestah
+              </h2>
+            </div>
+            <RoadConditionsPanel userId={userId} userName={undefined} />
+          </div>
         ) : exploreSection === 'cinema' ? (
           /* ====== MOTO CINEMA DIRECTOR ====== */
           <div className="space-y-4">

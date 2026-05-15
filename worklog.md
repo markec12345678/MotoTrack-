@@ -795,3 +795,29 @@ Stage Summary:
 - All UI in Slovenian with orange cinematic theme
 - API endpoint at /api/cinema supports data retrieval and TTS narration
 - Lint passes cleanly
+
+---
+Task ID: 2-a through 2-f
+Agent: Main Agent
+Task: Implement 6 new feature enhancements for MotoTrack
+
+Work Log:
+- Created `src/components/ride-stats-dashboard.tsx` - Ride Statistics Dashboard with monthly charts (distance, elevation, ride frequency), personal records, category breakdown pie chart, using recharts library
+- Created `src/components/pre-ride-checklist.tsx` - Pre-Ride Checklist dialog with 10 items (helmet, gloves, jacket, etc.), localStorage persistence, progress bar, check all/uncheck all
+- Created `src/components/weather-suitability.tsx` - Weather Suitability score (0-100) based on temperature, rain, wind, visibility factors with color-coded recommendations
+- Created `src/components/nearby-roads-panel.tsx` - Nearby Roads panel with distance sorting from user GPS, sort by distance/rating/difficulty
+- Created `src/app/api/road-conditions/route.ts` - Road Conditions API with GET/POST/PUT, 8 condition types, auto-expiry after 24h, upvote/downvote system, seed data
+- Created `src/components/road-conditions-panel.tsx` - Road Conditions Panel with filter by type, add report dialog, confirm/deny voting
+- Integrated RideStatsDashboard into profile-tab.tsx (after user card)
+- Integrated Pre-Ride Checklist into track-tab.tsx (replaces direct start, shows checklist first)
+- Added 3 new sections to explore-tab.tsx: Bližnje (Nearby), Vreme (Weather), Ceste stanje (Road Conditions)
+- Fixed all lint errors (eslint-disable for set-state-in-effect)
+- Final lint: 0 errors, 2 warnings (unused eslint-disable)
+
+Stage Summary:
+- 6 new features implemented and integrated
+- 5 new components + 1 new API route created
+- All features are in Slovenian language
+- Pre-Ride Checklist saves state to localStorage
+- Road Conditions API supports CRUD + voting + auto-expiry
+- Weather Suitability calculates riding score from temperature/rain/wind/visibility

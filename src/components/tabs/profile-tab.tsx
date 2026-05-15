@@ -26,6 +26,7 @@ import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/component
 import type { RideData, RouteData, UserData, PhotoData, EmergencyContactsData, SpeedAlertSettings, ExpenseData, MaintenanceReminderData, TrackPoint } from '@/components/tabs/types'
 import { formatDuration, formatDate, categoryLabel, categoryColor } from '@/components/tabs/types'
 import AchievementsPanel from '@/components/tabs/achievements-panel'
+import RideStatsDashboard from '@/components/ride-stats-dashboard'
 import PointsDisplay from '@/components/points-display'
 import BluetoothPanel from '@/components/bluetooth-panel'
 import OBDPanel from '@/components/obd-panel'
@@ -89,6 +90,7 @@ export default function ProfileTab({ user, allUsers, rides, routes, loading, onS
     financije: false,
     mediji: false,
     dosezki: false,
+    statistika: false,
     nastavitve: false,
     zasebnost: false,
   })
@@ -513,6 +515,11 @@ export default function ProfileTab({ user, allUsers, rides, routes, loading, onS
             </div>
           </CardContent>
         </Card>
+
+        {/* ════════════════════════════════════════════════════════════════
+            STATISTIKA VOŽENJ (always visible)
+        ════════════════════════════════════════════════════════════════ */}
+        <RideStatsDashboard rides={rides} userId={user.id} />
 
         {/* ════════════════════════════════════════════════════════════════
             COLLAPSIBLE SECTION 1: 🎮 Moj Motocikel
