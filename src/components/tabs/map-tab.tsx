@@ -442,8 +442,9 @@ export default function MapTab({ rides, routes, onOpenDetail, userId }: MapTabPr
 
   return (
     <div className="relative w-full h-[calc(100vh-72px)]">
-      {/* Map */}
-      <MotoMap
+      {/* Map - hidden when 3D view is active */}
+      <div className={show3D ? 'hidden' : ''}>
+        <MotoMap
         center={[46.15, 14.99]}
         zoom={8}
         rides={rides}
@@ -472,8 +473,9 @@ export default function MapTab({ rides, routes, onOpenDetail, userId }: MapTabPr
         userPosition={navUserPosition}
         className="absolute inset-0"
       />
+      </div>
 
-      {/* Floating search bar - REVER style with bold shadow */}
+      {/* Floating search bar - REVER style with bold shadow (hidden in 3D) */}
       <div className="absolute top-4 left-4 right-16 z-[1000]">
         <div className="relative max-w-md">
           <div className="flex items-center gap-2 bg-white/95 dark:bg-black/80 backdrop-blur-xl border border-white/20 dark:border-white/10 rounded-2xl shadow-xl shadow-black/10 dark:shadow-black/30 px-3.5 py-2.5">
@@ -738,9 +740,9 @@ export default function MapTab({ rides, routes, onOpenDetail, userId }: MapTabPr
         </Button>
       </div>
 
-      {/* 3D Map Overlay */}
+      {/* 3D Map Overlay - fixed position to cover entire viewport */}
       {show3D && (
-        <div className="absolute inset-0 z-[1200]">
+        <div className="fixed inset-0 z-[2000]">
           <Map3DViewer
             center={[14.99, 46.15]}
             zoom={10}
