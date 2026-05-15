@@ -272,14 +272,21 @@ export async function POST(request: NextRequest) {
     // Build messages array for API calls
     const apiMessages = history.map(m => ({ role: m.role, content: m.content }))
 
-    // Try OpenRouter first, fall back to z-ai-web-dev-sdk
-    let aiResponse = await callOpenRouter(apiMessages)
-    let provider = 'openrouter'
+    // Try z-ai-web-dev-sdk first (fast, reliable), fall back to OpenRouter
+    let aiResponse: string | null = null
+    let provider = 'z-ai'
+
+    try {
+      aiResponse = await callZAI(apiMessages)
+    } catch (e: any) {
+      console.error('z-ai failed:', e?.message || e)
+      aiResponse = null
+    }
 
     if (!aiResponse) {
-      console.log('OpenRouter failed, falling back to z-ai-web-dev-sdk')
-      aiResponse = await callZAI(apiMessages)
-      provider = 'z-ai'
+      console.log('z-ai failed, falling back to OpenRouter')
+      aiResponse = await callOpenRouter(apiMessages)
+      provider = 'openrouter'
     }
 
     // Add AI response to history (without search context in stored version)

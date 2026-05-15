@@ -327,7 +327,7 @@ export default function MotoChat() {
                       <span className="size-2 rounded-full bg-primary/60 animate-bounce [animation-delay:0ms]" />
                       <span className="size-2 rounded-full bg-primary/60 animate-bounce [animation-delay:150ms]" />
                       <span className="size-2 rounded-full bg-primary/60 animate-bounce [animation-delay:300ms]" />
-                      <span className="text-[10px] text-muted-foreground ml-2">Mototrak AI razmišlja...</span>
+                      <span className="text-[10px] text-muted-foreground ml-2">MotoTrack AI razmišlja...</span>
                     </div>
                   </div>
                 </div>
