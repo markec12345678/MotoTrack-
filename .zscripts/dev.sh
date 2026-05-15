@@ -1,7 +1,7 @@
 #!/bin/bash
 # Custom dev script for MotoTrack sandbox
-# Builds production app and runs custom server with auto-restart
 # Called by sandbox's /start.sh when present at .zscripts/dev.sh
+# Uses production build + custom server with auto-restart watchdog
 
 cd /home/z/my-project
 
@@ -12,10 +12,5 @@ if [ ! -f ".next/BUILD_ID" ]; then
     echo "[DEV] Build complete"
 fi
 
-echo "[DEV] Starting MotoTrack custom server with auto-restart..."
-while true; do
-    NODE_OPTIONS="--max-old-space-size=1024" node custom-server.js
-    EXIT_CODE=$?
-    echo "[$(date)] Server exited with code $EXIT_CODE, restarting in 3s..." >> /tmp/nextjs-restart.log
-    sleep 3
-done
+echo "[DEV] Starting MotoTrack server with watchdog..."
+bash run-server.sh

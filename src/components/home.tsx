@@ -230,33 +230,40 @@ export default function Home() {
     }
   }, [])
 
-  // Fetch data - only seed if database is empty
+  // Fetch data - use single /api/init endpoint to reduce concurrent requests
+  // This prevents memory spikes from multiple simultaneous API calls in sandbox
   const fetchData = useCallback(async () => {
     try {
-      // Only seed if database has no users (first time)
-      if (!seedChecked.current) {
-        seedChecked.current = true
-        try {
-          const checkRes = await fetch('/api/users')
-          if (checkRes.ok) {
-            const checkData = await checkRes.json()
-            const existingUsers = checkData.data || checkData
-            if (!existingUsers || existingUsers.length === 0) {
-              await fetch('/api/seed', { method: 'POST' })
+      // Single request for all initial data (reduces concurrent API calls from 7+ to 1)
+      const initRes = await fetch('/api/init')
+      if (initRes.ok) {
+        const j = await initRes.json()
+        const d = j.data || j
+        setRides(d.rides || [])
+        setRoutes(d.routes || [])
+        setUser(d.defaultUser || null)
+        setAllUsers(d.users || [])
+        setLeaderboard(d.leaderboard || [])
+        
+        // Seed if needed
+        if (d.needsSeed && !seedChecked.current) {
+          seedChecked.current = true
+          try {
+            await fetch('/api/seed', { method: 'POST' })
+            // Re-fetch after seeding
+            const retryRes = await fetch('/api/init')
+            if (retryRes.ok) {
+              const rj = await retryRes.json()
+              const rd = rj.data || rj
+              setRides(rd.rides || [])
+              setRoutes(rd.routes || [])
+              setUser(rd.defaultUser || null)
+              setAllUsers(rd.users || [])
+              setLeaderboard(rd.leaderboard || [])
             }
-          }
-        } catch { /* ignore seed check errors */ }
+          } catch { /* ignore seed errors */ }
+        }
       }
-      const [ridesRes, routesRes, userRes, usersRes] = await Promise.all([
-        fetch('/api/rides?public=true'),
-        fetch('/api/routes?public=true'),
-        fetch('/api/user'),
-        fetch('/api/users'),
-      ])
-      if (ridesRes.ok) { const j = await ridesRes.json(); setRides(j.data || j) }
-      if (routesRes.ok) { const j = await routesRes.json(); setRoutes(j.data || j) }
-      if (userRes.ok) { const j = await userRes.json(); setUser(j.data || j) }
-      if (usersRes.ok) { const j = await usersRes.json(); setAllUsers(j.data || j) }
     } catch (err) { console.error('Fetch error:', err) }
     finally { setLoading(false) }
   }, [])
@@ -267,11 +274,6 @@ export default function Home() {
   useWakeLock(settings.wakelockEnabled, isTracking)
 
   useEffect(() => { fetchData() }, [fetchData])
-
-  // Fetch leaderboard
-  useEffect(() => {
-    fetch('/api/leaderboard').then(r => r.json()).then(j => setLeaderboard(j.data || [])).catch(() => {})
-  }, [])
 
   // Calculate plan distance
   useEffect(() => {
