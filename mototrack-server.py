@@ -1,20 +1,26 @@
 #!/usr/bin/env python3
-"""MotoTrack Lightweight Server - Python"""
+"""MotoTrack Server - Request-serialized with minimum delay between requests"""
 import http.server
 import socketserver
 import os
 import json
-import threading
 import time
+import threading
 
 PORT = 3000
 BASE = os.path.dirname(os.path.abspath(__file__))
-INDEX = open(os.path.join(BASE, '.next', 'cached-index.html'), 'rb').read()
 
-# Connection limiting
-active_connections = 0
-MAX_CONNECTIONS = 3
-conn_lock = threading.Lock()
+# Load pre-rendered HTML
+try:
+    with open(os.path.join(BASE, '.next', 'cached-index.html'), 'rb') as f:
+        INDEX = f.read()
+except:
+    INDEX = b'<!DOCTYPE html><html><head><title>MotoTrack</title></head><body><h1>Loading...</h1></body></html>'
+
+# Request serialization
+request_lock = threading.Lock()
+last_request_time = 0
+MIN_INTERVAL = 1.5  # Minimum seconds between requests
 
 MIME_MAP = {
     'js': 'application/javascript', 'css': 'text/css', 'json': 'application/json',
@@ -22,63 +28,75 @@ MIME_MAP = {
     'ico': 'image/x-icon', 'woff2': 'font/woff2', 'woff': 'font/woff',
     'webp': 'image/webp', 'wasm': 'application/wasm', 'map': 'application/json',
     'ttf': 'font/ttf', 'txt': 'text/plain', 'xml': 'application/xml',
+    'html': 'text/html; charset=utf-8',
 }
 
+# File cache for static files
+file_cache = {}
+def get_file(path):
+    if path in file_cache:
+        return file_cache[path]
+    try:
+        if os.path.isfile(path):
+            with open(path, 'rb') as f:
+                data = f.read()
+            file_cache[path] = data
+            return data
+    except:
+        pass
+    return None
+
 class MotoTrackHandler(http.server.BaseHTTPRequestHandler):
+    def handle(self):
+        global last_request_time
+        with request_lock:
+            now = time.time()
+            elapsed = now - last_request_time
+            if elapsed < MIN_INTERVAL:
+                time.sleep(MIN_INTERVAL - elapsed)
+            last_request_time = time.time()
+            super().handle()
+    
     def do_GET(self):
-        global active_connections
-        with conn_lock:
-            if active_connections >= MAX_CONNECTIONS:
-                self.send_response(503)
-                self.send_header('Connection', 'close')
-                self.end_headers()
-                return
-            active_connections += 1
+        path = self.path.split('?')[0]
+        self.close_connection = True
         
-        try:
-            path = self.path.split('?')[0]
-            self.close_connection = True
-            
-            if path == '/' or path == '':
-                self._send_html(INDEX)
-            elif path.startswith('/_next/static/'):
-                fp = os.path.join(BASE, '.next', 'static', path.replace('/_next/static/', ''))
-                self._send_file(fp, 31536000)
-            elif path in ['/sw.js', '/manifest.json', '/robots.txt']:
-                self._send_file(os.path.join(BASE, 'public', path.lstrip('/')), 0)
-            elif path.startswith('/api/'):
-                self._handle_api(path)
+        if path == '/' or path == '':
+            self._send(INDEX, 'text/html; charset=utf-8', 60)
+        elif path.startswith('/_next/static/'):
+            fp = os.path.join(BASE, '.next', 'static', path.replace('/_next/static/', ''))
+            data = get_file(fp)
+            if data is not None:
+                ext = os.path.splitext(fp)[1].lstrip('.')
+                ct = MIME_MAP.get(ext, 'application/octet-stream')
+                self._send(data, ct, 31536000)
             else:
-                fp = os.path.join(BASE, 'public', path.lstrip('/'))
-                if os.path.isfile(fp):
-                    self._send_file(fp, 3600)
-                else:
-                    self._send_html(INDEX)  # SPA fallback
-        finally:
-            with conn_lock:
-                active_connections -= 1
+                self._send(INDEX, 'text/html; charset=utf-8', 60)
+        elif path in ['/sw.js', '/manifest.json', '/robots.txt']:
+            data = get_file(os.path.join(BASE, 'public', path.lstrip('/')))
+            if data is not None:
+                ext = os.path.splitext(path)[1].lstrip('.')
+                ct = MIME_MAP.get(ext, 'application/octet-stream')
+                self._send(data, ct, 0)
+            else:
+                self._notfound()
+        elif path.startswith('/api/'):
+            self._handle_api(path)
+        else:
+            fp = os.path.join(BASE, 'public', path.lstrip('/'))
+            data = get_file(fp)
+            if data is not None:
+                ext = os.path.splitext(fp)[1].lstrip('.')
+                ct = MIME_MAP.get(ext, 'application/octet-stream')
+                self._send(data, ct, 3600)
+            else:
+                # SPA fallback
+                self._send(INDEX, 'text/html; charset=utf-8', 60)
     
     def do_POST(self):
-        self.do_GET()  # Simplified
+        self.do_GET()
     
-    def _send_html(self, data):
-        self.send_response(200)
-        self.send_header('Content-Type', 'text/html; charset=utf-8')
-        self.send_header('Content-Length', len(data))
-        self.send_header('Cache-Control', 'public, max-age=60')
-        self.send_header('Connection', 'close')
-        self.end_headers()
-        self.wfile.write(data)
-    
-    def _send_file(self, fp, max_age):
-        if not os.path.isfile(fp):
-            self.send_response(404)
-            self.send_header('Connection', 'close')
-            self.end_headers()
-            return
-        ext = os.path.splitext(fp)[1].lstrip('.')
-        ct = MIME_MAP.get(ext, 'application/octet-stream')
-        data = open(fp, 'rb').read()
+    def _send(self, data, ct, max_age):
         self.send_response(200)
         self.send_header('Content-Type', ct)
         self.send_header('Content-Length', len(data))
@@ -87,6 +105,11 @@ class MotoTrackHandler(http.server.BaseHTTPRequestHandler):
         self.end_headers()
         self.wfile.write(data)
     
+    def _notfound(self):
+        self.send_response(404)
+        self.send_header('Connection', 'close')
+        self.end_headers()
+    
     def _handle_api(self, path):
         data = None
         if path == '/api/init':
@@ -94,13 +117,11 @@ class MotoTrackHandler(http.server.BaseHTTPRequestHandler):
                 'users': [{'id': 'demo1', 'name': 'Miran M.', 'email': 'miran@rever.si', 'avatar': None, 'bike': 'Yamaha MT-07', 'bio': 'Motociklistični navdušenec'}],
                 'rides': [], 'routes': [],
                 'defaultUser': {'id': 'demo1', 'name': 'Miran M.', 'email': 'miran@rever.si', 'avatar': None, 'bike': 'Yamaha MT-07', 'bio': 'Motociklistični navdušenec'},
-                'needsSeed': True,
+                'needsSeed': False,
                 'leaderboard': [{'id': 'demo1', 'name': 'Miran M.', 'totalDistance': 0, 'totalRides': 0}],
             }
         elif path == '/api/notifications':
             data = []
-        elif path == '/api/weather':
-            data = None
         elif path == '/api/achievements':
             data = {'earned': [], 'newlyEarned': []}
         elif path == '/api/sos':
@@ -115,27 +136,32 @@ class MotoTrackHandler(http.server.BaseHTTPRequestHandler):
             data = []
         elif path == '/api/settings':
             data = {}
+        elif path == '/api/stats':
+            data = {'totalRides': 0, 'totalDistance': 0, 'totalDuration': 0, 'avgSpeed': 0, 'maxSpeed': 0}
         else:
             data = None
         
         body = json.dumps({'data': data}).encode()
-        self.send_response(200)
-        self.send_header('Content-Type', 'application/json')
-        self.send_header('Content-Length', len(body))
-        self.send_header('Connection', 'close')
-        self.end_headers()
-        self.wfile.write(body)
+        self._send(body, 'application/json', 0)
     
     def log_message(self, *args):
-        pass  # Silent logging
+        pass
 
-class SingleThreadServer(socketserver.TCPServer):
+class Server(socketserver.TCPServer):
     allow_reuse_address = True
-    # Single-threaded: handles one request at a time
 
 if __name__ == '__main__':
-    server = SingleThreadServer(('', PORT), MotoTrackHandler)
-    print(f'> MotoTrack Python on :{PORT}')
+    # Pre-cache commonly requested files
+    static_dir = os.path.join(BASE, '.next', 'static', 'chunks')
+    if os.path.isdir(static_dir):
+        for f in os.listdir(static_dir):
+            fp = os.path.join(static_dir, f)
+            if os.path.isfile(fp):
+                get_file(fp)
+        print(f'[CACHE] Pre-cached {len(file_cache)} files')
+    
+    server = Server(('', PORT), MotoTrackHandler)
+    print(f'> MotoTrack on :{PORT} (serialized, min interval: {MIN_INTERVAL}s)')
     try:
         server.serve_forever()
     except KeyboardInterrupt:
