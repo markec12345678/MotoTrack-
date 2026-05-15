@@ -2,11 +2,11 @@
 
 **MotoTrack** je brezplačna aplikacija za GPS sledenje, načrtovanje in raziskovanje motociklističnih poti po Sloveniji in Balkanu. Navdihnjena po aplikaciji REVER, prilagojena za balkanske motoriste.
 
-![Next.js](https://img.shields.io/badge/Next.js-16-black?logo=next.js)
-![TypeScript](https://img.shields.io/badge/TypeScript-5-blue?logo=typescript)
-![Tailwind CSS](https://img.shields.io/badge/Tailwind_CSS-4-38bdf8?logo=tailwindcss)
-![Prisma](https://img.shields.io/badge/Prisma-ORM-2d3748?logo=prisma)
-![PWA](https://img.shields.io/badge/PWA-Ready-purple)
+[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
+[![TypeScript](https://img.shields.io/badge/TypeScript-5.0-blue)](https://www.typescriptlang.org/)
+[![Next.js](https://img.shields.io/badge/Next.js-16-black)](https://nextjs.org/)
+[![Vercel](https://img.shields.io/badge/Vercel-Deployed-000000)](https://mototrack-gamma.vercel.app)
+[![Balkan Motorists](https://img.shields.io/badge/For-Balkan%20Riders-orange)](https://mototrack-gamma.vercel.app)
 
 ---
 
