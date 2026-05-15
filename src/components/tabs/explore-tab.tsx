@@ -7,7 +7,7 @@ import {
   Users, Plus, LogOut, Shield, Sparkles, UserPlus,
   UserCheck, UserMinus, UserX, Send, MapPin, Calendar,
   ChevronRight, Trash2, Wrench, Fuel, GitCompare, ArrowLeft, Tent,
-  Gauge, Film, Play,
+  Gauge, Film, Play, Maximize2, Minimize2,
 } from 'lucide-react'
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
@@ -69,9 +69,11 @@ interface ExploreTabProps {
   onOpenDetail: (item: RideData | RouteData, type: 'ride' | 'route') => void
   onSwitchUser: (userId: string) => void
   userId?: string
+  fullscreen?: boolean
+  onToggleFullscreen?: (fullscreen: boolean) => void
 }
 
-const ExploreTabInner = React.memo(function ExploreTabInner({ rides, routes, leaderboard, onOpenDetail, onSwitchUser, userId }: ExploreTabProps) {
+const ExploreTabInner = React.memo(function ExploreTabInner({ rides, routes, leaderboard, onOpenDetail, onSwitchUser, userId, fullscreen, onToggleFullscreen }: ExploreTabProps) {
   const [exploreFilter, setExploreFilter] = useState<'all' | 'rides' | 'routes'>('all')
   const [exploreCategory, setExploreCategory] = useState<string>('all')
   const [searchQuery, setSearchQuery] = useState('')
@@ -419,11 +421,55 @@ const ExploreTabInner = React.memo(function ExploreTabInner({ rides, routes, lea
     [routes]
   )
 
+  // Auto-expand when any input/textarea is focused (form entry mode)
+  const handleFocusCapture = useCallback(() => {
+    if (!fullscreen && onToggleFullscreen) {
+      onToggleFullscreen(true)
+    }
+  }, [fullscreen, onToggleFullscreen])
+
   return (
-    <div className="w-full h-[calc(100vh-120px)] overflow-y-auto custom-scrollbar">
-      <div className="mx-auto max-w-4xl px-4 py-6">
-        {/* Section tabs - 2-row compact icon tab bar */}
+    <div
+      className={`w-full overflow-y-auto custom-scrollbar transition-all duration-300 ${
+        fullscreen
+          ? 'h-[100vh] fixed inset-0 z-[1399] bg-background'
+          : 'h-[calc(100vh-120px)]'
+      }`}
+      onFocusCapture={handleFocusCapture}
+    >
+      {/* Fullscreen header bar */}
+      {fullscreen && (
+        <div className="sticky top-0 z-10 flex items-center justify-between px-4 py-2 bg-background/95 backdrop-blur-md border-b border-border/30">
+          <div className="flex items-center gap-2">
+            <Compass className="size-4 text-primary" />
+            <span className="text-sm font-bold">Raziskuj</span>
+            <span className="text-[10px] text-muted-foreground bg-primary/10 px-2 py-0.5 rounded-full">Cel zaslon</span>
+          </div>
+          <button
+            onClick={() => onToggleFullscreen?.(false)}
+            className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground transition-colors px-3 py-1.5 rounded-full bg-secondary hover:bg-muted"
+          >
+            <Minimize2 className="size-3.5" />
+            Skrči
+          </button>
+        </div>
+      )}
+      <div className={`mx-auto max-w-4xl ${fullscreen ? 'px-4 py-4' : 'px-4 py-6'}`}>
+        {/* Section tabs + fullscreen toggle */}
         <div className="space-y-1.5 mb-6">
+          <div className="flex items-center justify-between">
+            <div className="flex-1" />
+            {!fullscreen && onToggleFullscreen && (
+              <button
+                onClick={() => onToggleFullscreen(true)}
+                className="flex items-center gap-1 text-[10px] text-muted-foreground hover:text-primary transition-colors px-2 py-1 rounded-full hover:bg-primary/10"
+                title="Razširi na cel zaslon"
+              >
+                <Maximize2 className="size-3" />
+                Cel zaslon
+              </button>
+            )}
+          </div>
           {/* Primary row */}
           <div className="flex gap-1 flex-wrap">
             <TabPill

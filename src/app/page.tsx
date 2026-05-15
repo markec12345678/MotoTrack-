@@ -153,6 +153,9 @@ function Home() {
   const [featureOpen, setFeatureOpen] = useState(false)
   const [featureTab, setFeatureTab] = useState<'roi' | 'smart' | 'video' | 'live' | 'sync'>('smart')
 
+  // Explore fullscreen mode
+  const [exploreFullscreen, setExploreFullscreen] = useState(false)
+
   // Comments
   const [comments, setComments] = useState<CommentData[]>([])
   const [newComment, setNewComment] = useState('')
@@ -173,6 +176,11 @@ function Home() {
     return 'map' as TabId
   }, [])
   const [activeTab, setActiveTab] = useState<TabId>(initialTab)
+
+  // Exit fullscreen when switching away from explore tab
+  useEffect(() => {
+    if (activeTab !== 'explore') setExploreFullscreen(false)
+  }, [activeTab])
 
   // User location for recommendations
   const [userLat, setUserLat] = useState<number | undefined>()
@@ -481,9 +489,11 @@ function Home() {
     <div className="min-h-screen flex flex-col bg-background">
       {/* Header - REVER-inspired with bold orange brand */}
       <header className={`fixed top-0 left-0 right-0 z-[1400] h-12 flex items-center px-4 transition-all duration-300 ${
-        activeTab === 'map'
-          ? 'bg-black/40 backdrop-blur-sm'
-          : 'bg-background/95 backdrop-blur-md border-b border-border/30'
+        exploreFullscreen
+          ? '-translate-y-full opacity-0 pointer-events-none'
+          : activeTab === 'map'
+            ? 'bg-black/40 backdrop-blur-sm'
+            : 'bg-background/95 backdrop-blur-md border-b border-border/30'
       }`}>
         <div className="flex items-center gap-2 flex-1">
           <div className="flex items-center justify-center size-8 rounded-xl bg-primary/20 shadow-sm shadow-primary/20">
@@ -524,10 +534,13 @@ function Home() {
       </header>
       {/* Header gradient accent line - REVER orange glow */}
       <div className={`header-gradient-line fixed top-12 left-0 right-0 z-[1400] transition-opacity duration-300 ${
-        activeTab === 'map' ? 'opacity-50' : 'opacity-100'
+        exploreFullscreen ? 'opacity-0' : activeTab === 'map' ? 'opacity-50' : 'opacity-100'
       }`} />
 
-      <main className="flex-1 relative" style={{ paddingTop: activeTab === 'map' ? '0' : '48px', paddingBottom: 'calc(72px + env(safe-area-inset-bottom, 0px))' }}>
+      <main className="flex-1 relative" style={{
+        paddingTop: exploreFullscreen ? '0' : activeTab === 'map' ? '0' : '48px',
+        paddingBottom: exploreFullscreen ? '0' : 'calc(72px + env(safe-area-inset-bottom, 0px))'
+      }}>
         <div key={activeTab} className="tab-transition">
           {activeTab === 'map' && (
             <MapTab rides={rides} routes={routes} onOpenDetail={openDetail} userId={user?.id} />
@@ -564,6 +577,8 @@ function Home() {
               rides={rides} routes={routes} leaderboard={leaderboard}
               onOpenDetail={openDetail} onSwitchUser={switchUser}
               userId={user?.id}
+              fullscreen={exploreFullscreen}
+              onToggleFullscreen={setExploreFullscreen}
             />
           )}
           {activeTab === 'profile' && (
@@ -712,17 +727,19 @@ function Home() {
         </div>
       )}
 
-      {/* SOS Button */}
-      <SosButton userId={user?.id} />
+      {/* SOS Button - hidden in explore fullscreen */}
+      {!exploreFullscreen && <SosButton userId={user?.id} />}
 
-      {/* AI Chat */}
-      <MotoChat />
+      {/* AI Chat - hidden in explore fullscreen */}
+      {!exploreFullscreen && <MotoChat />}
 
       {/* PWA Install Prompt */}
-      <PwaInstallPrompt />
+      {!exploreFullscreen && <PwaInstallPrompt />}
 
       {/* Bottom Nav - REVER-inspired dark bar with bold orange active */}
-      <nav className="fixed bottom-0 left-0 right-0 z-[1500] bg-black/95 backdrop-blur-xl border-t border-white/5 dark:bg-black/95" style={{ paddingBottom: 'env(safe-area-inset-bottom, 0px)' }}>
+      <nav className={`fixed bottom-0 left-0 right-0 z-[1500] bg-black/95 backdrop-blur-xl border-t border-white/5 dark:bg-black/95 transition-all duration-300 ${
+        exploreFullscreen ? 'translate-y-full opacity-0 pointer-events-none' : ''
+      }`} style={{ paddingBottom: 'env(safe-area-inset-bottom, 0px)' }}>
         <div className="flex items-center justify-around max-w-lg mx-auto h-[72px]">
           {tabs.map(tab => {
             const isActive = activeTab === tab.id
