@@ -978,3 +978,25 @@ Work Log:
 Stage Summary:
 - Navdih najden pri: REVER (Butler Maps, Ride With Friends), Calimoto (Twisty Roads Algorithm, curvy road scoring), Scenic (30M hours ridden, Apple CarPlay), Vroom GPS (AI-powered POI), ClearRide (motorcycle-specific weather), MotorbiKast (wind safety score)
 - 10 konkretnih predlogov za nadgradnjo pripravljenih
+---
+Task ID: 6
+Agent: Main
+Task: Implementacija 3 novih funkcij: Ride Score, Curvy Roads, AI Načrtovalec poti
+
+Work Log:
+- Ustvaril /api/ride-score/route.ts — API za izračun varnostne ocene vožnje (1-10) na osnovi vetra, padavin, temperature in vremenskih kod
+- Ustvaril /components/ride-score-card.tsx — kompaktna kartica s krožnim merilnikom, faktorji in priporočilom v slovenščini
+- Ustvaril /api/curvy-roads/route.ts — API s 34 barvno kodiranimi cestami po Balkanu (5-stopenjska lestvica vijugavosti)
+- Dodan showCurvyRoads prop in curvyRoadsLayerRef v moto-map.tsx z useEffect za risanje polylineov
+- Ustvaril /api/ai-route-planner/route.ts — AI algoritem za generiranje tur glede na slog, trajanje in bližnje zanimive točke
+- Dodal AiRoutePlanner komponento v plan-tab.tsx z izbiro sloga (scenična/vijugasta/turneja/terenska) in drsnikom za trajanje
+- Integriral Ride Score v Safety popover in kot floating widget na zemljevidu
+- Integriral Curvy Roads v Layers popover
+- Lint čist (0 errors, 1 warning za unused eslint-disable)
+- Commit in push: 05d9db1
+
+Stage Summary:
+- 3 nove funkcije implementirane in pushane na GitHub
+- Ride Score: ocena 1-10 z dejavniki (veter, padavine, temperatura, vreme) in priporočili
+- Curvy Roads: 34 cest po 10 državah z barvnim kodiranjem (zeleno->oranžno->rdeče)
+- AI Načrtovalec: 4 slogi vožnje, trajanje 1-8h, bias proti zanimivim točkam
