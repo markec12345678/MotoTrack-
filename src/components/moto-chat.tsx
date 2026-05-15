@@ -199,14 +199,14 @@ export default function MotoChat() {
 
   return (
     <>
-      {/* Floating chat button */}
+      {/* Floating chat button - smaller, less intrusive */}
       {!open && (
         <button
           onClick={() => setOpen(true)}
-          className="fixed bottom-20 right-4 z-[1600] size-14 rounded-full bg-primary text-primary-foreground shadow-lg hover:bg-primary/90 transition-all hover:scale-105 flex items-center justify-center"
+          className="fixed bottom-20 right-4 z-[1600] size-12 rounded-full bg-primary text-primary-foreground shadow-lg hover:bg-primary/90 transition-all hover:scale-105 flex items-center justify-center"
           aria-label="Odpri klepet"
         >
-          <MessageCircle className="size-6" />
+          <MessageCircle className="size-5" />
         </button>
       )}
 

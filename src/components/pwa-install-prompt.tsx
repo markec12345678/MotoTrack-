@@ -62,28 +62,28 @@ export function PwaInstallPrompt() {
   if (!showPrompt || isInstalled) return null
 
   return (
-    <div className="fixed bottom-20 left-4 right-4 z-[1600] animate-in slide-in-from-bottom-4 duration-300">
-      <div className="bg-card border border-border rounded-2xl p-4 shadow-xl max-w-md mx-auto">
+    <div className="fixed bottom-24 left-4 z-[1599] animate-in slide-in-from-bottom-4 duration-300">
+      <div className="bg-card border border-border rounded-2xl p-3 shadow-xl max-w-xs">
         <div className="flex items-start gap-3">
-          <div className="size-10 rounded-xl bg-primary/10 flex items-center justify-center shrink-0">
-            <Smartphone className="size-5 text-primary" />
+          <div className="size-8 rounded-xl bg-primary/10 flex items-center justify-center shrink-0">
+            <Smartphone className="size-4 text-primary" />
           </div>
           <div className="flex-1 min-w-0">
-            <h3 className="text-sm font-bold">Namesti MotoTrack</h3>
-            <p className="text-xs text-muted-foreground mt-0.5">
-              Dobi hitri dostop iz domačega zaslona — kot prava aplikacija!
+            <h3 className="text-xs font-bold">Namesti MotoTrack</h3>
+            <p className="text-[10px] text-muted-foreground mt-0.5">
+              Dobi hitri dostop iz domačega zaslona!
             </p>
-            <div className="flex gap-2 mt-3">
-              <Button size="sm" className="text-xs gap-1.5 h-8 rounded-full" onClick={handleInstall}>
-                <Download className="size-3.5" /> Namesti
+            <div className="flex gap-2 mt-2">
+              <Button size="sm" className="text-[10px] gap-1 h-6 rounded-full px-2" onClick={handleInstall}>
+                <Download className="size-3" /> Namesti
               </Button>
-              <Button variant="ghost" size="sm" className="text-xs h-8 rounded-full" onClick={handleDismiss}>
+              <Button variant="ghost" size="sm" className="text-[10px] h-6 rounded-full px-2" onClick={handleDismiss}>
                 Ne zdaj
               </Button>
             </div>
           </div>
           <button onClick={handleDismiss} className="text-muted-foreground hover:text-foreground shrink-0">
-            <X className="size-4" />
+            <X className="size-3" />
           </button>
         </div>
       </div>

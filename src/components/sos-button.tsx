@@ -34,8 +34,16 @@ export default function SosButton({ userId }: SosButtonProps) {
   const [showPanel, setShowPanel] = useState(false)
   const [sending, setSending] = useState(false)
   const [countdown, setCountdown] = useState<number | null>(null)
+  const [collapsed, setCollapsed] = useState(false)
   const longPressTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
   const countdownRef = useRef<ReturnType<typeof setInterval> | null>(null)
+  const autoHideTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
+
+  // Auto-hide SOS button after 8 seconds of no interaction (expand on tap)
+  useEffect(() => {
+    autoHideTimer.current = setTimeout(() => setCollapsed(true), 8000)
+    return () => { if (autoHideTimer.current) clearTimeout(autoHideTimer.current) }
+  }, [])
 
   // Check for existing active alerts on mount
   useEffect(() => {
@@ -174,27 +182,39 @@ export default function SosButton({ userId }: SosButtonProps) {
 
   return (
     <>
-      {/* Floating SOS button */}
+      {/* Floating SOS button - compact when collapsed */}
       {!showPanel && (
         <button
           onClick={() => {
+            if (collapsed) {
+              setCollapsed(false)
+              if (autoHideTimer.current) clearTimeout(autoHideTimer.current)
+              autoHideTimer.current = setTimeout(() => setCollapsed(true), 8000)
+              return
+            }
             if (activeAlert) {
               setShowPanel(true)
             } else {
               setConfirmOpen(true)
             }
           }}
-          onPointerDown={handlePointerDown}
-          onPointerUp={handlePointerUp}
-          onPointerLeave={handlePointerLeave}
-          className={`fixed bottom-36 right-4 z-[1600] size-14 rounded-full shadow-lg transition-all hover:scale-105 flex items-center justify-center font-bold text-white select-none ${
-            activeAlert
-              ? 'bg-red-600 animate-pulse'
-              : 'bg-red-500 hover:bg-red-600'
+          onPointerDown={collapsed ? undefined : handlePointerDown}
+          onPointerUp={collapsed ? undefined : handlePointerUp}
+          onPointerLeave={collapsed ? undefined : handlePointerLeave}
+          className={`fixed right-4 z-[1600] rounded-full shadow-lg transition-all flex items-center justify-center font-bold text-white select-none ${
+            collapsed
+              ? 'bottom-24 size-10 bg-red-500/80 hover:bg-red-500'
+              : activeAlert
+                ? 'bottom-36 size-14 bg-red-600 animate-pulse hover:scale-105'
+                : 'bottom-36 size-14 bg-red-500 hover:bg-red-600 hover:scale-105'
           }`}
           aria-label="SOS nujna pomoč"
         >
-          <span className="text-sm font-black tracking-wider">SOS</span>
+          {collapsed ? (
+            <AlertTriangle className="size-4" />
+          ) : (
+            <span className="text-sm font-black tracking-wider">SOS</span>
+          )}
         </button>
       )}
 

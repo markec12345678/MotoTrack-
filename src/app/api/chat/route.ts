@@ -150,10 +150,21 @@ function formatSearchContext(results: SearchResult[]): string {
 
 const OPENROUTER_API_KEY = process.env.OPENROUTER_API_KEY
 const OPENROUTER_URL = 'https://openrouter.ai/api/v1/chat/completions'
-const OPENROUTER_MODEL = 'google/gemma-4-31b-it:free'
+// Multiple free models to try in order
+const OPENROUTER_MODELS = [
+  'google/gemma-3-27b-it:free',
+  'meta-llama/llama-4-scout:free',
+  'mistralai/mistral-small-3.1-24b-instruct:free',
+  'google/gemma-4-31b-it:free',
+]
+
+// Circuit breaker: if OpenRouter fails, skip it for N seconds
+let openRouterCircuitOpen = false
+let openRouterCircuitResetAt = 0
+const CIRCUIT_COOLDOWN_MS = 60_000 // 1 minute cooldown after failure
 
 /**
- * Try OpenRouter API first (free model)
+ * Try OpenRouter API with timeout, circuit breaker, and model fallback
  */
 async function callOpenRouter(messages: Array<{ role: string; content: string }>): Promise<string | null> {
   if (!OPENROUTER_API_KEY) {
@@ -161,42 +172,74 @@ async function callOpenRouter(messages: Array<{ role: string; content: string }>
     return null
   }
 
-  try {
-    const response = await fetch(OPENROUTER_URL, {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${OPENROUTER_API_KEY}`,
-        'Content-Type': 'application/json',
-        'HTTP-Referer': 'https://mototrack.app',
-        'X-Title': 'MotoTrack AI',
-      },
-      body: JSON.stringify({
-        model: OPENROUTER_MODEL,
-        messages,
-        max_tokens: 1024,
-        temperature: 0.7,
-      }),
-    })
-
-    if (!response.ok) {
-      const errText = await response.text()
-      console.error(`OpenRouter error (${response.status}):`, errText)
+  // Circuit breaker: skip OpenRouter if it recently failed
+  if (openRouterCircuitOpen) {
+    if (Date.now() < openRouterCircuitResetAt) {
+      console.log('OpenRouter: Circuit breaker active, skipping')
       return null
     }
-
-    const data = await response.json()
-    const content = data.choices?.[0]?.message?.content
-    if (!content) {
-      console.error('OpenRouter: Empty response')
-      return null
-    }
-
-    console.log('OpenRouter: Success with model', OPENROUTER_MODEL)
-    return content
-  } catch (error: any) {
-    console.error('OpenRouter fetch error:', error?.message || error)
-    return null
+    openRouterCircuitOpen = false
   }
+
+  // Try each free model in order with a 5-second timeout
+  for (const model of OPENROUTER_MODELS) {
+    try {
+      const controller = new AbortController()
+      const timeout = setTimeout(() => controller.abort(), 5000)
+
+      const response = await fetch(OPENROUTER_URL, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${OPENROUTER_API_KEY}`,
+          'Content-Type': 'application/json',
+          'HTTP-Referer': 'https://mototrack.app',
+          'X-Title': 'MotoTrack AI',
+        },
+        body: JSON.stringify({
+          model,
+          messages,
+          max_tokens: 1024,
+          temperature: 0.7,
+        }),
+        signal: controller.signal,
+      })
+
+      clearTimeout(timeout)
+
+      if (!response.ok) {
+        const errText = await response.text()
+        console.error(`OpenRouter error (${response.status}) with ${model}:`, errText.slice(0, 200))
+        // If rate-limited, try next model
+        if (response.status === 429) continue
+        // Other errors: open circuit breaker and bail
+        openRouterCircuitOpen = true
+        openRouterCircuitResetAt = Date.now() + CIRCUIT_COOLDOWN_MS
+        return null
+      }
+
+      const data = await response.json()
+      const content = data.choices?.[0]?.message?.content
+      if (!content) {
+        console.error('OpenRouter: Empty response from', model)
+        continue
+      }
+
+      console.log('OpenRouter: Success with model', model)
+      return content
+    } catch (error: any) {
+      if (error?.name === 'AbortError') {
+        console.error(`OpenRouter: Timeout (5s) with ${model}`)
+      } else {
+        console.error(`OpenRouter fetch error with ${model}:`, error?.message || error)
+      }
+      continue
+    }
+  }
+
+  // All models failed - open circuit breaker
+  openRouterCircuitOpen = true
+  openRouterCircuitResetAt = Date.now() + CIRCUIT_COOLDOWN_MS
+  return null
 }
 
 /**
@@ -272,21 +315,21 @@ export async function POST(request: NextRequest) {
     // Build messages array for API calls
     const apiMessages = history.map(m => ({ role: m.role, content: m.content }))
 
-    // Try z-ai-web-dev-sdk first (fast, reliable), fall back to OpenRouter
+    // Try OpenRouter first (free models), fall back to z-ai-web-dev-sdk
     let aiResponse: string | null = null
-    let provider = 'z-ai'
+    let provider = 'openrouter'
 
-    try {
-      aiResponse = await callZAI(apiMessages)
-    } catch (e: any) {
-      console.error('z-ai failed:', e?.message || e)
-      aiResponse = null
-    }
+    aiResponse = await callOpenRouter(apiMessages)
 
     if (!aiResponse) {
-      console.log('z-ai failed, falling back to OpenRouter')
-      aiResponse = await callOpenRouter(apiMessages)
-      provider = 'openrouter'
+      console.log('OpenRouter unavailable, falling back to z-ai')
+      try {
+        aiResponse = await callZAI(apiMessages)
+        provider = 'z-ai'
+      } catch (e: any) {
+        console.error('z-ai also failed:', e?.message || e)
+        aiResponse = null
+      }
     }
 
     // Add AI response to history (without search context in stored version)
