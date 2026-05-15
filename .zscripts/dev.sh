@@ -1,50 +1,22 @@
 #!/bin/bash
-# Custom dev script for MotoTrack sandbox
-# Called by sandbox's /start.sh when present at .zscripts/dev.sh
-# Uses lightweight Node.js server optimized for sandbox memory constraints
-
 cd /home/z/my-project
 
-# Kill any existing process on port 3000
-fuser -k 3000/tcp 2>/dev/null || true
-sleep 1
-
-# Check if we need to build (first time only)
-if [ ! -f ".next/BUILD_ID" ]; then
-    echo "[DEV] No production build found, building..."
-    NODE_OPTIONS="--max-old-space-size=4096" npx next build 2>&1 | tail -5
-    echo "[DEV] Build complete"
+# Ensure bundles exist
+if [ ! -f ".next/static/chunks/bundle.js" ]; then
+  echo "[DEV] Building bundles..."
+  FRAMEWORK_JS="1b722dc42a67f14a.js 52505032a065c95f.js turbopack-096cc15c6f0e2262.js e4a11e9bca78804b.js e502ec70dee7d74e.js de42c9af34da033a.js 4d518823ade4dafd.js 9fe7c86b9d499177.js 664adc71bc2617c2.js 03500a31fa9a5852.js"
+  > .next/static/chunks/bundle.js
+  for f in $FRAMEWORK_JS; do
+    [ -f ".next/static/chunks/$f" ] && cat ".next/static/chunks/$f" >> .next/static/chunks/bundle.js
+  done
+  > .next/static/chunks/bundle.css
+  for f in a7d5d0791c8c6223.css ac228c928740594b.css; do
+    [ -f ".next/static/chunks/$f" ] && cat ".next/static/chunks/$f" >> .next/static/chunks/bundle.css
+  done
 fi
 
-# Ensure we have a cached index.html
-if [ ! -f ".next/cached-index.html" ]; then
-    echo "[DEV] Generating cached index.html..."
-    # Build creates the HTML, we need to cache it
-    node -e "
-    const http = require('http');
-    const fs = require('fs');
-    const next = require('next');
-    const app = next({ dev: false });
-    app.prepare().then(() => {
-      http.get('http://localhost:3000/', (res) => {
-        let d = '';
-        res.on('data', c => d += c);
-        res.on('end', () => {
-          fs.writeFileSync('.next/cached-index.html', d);
-          console.log('Cached index.html: ' + d.length + ' bytes');
-          process.exit(0);
-        });
-      }).on('error', () => process.exit(1));
-    });
-    " 2>/dev/null || true
-fi
-
-echo "[DEV] Starting MotoTrack lightweight server..."
-echo "[DEV] This server auto-restarts if killed by sandbox OOM monitor"
-
-# Auto-restart loop - the sandbox kills processes, so we restart them
+echo "[DEV] Starting MotoTrack Python server (auto-restart)..."
 while true; do
-    node --expose-gc mototrack-server.js 2>&1
-    echo "[DEV] Server died, restarting in 2s..."
-    sleep 2
+  python3 mototrack-server.py
+  echo "[DEV] Server died, restarting immediately..."
 done

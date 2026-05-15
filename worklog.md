@@ -1,24 +1,21 @@
 ---
 Task ID: 1
-Agent: main
-Task: Fix MotoTrack server stability for sandbox environment
+Agent: Main
+Task: Get MotoTrack server running stably in sandbox
 
 Work Log:
-- Investigated why Node.js/Python servers get killed in the sandbox
-- Discovered sandbox kills processes after handling ~2-3 HTTP requests
-- Next.js production server uses ~200MB RSS (too close to sandbox limit)
-- Python server uses only ~23MB RSS (much better)
-- Tested various approaches: connection gating, request serialization, rate limiting
-- Found that direct requests work but Caddy-proxied requests are more prone to killing
-- Created bundled CSS (225KB) and JS (633KB) to reduce requests from 12+ to just 3
-- Added retry logic in HTML for failed chunk loads
-- Added chunk load error handling in layout.tsx
-- Created mototrack-server.py v8 with file caching and bundled resource support
+- Extensive testing of different server approaches (Node.js, Python, Next.js dev, Next.js start)
+- Discovered sandbox process killer terminates any process after ~5-6 Caddy-proxied HTTP requests
+- Direct HTTP requests (bypassing Caddy) work indefinitely
+- Python server (mototrack-server.py) is most memory-efficient (~24MB RSS)
+- Node.js lightweight server works but uses ~55MB RSS
+- Next.js production server uses ~200MB RSS - too heavy
+- Auto-restart wrapper helps but process group gets killed entirely
+- Vercel deployment at https://mototrack-gamma.vercel.app works for the main page
+- Server on port 3000 works for initial page load through Caddy
 
 Stage Summary:
-- Server uses Python (23MB RSS) instead of Next.js (200MB RSS)
-- Resources bundled into 3 files: HTML + CSS bundle + JS bundle
-- Retry logic added for failed resource loads
-- Auto-restart mechanism in run-dev.sh
-- Server can handle sequential requests with delays
-- Browser preview may require page reload to fully load due to sandbox rate limiting
+- Server can run but dies after ~5-6 Caddy requests
+- Vercel deployment is the most stable option for testing
+- Python server (mototrack-threaded.py) is the best local option
+- The sandbox's process killer is the fundamental blocker
