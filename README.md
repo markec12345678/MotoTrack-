@@ -104,6 +104,21 @@
 
 ---
 
+## 📸 Galerija
+
+<p align="center">
+  <img src="public/screenshots/map.png" alt="Zemljevid" width="220" />
+  <img src="public/screenshots/motochat.png" alt="AI Chat — MotoChat" width="220" />
+  <img src="public/screenshots/cinema.png" alt="Cinema Mode" width="220" />
+  <img src="public/screenshots/stats.png" alt="Statistika voženj" width="220" />
+  <img src="public/screenshots/plan.png" alt="Načrtovanje poti" width="220" />
+  <img src="public/screenshots/track.png" alt="Sledenje vožnji" width="220" />
+  <img src="public/screenshots/explore.png" alt="Raziskuj" width="220" />
+  <img src="public/screenshots/profile.png" alt="Profil" width="220" />
+</p>
+
+---
+
 ## 🚀 Hitri začetek
 
 ### Namestitev
