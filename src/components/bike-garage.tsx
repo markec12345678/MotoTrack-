@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useState, useCallback, useEffect } from 'react'
+import React, { useState, useCallback, useEffect, useMemo } from 'react'
 import {
   Bike, Plus, Wrench, Gauge, Calendar, Fuel, Zap,
   Save, Trash2, ChevronDown, Edit3, CheckCircle2, AlertTriangle, X
