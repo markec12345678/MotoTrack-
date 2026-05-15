@@ -23,7 +23,7 @@ import { Button } from '@/components/ui/button'
 import { Skeleton } from '@/components/ui/skeleton'
 import { toast } from 'sonner'
 import { useTheme } from 'next-themes'
-import { useSearchParams } from 'next/navigation'
+
 
 import type { TabId, RideData, RouteData, UserData, CommentData, WeatherData, LeaderboardUser, TrackPoint } from '@/components/tabs/types'
 import { haversine, formatDuration, formatDate, categoryLabel, categoryColor } from '@/components/tabs/types'
@@ -221,15 +221,16 @@ function Home() {
   const [leaderboard, setLeaderboard] = useState<LeaderboardUser[]>([])
 
   // PWA shortcut support - read ?tab= from URL on first load
-  const searchParams = useSearchParams()
+  // Using window.location instead of useSearchParams() to avoid SSR suspension
+  // which causes hydration mismatch (server renders Suspense fallback, client renders Home)
   const [activeTab, setActiveTab] = useState<TabId>('map')
-  // Read tab from URL after mount to avoid hydration mismatch
   useEffect(() => {
-    const tab = searchParams.get('tab')
+    const params = new URLSearchParams(window.location.search)
+    const tab = params.get('tab')
     if (tab === 'plan' || tab === 'track' || tab === 'explore' || tab === 'profile') {
       setActiveTab(tab)
     }
-  }, [searchParams])
+  }, [])
 
   // Exit fullscreen when switching away from explore tab
   useEffect(() => {
