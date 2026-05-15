@@ -408,6 +408,16 @@ Da, v Garaži lahko upravljate več motornih koles z nastavitvami za vsako.
 
 ---
 
+## ❤️ Podpri projekt
+
+MotoTrack je brezplačen in odprtokoden. Če ti aplikacija pomaga, lahko podpreš razvoj z:
+
+- [GitHub Sponsors](https://github.com/sponsors/markec12345678)
+- [Buy Me a Coffee](https://www.buymeacoffee.com/markec)
+- Deljenjem aplikacije s prijatelji motoristi 🏍️
+
+---
+
 ## 📄 Licenca
 
 MIT License
