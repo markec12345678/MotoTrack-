@@ -56,6 +56,7 @@ interface CampMapData {
 interface MotoMapProps {
   center?: [number, number]
   zoom?: number
+  mapStyle?: string // 'osm' | 'dark' | 'satellite' | 'topo'
   rides: Array<{
     id: string
     title: string
@@ -109,6 +110,14 @@ interface MotoMapProps {
   showCamps?: boolean
   camps?: CampMapData[]
   className?: string
+}
+
+const MAP_TILES: Record<string, { url: string; attribution: string; maxZoom: number }> = {
+  osm: { url: 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', attribution: '© OpenStreetMap', maxZoom: 19 },
+  dark: { url: 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', attribution: '© CartoDB', maxZoom: 20 },
+  satellite: { url: 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', attribution: '© Esri', maxZoom: 19 },
+  topo: { url: 'https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png', attribution: '© OpenTopoMap', maxZoom: 17 },
+  voyager: { url: 'https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', attribution: '© CartoDB', maxZoom: 20 },
 }
 
 const categoryColors: Record<string, string> = {
@@ -230,7 +239,9 @@ export default function MotoMap({
   showCamps = false,
   camps = [],
   className = '',
+  mapStyle = 'osm',
 }: MotoMapProps) {
+  const tileRef = useRef<L.TileLayer | null>(null)
   const mapRef = useRef<L.Map | null>(null)
   const containerRef = useRef<HTMLDivElement>(null)
   const layersRef = useRef<{
@@ -277,11 +288,13 @@ export default function MotoMap({
     // Add zoom control to top-left
     L.control.zoom({ position: 'topleft' }).addTo(map)
 
-    // Tile layer
-    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-      attribution: '&copy; OpenStreetMap',
-      maxZoom: 19,
+    // Tile layer with style support
+    const tileConfig = MAP_TILES[mapStyle] || MAP_TILES.osm
+    const tileLayer = L.tileLayer(tileConfig.url, {
+      attribution: tileConfig.attribution,
+      maxZoom: tileConfig.maxZoom,
     }).addTo(map)
+    tileRef.current = tileLayer
 
     // Layer groups
     const ridesLayer = L.layerGroup().addTo(map)

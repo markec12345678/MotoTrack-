@@ -821,3 +821,35 @@ Stage Summary:
 - Pre-Ride Checklist saves state to localStorage
 - Road Conditions API supports CRUD + voting + auto-expiry
 - Weather Suitability calculates riding score from temperature/rain/wind/visibility
+
+---
+Task ID: 5-a through 5-f
+Agent: Main Agent
+Task: Implement UX improvements - Global Search, Map Styles, Night Mode, Crash Detection
+
+Work Log:
+- Created `src/components/global-search.tsx` - Global search with Ctrl+K using shadcn Command component
+  - Searches across rides, routes, balkan roads, events, camps, POIs
+  - Quick actions for tab navigation
+  - Fetches extra data on open (balkan-roads, events, camps, POIs)
+  - Integrated into page.tsx header with Search icon button
+- Fixed map styles in `src/components/moto-map.tsx`:
+  - Added `mapStyle` prop to MotoMapProps
+  - Added MAP_TILES config with 5 styles: osm, dark, satellite, topo, voyager
+  - Replaced hardcoded OSM tiles with dynamic tileConfig based on mapStyle prop
+  - Added tileRef for future tile swapping
+- Created `src/components/night-mode-toggle.tsx` - Night riding mode toggle
+  - Red tint overlay (rgba(180,0,0,0.12) with multiply blend)
+  - Integrated into page.tsx header
+  - Overlay is pointer-events: none so it doesn't block interaction
+- Crash detection already integrated in track-tab.tsx (behind "Napredne funkcije" toggle)
+- Added Search icon to lucide-react imports in page.tsx
+- Added GlobalSearch + NightModeToggle dynamic imports in page.tsx
+- Added searchOpen, nightMode state in page.tsx
+- Final lint: 0 errors, 2 warnings
+
+Stage Summary:
+- Global Search (Ctrl+K) now works across all entity types
+- Map now supports 5 tile styles (osm, dark, satellite, topo, voyager)
+- Night riding mode with red tint overlay for eye protection
+- All features integrated and tested

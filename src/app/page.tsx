@@ -17,6 +17,7 @@ import {
   RefreshCw,
   BarChart3,
   Radio,
+  Search,
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Skeleton } from '@/components/ui/skeleton'
@@ -72,6 +73,8 @@ const OfflineSyncPanel = dynamic(withRetry(() => import('@/components/offline-sy
 const RouteRoiPanel = dynamic(withRetry(() => import('@/components/route-roi-panel')), { ssr: false, loading: DynamicLoading })
 const LiveTrackingPanel = dynamic(withRetry(() => import('@/components/live-tracking-panel')), { ssr: false, loading: DynamicLoading })
 const LiveTrackingViewer = dynamic(withRetry(() => import('@/components/live-tracking-viewer')), { ssr: false, loading: DynamicLoading })
+const GlobalSearch = dynamic(withRetry(() => import('@/components/global-search')), { ssr: false, loading: () => null })
+const NightModeToggle = dynamic(withRetry(() => import('@/components/night-mode-toggle')), { ssr: false, loading: () => null })
 
 const tabs: { id: TabId; label: string; icon: React.ElementType }[] = [
   { id: 'map', label: 'Zemljevid', icon: MapIcon },
@@ -155,6 +158,12 @@ function Home() {
 
   // Explore fullscreen mode
   const [exploreFullscreen, setExploreFullscreen] = useState(false)
+
+  // Global search
+  const [searchOpen, setSearchOpen] = useState(false)
+
+  // Night riding mode
+  const [nightMode, setNightMode] = useState(false)
 
   // Comments
   const [comments, setComments] = useState<CommentData[]>([])
@@ -520,6 +529,16 @@ function Home() {
             </Button>
             <NotificationBell userId={user?.id} />
             <AppShareButton />
+            <NightModeToggle enabled={nightMode} onToggle={setNightMode} />
+            <Button
+              variant="ghost"
+              size="icon"
+              className="size-8 rounded-lg hover:bg-primary/10"
+              onClick={() => setSearchOpen(true)}
+              title="Iskanje (Ctrl+K)"
+            >
+              <Search className="size-3.5" />
+            </Button>
             <Button
               variant="ghost"
               size="icon"
@@ -735,6 +754,29 @@ function Home() {
 
       {/* PWA Install Prompt */}
       {!exploreFullscreen && <PwaInstallPrompt />}
+
+      {/* Global Search */}
+      <GlobalSearch
+        open={searchOpen}
+        onOpenChange={setSearchOpen}
+        rides={rides}
+        routes={routes}
+        onNavigateToRide={(ride) => { setActiveTab('map'); setSearchOpen(false) }}
+        onNavigateToRoute={(route) => { setActiveTab('map'); setSearchOpen(false) }}
+        onNavigateToRoad={(road) => { setActiveTab('explore'); setSearchOpen(false) }}
+        onNavigateToTab={(tab) => { setActiveTab(tab as TabId); setSearchOpen(false) }}
+      />
+
+      {/* Night Riding Mode Overlay */}
+      {nightMode && (
+        <div
+          className="fixed inset-0 z-[9999] pointer-events-none"
+          style={{
+            background: 'rgba(180, 0, 0, 0.12)',
+            mixBlendMode: 'multiply',
+          }}
+        />
+      )}
 
       {/* Bottom Nav - REVER-inspired dark bar with bold orange active */}
       <nav className={`fixed bottom-0 left-0 right-0 z-[1500] bg-black/95 backdrop-blur-xl border-t border-white/5 dark:bg-black/95 transition-all duration-300 ${
