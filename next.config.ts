@@ -5,6 +5,7 @@ const nextConfig: NextConfig = {
     ignoreBuildErrors: true,
   },
   reactStrictMode: false,
+  output: 'standalone',
   // instrumentationHook is enabled by default in Next.js 14+
   // No need to specify it explicitly (removed - was causing config warning)
   // @libsql/client uses native bindings that must be externalized
