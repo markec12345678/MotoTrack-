@@ -1,168 +1,125 @@
 #!/usr/bin/env python3
-"""MotoTrack Server - Request-serialized with minimum delay between requests"""
-import http.server
-import socketserver
-import os
-import json
-import time
-import threading
+"""MotoTrack Server v8 - Bundled Resources
+Only 3 requests needed: HTML + CSS bundle + JS bundle
+This stays within the sandbox's ~2-3 request limit."""
+import http.server, socketserver, os, json
 
 PORT = 3000
 BASE = os.path.dirname(os.path.abspath(__file__))
 
-# Load pre-rendered HTML
+# Load HTML
 try:
     with open(os.path.join(BASE, '.next', 'cached-index.html'), 'rb') as f:
-        INDEX = f.read()
+        INDEX_HTML = f.read()
 except:
-    INDEX = b'<!DOCTYPE html><html><head><title>MotoTrack</title></head><body><h1>Loading...</h1></body></html>'
+    INDEX_HTML = b'<html><body><h1>MotoTrack</h1></body></html>'
 
-# Request serialization
-request_lock = threading.Lock()
-last_request_time = 0
-MIN_INTERVAL = 1.5  # Minimum seconds between requests
-
-MIME_MAP = {
-    'js': 'application/javascript', 'css': 'text/css', 'json': 'application/json',
-    'png': 'image/png', 'jpg': 'image/jpeg', 'svg': 'image/svg+xml',
-    'ico': 'image/x-icon', 'woff2': 'font/woff2', 'woff': 'font/woff',
-    'webp': 'image/webp', 'wasm': 'application/wasm', 'map': 'application/json',
-    'ttf': 'font/ttf', 'txt': 'text/plain', 'xml': 'application/xml',
-    'html': 'text/html; charset=utf-8',
+MIME = {
+    '.js': 'application/javascript', '.css': 'text/css', '.json': 'application/json',
+    '.png': 'image/png', '.jpg': 'image/jpeg', '.svg': 'image/svg+xml',
+    '.ico': 'image/x-icon', '.woff2': 'font/woff2', '.woff': 'font/woff',
+    '.webp': 'image/webp', '.wasm': 'application/wasm', '.map': 'application/json',
+    '.txt': 'text/plain',
 }
 
-# File cache for static files
-file_cache = {}
-def get_file(path):
-    if path in file_cache:
-        return file_cache[path]
+_cache = {}
+def load_file(path):
+    if path in _cache: return _cache[path]
     try:
-        if os.path.isfile(path):
-            with open(path, 'rb') as f:
-                data = f.read()
-            file_cache[path] = data
-            return data
-    except:
-        pass
-    return None
+        if not os.path.isfile(path): return None
+        with open(path, 'rb') as f: data = f.read()
+        ext = os.path.splitext(path)[1].lower()
+        ct = MIME.get(ext, 'application/octet-stream')
+        _cache[path] = (data, ct)
+        return (data, ct)
+    except: return None
 
-class MotoTrackHandler(http.server.BaseHTTPRequestHandler):
-    def handle(self):
-        global last_request_time
-        with request_lock:
-            now = time.time()
-            elapsed = now - last_request_time
-            if elapsed < MIN_INTERVAL:
-                time.sleep(MIN_INTERVAL - elapsed)
-            last_request_time = time.time()
-            super().handle()
-    
+def preload():
+    count = 0
+    # Pre-load bundles specifically
+    load_file(os.path.join(BASE, '.next', 'static', 'chunks', 'bundle.css'))
+    load_file(os.path.join(BASE, '.next', 'static', 'chunks', 'bundle.js'))
+    for root, dirs, files in os.walk(os.path.join(BASE, '.next', 'static')):
+        for f in files:
+            load_file(os.path.join(root, f))
+            count += 1
+    for root, dirs, files in os.walk(os.path.join(BASE, 'public')):
+        for f in files:
+            load_file(os.path.join(root, f))
+            count += 1
+    return count
+
+MOCK_USER = {'id': 'demo1', 'name': 'Miran M.', 'email': 'miran@rever.si', 'avatar': None, 'bike': 'Yamaha MT-07', 'bio': 'Motociklistični navdušenec'}
+API = {
+    '/api/init': lambda: {'users': [MOCK_USER], 'rides': [], 'routes': [], 'defaultUser': MOCK_USER, 'needsSeed': False, 'leaderboard': [{'id': 'demo1', 'name': 'Miran M.', 'totalDistance': 0, 'totalRides': 0}]},
+    '/api/notifications': lambda: [], '/api/achievements': lambda: {'earned': [], 'newlyEarned': []},
+    '/api/sos': lambda: {'ok': True}, '/api/seed': lambda: {'seeded': False},
+    '/api/leaderboard': lambda: [{'id': 'demo1', 'name': 'Miran M.', 'totalDistance': 0, 'totalRides': 0}],
+    '/api/rides': lambda: [], '/api/routes': lambda: [], '/api/comments': lambda: [],
+    '/api/settings': lambda: {'unitSystem': 'metric', 'autoPauseEnabled': True, 'autoPauseSpeedThreshold': 5, 'wakelockEnabled': True, 'hideStartEnd': False},
+    '/api/stats': lambda: {'totalRides': 0, 'totalDistance': 0, 'totalDuration': 0, 'avgSpeed': 0, 'maxSpeed': 0},
+    '/api/weather': lambda: None, '/api/fuel': lambda: [], '/api/fuel-prices': lambda: [],
+    '/api/balkan-roads': lambda: [], '/api/events': lambda: [], '/api/challenges': lambda: [],
+    '/api/favorites': lambda: [], '/api/friends': lambda: [],
+    '/api/ride-score': lambda: {'score': 0, 'breakdown': {}}, '/api/curvy-roads': lambda: [],
+    '/api/map-styles': lambda: [], '/api/camps': lambda: [], '/api/expenses': lambda: [],
+    '/api/videos': lambda: [], '/api/subscription': lambda: {'plan': 'free'},
+}
+
+class Handler(http.server.BaseHTTPRequestHandler):
     def do_GET(self):
         path = self.path.split('?')[0]
         self.close_connection = True
         
-        if path == '/' or path == '':
-            self._send(INDEX, 'text/html; charset=utf-8', 60)
+        if path in ('/', ''):
+            self._send(200, INDEX_HTML, 'text/html; charset=utf-8', 60)
         elif path.startswith('/_next/static/'):
             fp = os.path.join(BASE, '.next', 'static', path.replace('/_next/static/', ''))
-            data = get_file(fp)
-            if data is not None:
-                ext = os.path.splitext(fp)[1].lstrip('.')
-                ct = MIME_MAP.get(ext, 'application/octet-stream')
-                self._send(data, ct, 31536000)
-            else:
-                self._send(INDEX, 'text/html; charset=utf-8', 60)
-        elif path in ['/sw.js', '/manifest.json', '/robots.txt']:
-            data = get_file(os.path.join(BASE, 'public', path.lstrip('/')))
-            if data is not None:
-                ext = os.path.splitext(path)[1].lstrip('.')
-                ct = MIME_MAP.get(ext, 'application/octet-stream')
-                self._send(data, ct, 0)
-            else:
-                self._notfound()
+            r = load_file(fp)
+            if r: self._send(200, r[0], r[1], 31536000)
+            else: self._send(404, b'Not Found', 'text/plain', 0)
         elif path.startswith('/api/'):
-            self._handle_api(path)
+            h = API.get(path)
+            d = h() if h else None
+            self._send(200, json.dumps({'data': d}).encode(), 'application/json', 0)
+        elif path == '/sw.js':
+            r = load_file(os.path.join(BASE, 'public', 'sw.js'))
+            if r: self._send(200, r[0], 'application/javascript', 0)
+            else: self._send(200, b'self.addEventListener("fetch",function(){});', 'application/javascript', 0)
         else:
             fp = os.path.join(BASE, 'public', path.lstrip('/'))
-            data = get_file(fp)
-            if data is not None:
-                ext = os.path.splitext(fp)[1].lstrip('.')
-                ct = MIME_MAP.get(ext, 'application/octet-stream')
-                self._send(data, ct, 3600)
-            else:
-                # SPA fallback
-                self._send(INDEX, 'text/html; charset=utf-8', 60)
+            r = load_file(fp)
+            if r: self._send(200, r[0], r[1], 3600)
+            else: self._send(200, INDEX_HTML, 'text/html; charset=utf-8', 60)
     
     def do_POST(self):
-        self.do_GET()
-    
-    def _send(self, data, ct, max_age):
-        self.send_response(200)
-        self.send_header('Content-Type', ct)
-        self.send_header('Content-Length', len(data))
-        self.send_header('Cache-Control', f'public, max-age={max_age}')
-        self.send_header('Connection', 'close')
-        self.end_headers()
-        self.wfile.write(data)
-    
-    def _notfound(self):
-        self.send_response(404)
-        self.send_header('Connection', 'close')
-        self.end_headers()
-    
-    def _handle_api(self, path):
-        data = None
-        if path == '/api/init':
-            data = {
-                'users': [{'id': 'demo1', 'name': 'Miran M.', 'email': 'miran@rever.si', 'avatar': None, 'bike': 'Yamaha MT-07', 'bio': 'Motociklistični navdušenec'}],
-                'rides': [], 'routes': [],
-                'defaultUser': {'id': 'demo1', 'name': 'Miran M.', 'email': 'miran@rever.si', 'avatar': None, 'bike': 'Yamaha MT-07', 'bio': 'Motociklistični navdušenec'},
-                'needsSeed': False,
-                'leaderboard': [{'id': 'demo1', 'name': 'Miran M.', 'totalDistance': 0, 'totalRides': 0}],
-            }
-        elif path == '/api/notifications':
-            data = []
-        elif path == '/api/achievements':
-            data = {'earned': [], 'newlyEarned': []}
-        elif path == '/api/sos':
-            data = {'ok': True}
-        elif path == '/api/seed':
-            data = {'seeded': False}
-        elif path == '/api/leaderboard':
-            data = [{'id': 'demo1', 'name': 'Miran M.', 'totalDistance': 0, 'totalRides': 0}]
-        elif path.startswith('/api/users/'):
-            data = {'id': 'demo1', 'name': 'Miran M.'}
-        elif path in ['/api/rides', '/api/routes', '/api/comments']:
-            data = []
-        elif path == '/api/settings':
-            data = {}
-        elif path == '/api/stats':
-            data = {'totalRides': 0, 'totalDistance': 0, 'totalDuration': 0, 'avgSpeed': 0, 'maxSpeed': 0}
+        path = self.path.split('?')[0]
+        if path.startswith('/api/'):
+            h = API.get(path)
+            d = h() if h else None
+            self._send(200, json.dumps({'data': d}).encode(), 'application/json', 0)
         else:
-            data = None
-        
-        body = json.dumps({'data': data}).encode()
-        self._send(body, 'application/json', 0)
+            self._send(200, b'{"data":null}', 'application/json', 0)
     
-    def log_message(self, *args):
-        pass
+    def _send(self, code, data, ct, max_age):
+        try:
+            self.send_response(code)
+            self.send_header('Content-Type', ct)
+            self.send_header('Content-Length', len(data))
+            self.send_header('Cache-Control', f'public, max-age={max_age}')
+            self.send_header('Connection', 'close')
+            self.end_headers()
+            self.wfile.write(data)
+        except: pass
+    
+    def log_message(self, *a): pass
 
 class Server(socketserver.TCPServer):
     allow_reuse_address = True
+    request_queue_size = 5
 
 if __name__ == '__main__':
-    # Pre-cache commonly requested files
-    static_dir = os.path.join(BASE, '.next', 'static', 'chunks')
-    if os.path.isdir(static_dir):
-        for f in os.listdir(static_dir):
-            fp = os.path.join(static_dir, f)
-            if os.path.isfile(fp):
-                get_file(fp)
-        print(f'[CACHE] Pre-cached {len(file_cache)} files')
-    
-    server = Server(('', PORT), MotoTrackHandler)
-    print(f'> MotoTrack on :{PORT} (serialized, min interval: {MIN_INTERVAL}s)')
-    try:
-        server.serve_forever()
-    except KeyboardInterrupt:
-        server.shutdown()
+    count = preload()
+    print(f'> MotoTrack v8 on :{PORT} | {count} files | bundled (3 requests)')
+    server = Server(('', PORT), Handler)
+    server.serve_forever()

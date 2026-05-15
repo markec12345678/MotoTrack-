@@ -1,23 +1,24 @@
 ---
 Task ID: 1
-Agent: Main Agent
-Task: Get MotoTrack server running stably in sandbox
+Agent: main
+Task: Fix MotoTrack server stability for sandbox environment
 
 Work Log:
-- Discovered that the sandbox kills Node.js processes (RSS >50MB triggers OOM)
-- Tried multiple approaches: Next.js dev server, production build, custom servers
-- Found that Next.js uses ~215MB RSS which exceeds sandbox memory limit
-- Built a lightweight Node.js server (mototrack-server.js) that uses ~50MB
-- Node.js server survived without requests but died with HTTP requests via Caddy
-- Root cause: Caddy's keep-alive connections and concurrent requests kill processes
-- Switched to Python server (mototrack-server.py) which uses only ~18MB RSS
-- Python server survives longer but still dies after multiple requests
-- Implemented auto-restart watchdog (run-python.sh) that keeps restarting the server
-- Homepage works via Caddy with auto-restart mechanism
+- Investigated why Node.js/Python servers get killed in the sandbox
+- Discovered sandbox kills processes after handling ~2-3 HTTP requests
+- Next.js production server uses ~200MB RSS (too close to sandbox limit)
+- Python server uses only ~23MB RSS (much better)
+- Tested various approaches: connection gating, request serialization, rate limiting
+- Found that direct requests work but Caddy-proxied requests are more prone to killing
+- Created bundled CSS (225KB) and JS (633KB) to reduce requests from 12+ to just 3
+- Added retry logic in HTML for failed chunk loads
+- Added chunk load error handling in layout.tsx
+- Created mototrack-server.py v8 with file caching and bundled resource support
 
 Stage Summary:
-- Server is running via Python + auto-restart watchdog
-- Homepage accessible via Caddy (port 81) for preview panel
-- API returns stub data (no Prisma/database in sandbox)
-- Full API functionality available on Vercel deployment
-- Package.json dev script updated to use Python server
+- Server uses Python (23MB RSS) instead of Next.js (200MB RSS)
+- Resources bundled into 3 files: HTML + CSS bundle + JS bundle
+- Retry logic added for failed resource loads
+- Auto-restart mechanism in run-dev.sh
+- Server can handle sequential requests with delays
+- Browser preview may require page reload to fully load due to sandbox rate limiting

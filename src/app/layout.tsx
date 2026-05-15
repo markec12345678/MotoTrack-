@@ -56,6 +56,67 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="sl" suppressHydrationWarning>
+      <head>
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `
+// MotoTrack Chunk Load Retry - handles server instability
+(function() {
+  var MAX_RETRIES = 8;
+  var RETRY_DELAY = 1500;
+  var retryCount = {};
+  
+  // Intercept script errors and retry loading
+  document.addEventListener('error', function(e) {
+    var el = e.target;
+    if (el && el.tagName === 'SCRIPT' && el.src) {
+      var src = el.src;
+      if (!retryCount[src]) retryCount[src] = 0;
+      if (retryCount[src] < MAX_RETRIES) {
+        retryCount[src]++;
+        setTimeout(function() {
+          var newScript = document.createElement('script');
+          newScript.src = src;
+          newScript.async = true;
+          if (el.integrity) newScript.integrity = el.integrity;
+          document.head.appendChild(newScript);
+        }, RETRY_DELAY * retryCount[src]);
+      }
+    }
+  }, true);
+  
+  // Intercept link stylesheet errors
+  document.addEventListener('error', function(e) {
+    var el = e.target;
+    if (el && el.tagName === 'LINK' && el.rel === 'stylesheet' && el.href) {
+      var href = el.href;
+      if (!retryCount[href]) retryCount[href] = 0;
+      if (retryCount[href] < MAX_RETRIES) {
+        retryCount[href]++;
+        setTimeout(function() {
+          var newLink = document.createElement('link');
+          newLink.rel = 'stylesheet';
+          newLink.href = href;
+          document.head.appendChild(newLink);
+        }, RETRY_DELAY * retryCount[href]);
+      }
+    }
+  }, true);
+  
+  // Handle uncaught ChunkLoadError from Next.js dynamic imports
+  window.addEventListener('unhandledrejection', function(e) {
+    if (e.reason && (e.reason.name === 'ChunkLoadError' || 
+        (e.reason.message && e.reason.message.indexOf('Failed to load chunk') !== -1))) {
+      e.preventDefault();
+      // Auto-retry by reloading the page after delay
+      setTimeout(function() { window.location.reload(); }, 3000);
+    }
+  });
+})();
+`,
+          }}
+        />
+      </head>
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased bg-background text-foreground`}
       >

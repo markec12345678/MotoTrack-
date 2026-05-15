@@ -3,7 +3,7 @@
   "version": "1.0.0",
   "private": true,
   "scripts": {
-    "dev": "bash run-python.sh",
+    "dev": "bash run-dev.sh",
     "build": "npx prisma generate && next build",
     "postinstall": "npx prisma generate",
     "start": "NODE_OPTIONS='--max-old-space-size=4096' node .next/standalone/server.js",
