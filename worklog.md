@@ -964,3 +964,17 @@ Stage Summary:
 - README posodobljen in pushan na GitHub (https://github.com/markec12345678/MotoTrack-)
 - Vercel CLI nima poverilnic — uporabnik mora ročno prijaviti (`vercel login`) ali uporabiti Vercel Dashboard
 - Lint čist, build konfiguriran pravilno
+---
+Task ID: 5
+Agent: Main
+Task: Spletno iskanje navdiha za nadgradnjo MotoTrack aplikacije
+
+Work Log:
+- Iskal po 8 različnih poizvedbah na spletu (REVER, Calimoto, Kurviger, EatSleepRIDE, Scenic, Vroom GPS, itd.)
+- Analiziral funkcije konkurence: REVER Pro, Calimoto Twisty Roads Algorithm, Scenic nav, Vroom GPS AI, Kurviger, RideLog
+- Identificiral 10 ključnih funkcij, ki jih MotoTrack še nima
+- Pripravil prioritetni seznam nadgradenj
+
+Stage Summary:
+- Navdih najden pri: REVER (Butler Maps, Ride With Friends), Calimoto (Twisty Roads Algorithm, curvy road scoring), Scenic (30M hours ridden, Apple CarPlay), Vroom GPS (AI-powered POI), ClearRide (motorcycle-specific weather), MotorbiKast (wind safety score)
+- 10 konkretnih predlogov za nadgradnjo pripravljenih
