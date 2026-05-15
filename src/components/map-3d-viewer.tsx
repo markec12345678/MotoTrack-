@@ -17,6 +17,8 @@ import {
   Pause,
   FastForward,
   Building2,
+  AlertTriangle,
+  Loader2,
 } from 'lucide-react'
 import { toast } from 'sonner'
 
@@ -76,7 +78,6 @@ export default function Map3DViewer({
   const mapRef = useRef<any>(null)
   const maplibreRef = useRef<any>(null) // store dynamically imported maplibre-gl
   const flyAnimRef = useRef<number | null>(null)
-  const [mounted, setMounted] = useState(false)
   const [mapStyle, setMapStyle] = useState<MapStyle>('topo')
   const [currentPitch, setCurrentPitch] = useState(pitch)
   const [showTerrain, setShowTerrain] = useState(true)
@@ -86,8 +87,8 @@ export default function Map3DViewer({
   const [flySpeed, setFlySpeed] = useState<FlySpeed>(1)
   const [profilePoint, setProfilePoint] = useState<number | null>(null)
   const canvasRef = useRef<HTMLCanvasElement>(null)
-
-  useEffect(() => { setMounted(true) }, [])
+  const [initError, setInitError] = useState<string | null>(null)
+  const [isLoading, setIsLoading] = useState(true)
 
   // Compute track data with distances and elevation
   const trackData = useCallback(() => {
@@ -206,16 +207,34 @@ export default function Map3DViewer({
     } as any
   }, [showTerrain])
 
+  // Load MapLibre CSS dynamically
+  useEffect(() => {
+    // Check if CSS is already loaded
+    const existingLink = document.querySelector('link[href*="maplibre-gl"]')
+    if (!existingLink) {
+      const link = document.createElement('link')
+      link.rel = 'stylesheet'
+      link.href = 'https://unpkg.com/maplibre-gl@5.24.0/dist/maplibre-gl.css'
+      link.crossOrigin = 'anonymous'
+      document.head.appendChild(link)
+    }
+  }, [])
+
   // Initialize MapLibre GL map
   useEffect(() => {
-    if (!mounted || !containerRef.current) return
+    if (!containerRef.current) return
 
     let map: any = null
+    let cancelled = false
 
     const initMap = async () => {
       try {
+        setIsLoading(true)
+        setInitError(null)
+
         const maplibregl = await import('maplibre-gl')
-        await import('maplibre-gl/dist/maplibre-gl.css')
+
+        if (cancelled) return
 
         maplibreRef.current = maplibregl
 
@@ -234,7 +253,9 @@ export default function Map3DViewer({
         map.addControl(new maplibregl.ScaleControl(), 'bottom-left')
 
         map.on('load', () => {
+          if (cancelled) return
           setIs3DReady(true)
+          setIsLoading(false)
 
           if (showTerrain) {
             try { map!.setTerrain({ source: 'terrain-dem', exaggeration: 1.5 }) } catch {}
@@ -269,9 +290,18 @@ export default function Map3DViewer({
           addTrackData(map!)
         })
 
+        map.on('error', (e: any) => {
+          console.error('MapLibre map error:', e)
+          setInitError('Napaka pri nalaganju 3D zemljevida')
+          setIsLoading(false)
+        })
+
         mapRef.current = map
       } catch (err) {
+        if (cancelled) return
         console.error('MapLibre init error:', err)
+        setInitError(err instanceof Error ? err.message : 'Napaka pri nalaganju 3D zemljevida')
+        setIsLoading(false)
         toast.error('Napaka pri nalaganju 3D zemljevida')
       }
     }
@@ -279,13 +309,14 @@ export default function Map3DViewer({
     initMap()
 
     return () => {
+      cancelled = true
       if (flyAnimRef.current) cancelAnimationFrame(flyAnimRef.current)
       if (map) {
         map.remove()
         mapRef.current = null
       }
     }
-  }, [mounted])
+  }, [])
 
   // Add track/route data to the map
   const addTrackData = useCallback((map: any) => {
@@ -874,12 +905,34 @@ export default function Map3DViewer({
 
   const td = trackData()
 
-  if (!mounted) return null
-
   return (
     <div className="relative w-full h-full">
       {/* Map container */}
       <div ref={containerRef} className="absolute inset-0" />
+
+      {/* Loading overlay */}
+      {isLoading && !initError && (
+        <div className="absolute inset-0 z-20 flex items-center justify-center bg-black/60 backdrop-blur-sm">
+          <div className="flex flex-col items-center gap-3">
+            <Loader2 className="size-8 animate-spin text-amber-400" />
+            <span className="text-sm text-white/80">Nalaganje 3D zemljevida...</span>
+          </div>
+        </div>
+      )}
+
+      {/* Error overlay */}
+      {initError && (
+        <div className="absolute inset-0 z-20 flex items-center justify-center bg-black/80 backdrop-blur-sm">
+          <div className="flex flex-col items-center gap-3 max-w-xs text-center">
+            <AlertTriangle className="size-10 text-amber-400" />
+            <p className="text-sm text-white/90 font-medium">{initError}</p>
+            <p className="text-xs text-white/50">Preverite povezavo in poskusite znova</p>
+            <Button variant="outline" size="sm" className="mt-2" onClick={onClose}>
+              Zapri
+            </Button>
+          </div>
+        </div>
+      )}
 
       {/* Top bar overlay */}
       <div className="absolute top-0 left-0 right-0 z-10 flex items-center justify-between px-3 py-2 bg-gradient-to-b from-black/70 to-transparent pointer-events-none">

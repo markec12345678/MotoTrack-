@@ -1000,3 +1000,36 @@ Stage Summary:
 - Ride Score: ocena 1-10 z dejavniki (veter, padavine, temperatura, vreme) in priporočili
 - Curvy Roads: 34 cest po 10 državah z barvnim kodiranjem (zeleno->oranžno->rdeče)
 - AI Načrtovalec: 4 slogi vožnje, trajanje 1-8h, bias proti zanimivim točkam
+
+---
+Task ID: 3d-fix
+Agent: Main
+Task: Fix 3D view button - clicking it does nothing
+
+Work Log:
+- Investigated the 3D view button code in map-tab.tsx (line 729-737) and Map3DViewer component
+- Found multiple potential issues:
+  1. MapLibre GL CSS was imported dynamically inside initMap (`await import("maplibre-gl/dist/maplibre-gl.css")`) which may fail silently in Next.js Turbopack
+  2. Component had unnecessary `mounted` state check returning null on first render (component already SSR-disabled)
+  3. No visible error/loading states - failures were silent
+  4. Map error events not handled
+- Fixed map-3d-viewer.tsx:
+  - Removed the `mounted` state (unnecessary since component is SSR-disabled)
+  - Added CSS loading via link tag in useEffect (more reliable than dynamic CSS import)
+  - Added `isLoading` state with visible loading overlay (spinner + text)
+  - Added `initError` state with visible error overlay (warning icon + message + close button)
+  - Added map error event handler (`map.on("error", ...)`)
+  - Added `cancelled` flag in useEffect cleanup to prevent state updates after unmount
+- Fixed map-tab.tsx:
+  - Updated dynamic import fallback to use `h-full` instead of `h-64` for full viewport coverage
+  - Added `bg-black` background to the 3D overlay container for better visibility
+  - Updated loading state styling with amber spinner and white text
+- Fixed syntax error: missing closing brace `}` in the catch callback return statement
+
+Stage Summary:
+- 3D view button now properly shows loading state while MapLibre GL initializes
+- CSS is loaded via reliable link tag approach instead of dynamic import
+- Error states are visible to user instead of silent failures
+- Component no longer returns null on first render (removed mounted check)
+- All lint checks pass clean
+

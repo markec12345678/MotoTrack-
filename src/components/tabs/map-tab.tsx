@@ -23,17 +23,17 @@ const RideScoreCard = dynamic(() => import('@/components/ride-score-card').then(
 const Map3DViewer = dynamic(() => import('@/components/map-3d-viewer').catch(() => {
   // Return a fallback component if maplibre-gl chunk fails to load
   return { default: () => (
-    <div className="flex flex-col items-center justify-center h-64 gap-2 text-muted-foreground">
-      <Mountain className="size-8 opacity-30" />
+    <div className="flex flex-col items-center justify-center h-full gap-3 text-muted-foreground bg-black/80">
+      <Mountain className="size-10 opacity-30" />
       <p className="text-sm">3D zemljevid ni na voljo</p>
-      <p className="text-xs opacity-50">Poskusite osvežiti stran</p>
+      <p className="text-xs opacity-50">MapLibre GL se ni naložil. Poskusite osvežiti stran.</p>
     </div>
   )}
 }), { ssr: false, loading: () => (
-  <div className="flex items-center justify-center h-64">
-    <div className="flex flex-col items-center gap-2">
-      <div className="size-6 border-2 border-primary border-t-transparent rounded-full animate-spin" />
-      <span className="text-xs text-muted-foreground">Nalaganje 3D...</span>
+  <div className="flex items-center justify-center h-full bg-black/60">
+    <div className="flex flex-col items-center gap-3">
+      <div className="size-8 border-2 border-amber-400 border-t-transparent rounded-full animate-spin" />
+      <span className="text-xs text-white/70">Nalaganje 3D zemljevida...</span>
     </div>
   </div>
 ) })
@@ -742,7 +742,7 @@ export default function MapTab({ rides, routes, onOpenDetail, userId }: MapTabPr
 
       {/* 3D Map Overlay - fixed position to cover entire viewport */}
       {show3D && (
-        <div className="fixed inset-0 z-[2000]">
+        <div className="fixed inset-0 z-[2000] bg-black">
           <Map3DViewer
             center={[14.99, 46.15]}
             zoom={10}
