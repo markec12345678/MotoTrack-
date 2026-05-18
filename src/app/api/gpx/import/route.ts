@@ -23,6 +23,19 @@ export async function POST(request: NextRequest) {
     const nameMatch = text.match(/<name>(.*?)<\/name>/)
     const name = nameMatch ? nameMatch[1].trim() : 'Uvožena GPX pot'
 
+    // Try to extract MotoTrack extensions
+    let mtCategory = 'scenic'
+    let mtDifficulty = 'medium'
+    const mtCategoryMatch = text.match(/<mt:category>([^<]+)<\/mt:category>/)
+    if (mtCategoryMatch) mtCategory = mtCategoryMatch[1]
+    const mtDiffMatch = text.match(/<mt:difficulty>([^<]+)<\/mt:difficulty>/)
+    if (mtDiffMatch) mtDifficulty = mtDiffMatch[1]
+    const mtTypeMatch = text.match(/<mt:type>([^<]+)<\/mt:type>/)
+
+    // Extract description from GPX metadata
+    const descMatch = text.match(/<desc>([\s\S]*?)<\/desc>/)
+    const gpxDescription = descMatch ? descMatch[1].trim() : ''
+
     // Parse trkpt elements
     const trkptRegex = /<trkpt\s+lat="([^"]+)"\s+lon="([^"]+)"[^>]*>([\s\S]*?)<\/trkpt>/g
     let match
@@ -96,15 +109,17 @@ export async function POST(request: NextRequest) {
     const waypoints = points.map(p => ({ lat: p.lat, lng: p.lng }))
     const routeData = JSON.stringify(points.map(p => [p.lat, p.lng]))
 
+    // Determine if it's a ride (from MotoTrack) or external
+    const isMotoTrackExport = mtTypeMatch && (mtTypeMatch[1] === 'ride' || mtTypeMatch[1] === 'route')
     const route = await db.route.create({
       data: {
         title: name,
-        description: `Uvoženo iz GPX datoteke: ${file.name}`,
+        description: gpxDescription || `Uvoženo iz GPX datoteke: ${file.name}${isMotoTrackExport ? ' (MotoTrack)' : ''}`,
         distance: Math.round(totalDistance * 10) / 10,
         waypoints: JSON.stringify(waypoints),
         routeData,
-        category: 'scenic',
-        difficulty: 'medium',
+        category: mtCategory,
+        difficulty: mtDifficulty,
         isPublic: true,
         likes: 0,
         userId,
