@@ -15,6 +15,10 @@ import {
   Moon,
   Sparkles,
   Search,
+  Mic,
+  Activity,
+  Download,
+  Film,
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Skeleton } from '@/components/ui/skeleton'
@@ -76,6 +80,12 @@ const ParkingSpotPanel = dynamic(withRetry(() => import('@/components/parking-sp
 const ParkingMapIndicator = dynamic(withRetry(() => import('@/components/parking-spot').then(m => ({ default: m.ParkingMapIndicator }))), { ssr: false, loading: () => null })
 const ParkingSavePrompt = dynamic(withRetry(() => import('@/components/parking-spot').then(m => ({ default: m.ParkingSavePrompt }))), { ssr: false, loading: () => null })
 const BorderGuide = dynamic(withRetry(() => import('@/components/border-guide')), { ssr: false, loading: () => null })
+const VoiceCommands = dynamic(withRetry(() => import('@/components/voice-commands')), { ssr: false, loading: () => null })
+const TwistinessHeatmap = dynamic(withRetry(() => import('@/components/twistiness-heatmap')), { ssr: false, loading: () => null })
+const AutoThemeIndicator = dynamic(withRetry(() => import('@/components/auto-theme').then(m => ({ default: m.AutoThemeIndicator }))), { ssr: false, loading: () => null })
+const AutoThemeSettings = dynamic(withRetry(() => import('@/components/auto-theme').then(m => ({ default: m.AutoThemeSettings }))), { ssr: false, loading: () => null })
+const ExportPanel = dynamic(withRetry(() => import('@/components/export-panel')), { ssr: false, loading: () => null })
+const RouteSimulator = dynamic(withRetry(() => import('@/components/route-simulator')), { ssr: false, loading: () => null })
 
 const tabs: { id: TabId; label: string; icon: React.ElementType }[] = [
   { id: 'map', label: 'Zemljevid', icon: MapIcon },
@@ -244,6 +254,28 @@ export default function Home() {
   // Border guide
   const [showBorderGuide, setShowBorderGuide] = useState(false)
 
+  // Voice commands
+  const [voiceEnabled, setVoiceEnabled] = useState(false)
+
+  // Twistiness heatmap
+  const [showTwistiness, setShowTwistiness] = useState(false)
+
+  // Auto day/night theme
+  const [autoThemeEnabled, setAutoThemeEnabled] = useState(() => {
+    if (typeof window !== 'undefined') {
+      try { return localStorage.getItem('mototrack_autotheme') === 'true' } catch { return false }
+    }
+    return false
+  })
+
+  // Export panel
+  const [showExport, setShowExport] = useState(false)
+  const [exportRideId, setExportRideId] = useState<string | undefined>()
+  const [exportRouteId, setExportRouteId] = useState<string | undefined>()
+
+  // Route simulator
+  const [showSimulator, setShowSimulator] = useState(false)
+
   // Plan share dialog (Send to Phone)
   const [showPlanShare, setShowPlanShare] = useState(false)
   const [planShareRouteId, setPlanShareRouteId] = useState<string | null>(null)
@@ -361,6 +393,37 @@ export default function Home() {
   useWakeLock(settings.wakelockEnabled, isTracking)
 
   useEffect(() => { fetchData() }, [fetchData])
+
+  // Auto day/night theme - switch based on sunrise/sunset
+  useEffect(() => {
+    if (!mounted || !autoThemeEnabled) return
+    const lat = userLat ?? 46.0569 // default: Ljubljana
+    const lng = userLng ?? 14.5058
+
+    const checkDaytime = () => {
+      const now = new Date()
+      const dayOfYear = Math.floor((now.getTime() - new Date(now.getFullYear(), 0, 0).getTime()) / 86400000)
+      const lngHour = lng / 15
+      const t = dayOfYear + ((18) - lngHour) / 24 // sunset calc
+      const M = (0.9856 * t) - 3.289
+      let L = M + (1.916 * Math.sin(M * Math.PI / 180)) + (0.020 * Math.sin(2 * M * Math.PI / 180)) + 282.634
+      L = ((L % 360) + 360) % 360
+      const sinDec = 0.39782 * Math.sin(L * Math.PI / 180)
+      const cosDec = Math.cos(Math.asin(sinDec))
+      const zenith = 90.833
+      const cosH = (Math.cos(zenith * Math.PI / 180) - (sinDec * Math.sin(lat * Math.PI / 180))) /
+                   (cosDec * Math.cos(lat * Math.PI / 180))
+      // Simple check: if we can compute sunset hour, compare with current hour
+      const currentHour = now.getHours()
+      // Approximate: daytime is 6-20, nighttime is 20-6
+      const isDaytime = currentHour >= 6 && currentHour < 20
+      setTheme(isDaytime ? 'light' : 'dark')
+    }
+
+    checkDaytime()
+    const interval = setInterval(checkDaytime, 60000) // check every minute
+    return () => clearInterval(interval)
+  }, [mounted, autoThemeEnabled, userLat, userLng, setTheme])
 
   // Recover unsaved track data from localStorage (crash recovery)
   useEffect(() => {
@@ -992,6 +1055,46 @@ export default function Home() {
             <NotificationBell userId={user?.id} />
             <AppShareButton />
             <NightModeToggle enabled={nightMode} onToggle={setNightMode} />
+            {/* Voice commands toggle */}
+            <Button
+              variant="ghost"
+              size="icon"
+              className={`size-8 rounded-lg ${voiceEnabled ? 'bg-red-500/20 text-red-400' : 'hover:bg-primary/10'}`}
+              onClick={() => { setVoiceEnabled(v => !v); toast[voiceEnabled ? 'info' : 'success'](voiceEnabled ? '🔇 Glasovni ukazi izklopljeni' : '🎤 Glasovni ukazi vklopljeni') }}
+              title={voiceEnabled ? 'Izklopi glasovne ukaze' : 'Vklopi glasovne ukaze'}
+            >
+              <Mic className={`size-3.5 ${voiceEnabled ? 'text-red-400' : ''}`} />
+            </Button>
+            {/* Twistiness heatmap toggle */}
+            <Button
+              variant="ghost"
+              size="icon"
+              className={`size-8 rounded-lg ${showTwistiness ? 'bg-emerald-500/20 text-emerald-400' : 'hover:bg-primary/10'}`}
+              onClick={() => setShowTwistiness(t => !t)}
+              title={showTwistiness ? 'Skrij heatmap vijugavosti' : 'Prikaži heatmap vijugavosti'}
+            >
+              <Activity className={`size-3.5 ${showTwistiness ? 'text-emerald-400' : ''}`} />
+            </Button>
+            {/* Export button */}
+            <Button
+              variant="ghost"
+              size="icon"
+              className="size-8 rounded-lg hover:bg-primary/10"
+              onClick={() => setShowExport(true)}
+              title="Izvozi vožnjo (GPX/TCX/KML)"
+            >
+              <Download className="size-3.5" />
+            </Button>
+            {/* Route simulator */}
+            <Button
+              variant="ghost"
+              size="icon"
+              className={`size-8 rounded-lg ${showSimulator ? 'bg-orange-500/20 text-orange-400' : 'hover:bg-primary/10'}`}
+              onClick={() => { if (planWaypoints.length < 2) { toast.error('Narišite ruto za simulacijo'); return } setShowSimulator(s => !s) }}
+              title="Simulacija rute"
+            >
+              <Film className={`size-3.5 ${showSimulator ? 'text-orange-400' : ''}`} />
+            </Button>
             <Button
               variant="ghost"
               size="icon"
@@ -1109,6 +1212,14 @@ export default function Home() {
         userLat={userLat}
         userLng={userLng}
         onOpenDetail={(route) => openDetail(route, 'route')}
+        voiceEnabled={voiceEnabled}
+        onToggleVoice={setVoiceEnabled}
+        autoThemeEnabled={autoThemeEnabled}
+        onToggleAutoTheme={setAutoThemeEnabled}
+        showTwistiness={showTwistiness}
+        onToggleTwistiness={setShowTwistiness}
+        onOpenExport={() => setShowExport(true)}
+        onOpenSimulator={() => setShowSimulator(true)}
       />
 
       {/* FAB - Floating Action Button (REVER-style) */}
@@ -1245,6 +1356,55 @@ export default function Home() {
         isOpen={showBorderGuide}
         onClose={() => setShowBorderGuide(false)}
       />
+
+      {/* Voice Commands */}
+      {voiceEnabled && !exploreFullscreen && (
+        <VoiceCommands
+          isTracking={isTracking}
+          isPaused={isPaused}
+          onStartTracking={startTracking}
+          onStopTracking={stopTracking}
+          onPauseTracking={pauseTracking}
+          onResumeTracking={resumeTracking}
+          onSaveRide={saveRide}
+          onOpenEmergency={() => {}}
+          onReportHazard={() => {}}
+          onOpenNavigation={() => setActiveTab('plan')}
+          currentSpeed={trackCurrentSpeed}
+          currentLat={userLat ?? null}
+          currentLng={userLng ?? null}
+        />
+      )}
+
+      {/* Auto Day/Night Theme Indicator */}
+      <AutoThemeIndicator
+        lat={userLat}
+        lng={userLng}
+        enabled={autoThemeEnabled}
+        onToggle={setAutoThemeEnabled}
+      />
+
+      {/* Export Panel */}
+      <ExportPanel
+        rideId={exportRideId}
+        routeId={exportRouteId}
+        trackData={trackPoints.map(p => ({ lat: p.lat, lng: p.lng, alt: p.alt, speed: null, timestamp: p.timestamp }))}
+        rideName={selectedItem ? (selectedItem as RideData).title || 'MotoTrack vožnja' : 'MotoTrack vožnja'}
+        totalDistance={trackDistance}
+        totalDuration={trackDuration}
+        isOpen={showExport}
+        onClose={() => { setShowExport(false); setExportRideId(undefined); setExportRouteId(undefined) }}
+      />
+
+      {/* Route Simulator */}
+      {showSimulator && planWaypoints.length >= 2 && (
+        <RouteSimulator
+          points={planWaypoints}
+          routeName={planTitle || 'Simulacija rute'}
+          totalDistance={planDistance}
+          onClose={() => setShowSimulator(false)}
+        />
+      )}
 
       {/* Bottom Nav - REVER-inspired dark bar with bold orange active */}
       <nav className={`fixed bottom-0 left-0 right-0 z-[1500] bg-black/95 backdrop-blur-xl border-t border-white/5 dark:bg-black/95 transition-all duration-300 ${
