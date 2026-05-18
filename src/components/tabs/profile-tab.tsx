@@ -30,6 +30,7 @@ import RideStatsDashboard from '@/components/ride-stats-dashboard'
 import EnhancedStatsDashboard from '@/components/enhanced-stats-dashboard'
 import PointsDisplay from '@/components/points-display'
 import RideCalendar from '@/components/ride-calendar'
+import RideInsights from '@/components/ride-insights'
 import BluetoothPanel from '@/components/bluetooth-panel'
 import OBDPanel from '@/components/obd-panel'
 import RideReplay3D from '@/components/ride-replay-3d'
@@ -486,6 +487,15 @@ export default function ProfileTab({ user, allUsers, rides, routes, loading, onS
                 if (ride) onOpenDetail(ride, 'ride')
               }}
             />
+          </CardContent>
+        </Card>
+
+        {/* ════════════════════════════════════════════════════════════════
+            VPOGLEDI V VOŽNJE (always visible)
+        ════════════════════════════════════════════════════════════════ */}
+        <Card className="rounded-xl overflow-hidden">
+          <CardContent className="p-4">
+            <RideInsights rides={rides} userId={user.id} />
           </CardContent>
         </Card>
 

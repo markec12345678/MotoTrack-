@@ -3,6 +3,7 @@
 import React, { useState, useEffect, useCallback, useRef, useMemo, Suspense } from 'react'
 import dynamic from 'next/dynamic'
 import { useRouteDeviation } from '@/components/route-deviation-alert'
+import { useSpeedCameraAlert, SpeedCameraFloatingAlert } from '@/components/speed-camera-alerts'
 import {
   Map as MapIcon,
   Route,
@@ -180,6 +181,17 @@ export default function Home() {
     currentPosition: currentPos ? { lat: currentPos[0], lng: currentPos[1] } : null,
     isActive: isTracking && planWaypoints.length >= 2,
   })
+
+  // Speed camera alerts
+  const [cameraDismissed, setCameraDismissed] = useState(false)
+  const { closestCamera } = useSpeedCameraAlert(
+    currentPos ? currentPos[0] : null,
+    currentPos ? currentPos[1] : null,
+    undefined,
+    trackCurrentSpeed,
+    isTracking,
+  )
+
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null)
   const startTimeRef = useRef<number>(0)
   const pausedDurationRef = useRef<number>(0)
@@ -1120,6 +1132,18 @@ export default function Home() {
           onDismiss={() => {
             setDeviationDismissed(true)
             setTimeout(() => setDeviationDismissed(false), 300000) // 5 min cooldown
+          }}
+        />
+      )}
+
+      {/* Speed Camera Alert - when tracking and near a camera */}
+      {isTracking && closestCamera && closestCamera.distance <= 500 && !cameraDismissed && !exploreFullscreen && (
+        <SpeedCameraFloatingAlert
+          camera={closestCamera.camera}
+          distance={closestCamera.distance}
+          onDismiss={() => {
+            setCameraDismissed(true)
+            setTimeout(() => setCameraDismissed(false), 120000) // 2 min cooldown
           }}
         />
       )}

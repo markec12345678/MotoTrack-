@@ -28,6 +28,8 @@ import ChallengesPanel from '@/components/challenges-panel'
 import ServiceLocator from '@/components/service-locator'
 import FuelPriceCard from '@/components/fuel-price-card'
 import FuelPriceTracker from '@/components/fuel-price-tracker'
+import { SpeedCameraPanel } from '@/components/speed-camera-alerts'
+import MultiDayTripPlanner from '@/components/multi-day-trip-planner'
 import SmartConsumptionPanel from '@/components/smart-consumption-panel'
 import BalkanEventsPanel from '@/components/balkan-events-panel'
 import BalkanCampsPanel from '@/components/balkan-camps-panel'
@@ -1318,6 +1320,7 @@ const ExploreTabInner = React.memo(function ExploreTabInner({ rides, routes, lea
             </h2>
             <FuelPriceCard userId={userId} />
             <FuelPriceTracker userId={userId} />
+            <SpeedCameraPanel />
           </div>
         ) : exploreSection === 'consumption' ? (
           /* ====== SMART CONSUMPTION SECTION ====== */
