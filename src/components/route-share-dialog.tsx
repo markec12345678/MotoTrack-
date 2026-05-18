@@ -1,18 +1,23 @@
 'use client'
 
 import React, { useState, useCallback } from 'react'
-import { Share2, Copy, Check, Link2, X, QrCode, Loader2 } from 'lucide-react'
+import { Share2, Copy, Check, Link2, X, QrCode, Loader2, Smartphone } from 'lucide-react'
+import { QRCodeSVG } from 'qrcode.react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
+
+type ShareTab = 'qr' | 'code'
 
 interface RouteShareDialogProps {
   open: boolean
   onClose: () => void
   routeId: string
   routeTitle?: string
+  defaultTab?: ShareTab
 }
 
-export default function RouteShareDialog({ open, onClose, routeId, routeTitle }: RouteShareDialogProps) {
+export default function RouteShareDialog({ open, onClose, routeId, routeTitle, defaultTab = 'qr' }: RouteShareDialogProps) {
+  const [activeTab, setActiveTab] = useState<ShareTab>(defaultTab)
   const [shareCode, setShareCode] = useState<string | null>(null)
   const [shareUrl, setShareUrl] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
@@ -36,7 +41,10 @@ export default function RouteShareDialog({ open, onClose, routeId, routeTitle }:
       }
       const data = await res.json()
       setShareCode(data.data.shareCode)
-      setShareUrl(data.data.shareUrl)
+      // Build URL using current origin for QR code (works for both localhost and deployed)
+      const baseUrl = typeof window !== 'undefined' ? window.location.origin : 'https://mototrack-gamma.vercel.app'
+      const url = `${baseUrl}?route=${data.data.shareCode}`
+      setShareUrl(url)
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : 'Napaka pri deljenju rute')
     } finally {
@@ -48,6 +56,7 @@ export default function RouteShareDialog({ open, onClose, routeId, routeTitle }:
   React.useEffect(() => {
     if (open && !shareCode && !loading) {
       generateShare()
+      setActiveTab(defaultTab)
     }
     if (!open) {
       // Reset when closing
@@ -57,7 +66,7 @@ export default function RouteShareDialog({ open, onClose, routeId, routeTitle }:
       setCopiedUrl(false)
       setError(null)
     }
-  }, [open, shareCode, loading, generateShare])
+  }, [open, shareCode, loading, generateShare, defaultTab])
 
   const copyToClipboard = useCallback(async (text: string, type: 'code' | 'url') => {
     try {
@@ -118,6 +127,32 @@ export default function RouteShareDialog({ open, onClose, routeId, routeTitle }:
           </button>
         </div>
 
+        {/* Tab Toggle */}
+        <div className="flex border-b border-border/50">
+          <button
+            className={`flex-1 flex items-center justify-center gap-1.5 py-2.5 text-xs font-semibold transition-colors ${
+              activeTab === 'qr'
+                ? 'text-primary border-b-2 border-primary bg-primary/5'
+                : 'text-muted-foreground hover:text-foreground hover:bg-muted/50'
+            }`}
+            onClick={() => setActiveTab('qr')}
+          >
+            <QrCode className="size-3.5" />
+            QR koda
+          </button>
+          <button
+            className={`flex-1 flex items-center justify-center gap-1.5 py-2.5 text-xs font-semibold transition-colors ${
+              activeTab === 'code'
+                ? 'text-primary border-b-2 border-primary bg-primary/5'
+                : 'text-muted-foreground hover:text-foreground hover:bg-muted/50'
+            }`}
+            onClick={() => setActiveTab('code')}
+          >
+            <Share2 className="size-3.5" />
+            Koda
+          </button>
+        </div>
+
         {/* Content */}
         <div className="p-4 space-y-4">
           {loading && (
@@ -135,85 +170,184 @@ export default function RouteShareDialog({ open, onClose, routeId, routeTitle }:
 
           {shareCode && !loading && (
             <>
-              {/* Share Code - Large, prominent */}
-              <div className="text-center">
-                <p className="text-xs text-muted-foreground mb-2">Koda za deljenje</p>
-                <div className="relative inline-flex items-center gap-2 bg-primary/10 border-2 border-primary/20 rounded-xl px-6 py-3">
-                  <span className="text-2xl font-black tracking-[0.2em] text-primary font-mono">
-                    {shareCode}
-                  </span>
-                  <button
-                    onClick={() => copyToClipboard(shareCode, 'code')}
-                    className="p-1.5 rounded-lg hover:bg-primary/20 transition-colors"
-                    title="Kopiraj kodo"
-                  >
-                    {copiedCode ? (
-                      <Check className="size-4 text-emerald-500" />
-                    ) : (
-                      <Copy className="size-4 text-primary" />
+              {/* QR Code Tab */}
+              {activeTab === 'qr' && (
+                <div className="space-y-4">
+                  {/* QR Code Section */}
+                  <div className="text-center space-y-3">
+                    <div>
+                      <h4 className="text-sm font-bold">Skeniraj QR kodo</h4>
+                      <p className="text-[10px] text-muted-foreground">Načrtuj na PC, odpri na telefonu</p>
+                    </div>
+
+                    {/* QR Code Container */}
+                    <div className="flex justify-center">
+                      <div className="bg-white p-4 rounded-xl border border-border/30 shadow-lg shadow-primary/5">
+                        <QRCodeSVG
+                          value={shareUrl || ''}
+                          size={220}
+                          level="H"
+                          bgColor="#ffffff"
+                          fgColor="#1a1a2e"
+                          includeMargin={false}
+                        />
+                      </div>
+                    </div>
+
+                    {/* Instruction section */}
+                    <div className="bg-primary/5 border border-primary/10 rounded-lg p-3 space-y-2">
+                      <div className="flex items-center justify-center gap-2">
+                        <span className="text-lg">🖥️</span>
+                        <div className="h-px flex-1 bg-primary/20" />
+                        <span className="text-lg">📱</span>
+                      </div>
+                      <p className="text-[11px] font-medium text-primary">
+                        Načrtuj na PC → Skeniraj na telefonu
+                      </p>
+                      <p className="text-[10px] text-muted-foreground">
+                        Skeniraj QR kodo s telefonom za nalaganje rute v MotoTrack aplikacijo
+                      </p>
+                    </div>
+                  </div>
+
+                  {/* Divider */}
+                  <div className="relative">
+                    <div className="absolute inset-0 flex items-center">
+                      <div className="w-full border-t border-border/50" />
+                    </div>
+                    <div className="relative flex justify-center">
+                      <span className="bg-card px-3 text-[10px] text-muted-foreground">ali uporabi kodo</span>
+                    </div>
+                  </div>
+
+                  {/* Compact code display */}
+                  <div className="text-center">
+                    <div className="relative inline-flex items-center gap-2 bg-primary/10 border border-primary/20 rounded-xl px-4 py-2">
+                      <span className="text-lg font-black tracking-[0.15em] text-primary font-mono">
+                        {shareCode}
+                      </span>
+                      <button
+                        onClick={() => copyToClipboard(shareCode, 'code')}
+                        className="p-1 rounded-lg hover:bg-primary/20 transition-colors"
+                        title="Kopiraj kodo"
+                      >
+                        {copiedCode ? (
+                          <Check className="size-3.5 text-emerald-500" />
+                        ) : (
+                          <Copy className="size-3.5 text-primary" />
+                        )}
+                      </button>
+                    </div>
+                    {copiedCode && (
+                      <p className="text-xs text-emerald-500 mt-1 animate-in fade-in">Koda kopirana!</p>
                     )}
-                  </button>
-                </div>
-                {copiedCode && (
-                  <p className="text-xs text-emerald-500 mt-1 animate-in fade-in">Koda kopirana!</p>
-                )}
-              </div>
+                  </div>
 
-              {/* Share URL */}
-              <div>
-                <p className="text-xs text-muted-foreground mb-1.5">Povezava do rute</p>
-                <div className="flex items-center gap-1.5">
-                  <Input
-                    readOnly
-                    value={shareUrl || ''}
-                    className="text-xs h-9 font-mono bg-muted/50"
-                    onClick={(e) => (e.target as HTMLInputElement).select()}
-                  />
-                  <Button
-                    size="icon"
-                    variant="outline"
-                    className="size-9 shrink-0"
-                    onClick={() => copyToClipboard(shareUrl!, 'url')}
-                    title="Kopiraj povezavo"
-                  >
-                    {copiedUrl ? (
-                      <Check className="size-3.5 text-emerald-500" />
-                    ) : (
-                      <Link2 className="size-3.5" />
+                  {/* Action buttons */}
+                  <div className="flex gap-2">
+                    <Button
+                      className="flex-1 gap-2"
+                      onClick={() => copyToClipboard(shareUrl!, 'url')}
+                    >
+                      {copiedUrl ? <Check className="size-4" /> : <Link2 className="size-4" />}
+                      {copiedUrl ? 'Povezava kopirana!' : 'Kopiraj povezavo'}
+                    </Button>
+                    <Button
+                      variant="outline"
+                      className="flex-1 gap-2"
+                      onClick={shareNative}
+                    >
+                      <Share2 className="size-4" />
+                      Deli
+                    </Button>
+                  </div>
+                </div>
+              )}
+
+              {/* Code Tab */}
+              {activeTab === 'code' && (
+                <>
+                  {/* Share Code - Large, prominent */}
+                  <div className="text-center">
+                    <p className="text-xs text-muted-foreground mb-2">Koda za deljenje</p>
+                    <div className="relative inline-flex items-center gap-2 bg-primary/10 border-2 border-primary/20 rounded-xl px-6 py-3">
+                      <span className="text-2xl font-black tracking-[0.2em] text-primary font-mono">
+                        {shareCode}
+                      </span>
+                      <button
+                        onClick={() => copyToClipboard(shareCode, 'code')}
+                        className="p-1.5 rounded-lg hover:bg-primary/20 transition-colors"
+                        title="Kopiraj kodo"
+                      >
+                        {copiedCode ? (
+                          <Check className="size-4 text-emerald-500" />
+                        ) : (
+                          <Copy className="size-4 text-primary" />
+                        )}
+                      </button>
+                    </div>
+                    {copiedCode && (
+                      <p className="text-xs text-emerald-500 mt-1 animate-in fade-in">Koda kopirana!</p>
                     )}
-                  </Button>
-                </div>
-                {copiedUrl && (
-                  <p className="text-[10px] text-emerald-500 mt-0.5 animate-in fade-in">Povezava kopirana!</p>
-                )}
-              </div>
+                  </div>
 
-              {/* How to use */}
-              <div className="bg-muted/30 rounded-lg p-3 text-xs text-muted-foreground space-y-1">
-                <p className="font-medium text-foreground">Kako uporabiti?</p>
-                <p>1. Pošlji kodo <span className="font-mono text-primary">{shareCode}</span> prijatelju</p>
-                <p>2. Prijatelj odpre MotoTrack in vnese kodo</p>
-                <p>3. Ali pa odpre povezavo direktno v brskalniku</p>
-              </div>
+                  {/* Share URL */}
+                  <div>
+                    <p className="text-xs text-muted-foreground mb-1.5">Povezava do rute</p>
+                    <div className="flex items-center gap-1.5">
+                      <Input
+                        readOnly
+                        value={shareUrl || ''}
+                        className="text-xs h-9 font-mono bg-muted/50"
+                        onClick={(e) => (e.target as HTMLInputElement).select()}
+                      />
+                      <Button
+                        size="icon"
+                        variant="outline"
+                        className="size-9 shrink-0"
+                        onClick={() => copyToClipboard(shareUrl!, 'url')}
+                        title="Kopiraj povezavo"
+                      >
+                        {copiedUrl ? (
+                          <Check className="size-3.5 text-emerald-500" />
+                        ) : (
+                          <Link2 className="size-3.5" />
+                        )}
+                      </Button>
+                    </div>
+                    {copiedUrl && (
+                      <p className="text-[10px] text-emerald-500 mt-0.5 animate-in fade-in">Povezava kopirana!</p>
+                    )}
+                  </div>
 
-              {/* Action buttons */}
-              <div className="flex gap-2">
-                <Button
-                  className="flex-1 gap-2"
-                  onClick={() => copyToClipboard(shareCode, 'code')}
-                >
-                  {copiedCode ? <Check className="size-4" /> : <Copy className="size-4" />}
-                  {copiedCode ? 'Kopirano!' : 'Kopiraj kodo'}
-                </Button>
-                <Button
-                  variant="outline"
-                  className="flex-1 gap-2"
-                  onClick={shareNative}
-                >
-                  <Share2 className="size-4" />
-                  Deli
-                </Button>
-              </div>
+                  {/* How to use */}
+                  <div className="bg-muted/30 rounded-lg p-3 text-xs text-muted-foreground space-y-1">
+                    <p className="font-medium text-foreground">Kako uporabiti?</p>
+                    <p>1. Pošlji kodo <span className="font-mono text-primary">{shareCode}</span> prijatelju</p>
+                    <p>2. Prijatelj odpre MotoTrack in vnese kodo</p>
+                    <p>3. Ali pa odpre povezavo direktno v brskalniku</p>
+                  </div>
+
+                  {/* Action buttons */}
+                  <div className="flex gap-2">
+                    <Button
+                      className="flex-1 gap-2"
+                      onClick={() => copyToClipboard(shareCode, 'code')}
+                    >
+                      {copiedCode ? <Check className="size-4" /> : <Copy className="size-4" />}
+                      {copiedCode ? 'Kopirano!' : 'Kopiraj kodo'}
+                    </Button>
+                    <Button
+                      variant="outline"
+                      className="flex-1 gap-2"
+                      onClick={shareNative}
+                    >
+                      <Share2 className="size-4" />
+                      Deli
+                    </Button>
+                  </div>
+                </>
+              )}
             </>
           )}
         </div>

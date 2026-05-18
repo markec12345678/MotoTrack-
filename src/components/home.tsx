@@ -65,6 +65,7 @@ const AppShareButton = dynamic(withRetry(() => import('@/components/app-share-bu
 const FeatureHubDialog = dynamic(withRetry(() => import('@/components/feature-hub-dialog')), { ssr: false, loading: () => null })
 const GlobalSearch = dynamic(withRetry(() => import('@/components/global-search')), { ssr: false, loading: () => null })
 const NightModeToggle = dynamic(withRetry(() => import('@/components/night-mode-toggle')), { ssr: false, loading: () => null })
+const RouteShareDialog = dynamic(withRetry(() => import('@/components/route-share-dialog')), { ssr: false, loading: () => null })
 
 const tabs: { id: TabId; label: string; icon: React.ElementType }[] = [
   { id: 'map', label: 'Zemljevid', icon: MapIcon },
@@ -188,6 +189,11 @@ export default function Home() {
 
   // Night riding mode
   const [nightMode, setNightMode] = useState(false)
+
+  // Plan share dialog (Send to Phone)
+  const [showPlanShare, setShowPlanShare] = useState(false)
+  const [planShareRouteId, setPlanShareRouteId] = useState<string | null>(null)
+  const [planShareTitle, setPlanShareTitle] = useState('')
 
   // Comments
   const [comments, setComments] = useState<CommentData[]>([])
@@ -541,10 +547,41 @@ export default function Home() {
     try {
       const routeData = JSON.stringify(planWaypoints.map(w => [w.lat, w.lng]))
       const res = await fetch('/api/routes', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ title: planTitle || `Pot ${new Date().toLocaleDateString('sl-SI')}`, description: '', distance: planDistance, waypoints: JSON.stringify(planWaypoints), routeData, category: planCategory, difficulty: 'medium', isPublic: true }) })
-      if (res.ok) { toast.success('Pot shranjena!'); setPlanWaypoints([]); setPlanTitle(''); setPlanDistance(0); fetchData(); if (user?.id) fetch('/api/achievements', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ userId: user.id }) }).then(r => r.json()).then(j => { if (j.data?.newlyEarned?.length > 0) j.data.newlyEarned.forEach((a: { title: string; icon: string }) => toast.success(`🏆 Nov dosežek: ${a.icon} ${a.title}!`)) }).catch(() => {}) }
+      if (res.ok) {
+        const j = await res.json()
+        toast.success('Pot shranjena!'); setPlanWaypoints([]); setPlanTitle(''); setPlanDistance(0); fetchData();
+        if (user?.id) fetch('/api/achievements', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ userId: user.id }) }).then(r => r.json()).then(j => { if (j.data?.newlyEarned?.length > 0) j.data.newlyEarned.forEach((a: { title: string; icon: string }) => toast.success(`🏆 Nov dosežek: ${a.icon} ${a.title}!`)) }).catch(() => {})
+        return j.data?.id || null
+      }
       else toast.error('Napaka pri shranjevanju')
     } catch { toast.error('Napaka pri shranjevanju') }
+    return null
   }, [planWaypoints, planTitle, planDistance, planCategory, fetchData])
+
+  // Send to Phone: save route and open QR share dialog
+  const sendToPhone = useCallback(async () => {
+    if (planWaypoints.length < 2) { toast.error('Dodajte vsaj dve točki'); return }
+    try {
+      const routeData = JSON.stringify(planWaypoints.map(w => [w.lat, w.lng]))
+      const title = planTitle || `Pot ${new Date().toLocaleDateString('sl-SI')}`
+      const res = await fetch('/api/routes', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ title, description: '', distance: planDistance, waypoints: JSON.stringify(planWaypoints), routeData, category: planCategory, difficulty: 'medium', isPublic: true }) })
+      if (res.ok) {
+        const j = await res.json()
+        const routeId = j.data?.id
+        if (routeId) {
+          setPlanShareRouteId(routeId)
+          setPlanShareTitle(title)
+          setShowPlanShare(true)
+        }
+        fetchData()
+        if (user?.id) fetch('/api/achievements', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ userId: user.id }) }).then(r => r.json()).then(j => { if (j.data?.newlyEarned?.length > 0) j.data.newlyEarned.forEach((a: { title: string; icon: string }) => toast.success(`🏆 Nov dosežek: ${a.icon} ${a.title}!`)) }).catch(() => {})
+      } else {
+        toast.error('Napaka pri shranjevanju')
+      }
+    } catch {
+      toast.error('Napaka pri pošiljanju na telefon')
+    }
+  }, [planWaypoints, planTitle, planDistance, planCategory, fetchData, user?.id])
 
   useEffect(() => {
     return () => { if (watchIdRef.current !== null) navigator.geolocation.clearWatch(watchIdRef.current); if (timerRef.current) clearInterval(timerRef.current) }
@@ -700,6 +737,7 @@ export default function Home() {
               avoidTolls={planAvoidTolls} setAvoidTolls={setPlanAvoidTolls}
               routingMode={planRoutingMode} setRoutingMode={setPlanRoutingMode}
               distance={planDistance} onMapClick={handleMapClick} onSave={saveRoute}
+              onSendToPhone={sendToPhone}
               userId={user?.id || ''} onRefresh={fetchData}
             />
           )}
@@ -799,6 +837,17 @@ export default function Home() {
         onNavigateToRoad={(road) => { setActiveTab('explore'); setSearchOpen(false) }}
         onNavigateToTab={(tab) => { setActiveTab(tab as TabId); setSearchOpen(false) }}
       />
+
+      {/* Plan Route Share Dialog (Send to Phone) */}
+      {showPlanShare && planShareRouteId && (
+        <RouteShareDialog
+          open={showPlanShare}
+          onClose={() => { setShowPlanShare(false); setPlanShareRouteId(null) }}
+          routeId={planShareRouteId}
+          routeTitle={planShareTitle}
+          defaultTab="qr"
+        />
+      )}
 
       {/* Night Riding Mode Overlay */}
       {nightMode && (

@@ -62,8 +62,11 @@ MotoTrack je **odziv na te pritožbe**:
 | **Večdnevne ture** | ✅ | ❌ | ❌ | ❌ | ❌ |
 | **Nagibni kot (Lean Angle)** | ✅ | ❌ | ❌ | ❌ | ❌ |
 | **Balkanske ceste + ture** | ✅ (53+10) | ❌ | ❌ | ❌ | ❌ |
-| **Deljenje rut s kodo** | ✅ | ❌ | ❌ | ❌ | ❌ |
+| **Deljenje rut s kodo + QR** | ✅ | ❌ | ❌ | ❌ | ❌ |
 | **Offline predpomniljenje (SW v2)** | ✅ | ❌ | ❌ | ❌ | ⚠️ |
+| **PC → Telefon (QR koda)** | ✅ | ⚠️ | ⚠️ | ⚠️ | ❌ |
+| **Prednalaganje ploščic za ruto** | ✅ | ❌ | ❌ | ❌ | ⚠️ |
+| **Napredna statistika (grafi)** | ✅ | ❌ | ❌ | ❌ | ❌ |
 | **Brez oglasov** | ✅ | ⚠️ Brezplačna verzija ima | ⚠️ | ✅ | ✅ |
 
 > 💡 *Podatki o konkurenci pridobljeni iz forumov: Reddit r/motorcycles, r/NewRiders, r/MotoUK, ADVrider.com, SpyderLovers.com, App Store/Google Play reviews, 2024-2025*
@@ -87,7 +90,9 @@ MotoTrack je **odziv na te pritožbe**:
 - **Round Trip Generator** — prava krožna tura! Multi-waypoint algoritem z nastavljivo vijugavostjo: več intermediate točk za bolj zanimive rute (ne gre po isti cesti nazaj)
 - GPX uvoz iz drugih aplikacij
 - GPX izvoz in PDF izvoz poti
-- **Deljenje rut s kodo** — generiraj 6-mestno kodo (npr. MT3K7X) in deli s prijatelji! Odprejo povezavo in ruta se naloži samodejno
+- **Deljenje rut s kodo + QR** — generiraj 6-mestno kodo (npr. MT3K7X) ALI QR kodo! Načrtuj na PC, skeniraj QR na telefonu —ruta se naloži samodejno. Podprta tudi Web Share API in kopiranje povezave
+- **📱 Pošlji na telefon** — gumb za neposreden prenos rute iz Načrtuj na telefon (PC → telefon sinhronizacija)
+- **Prednalaganje ploščic za ruto** — prednaloži zemljevidne ploščice vzdolž načrtovane rute za OFFLINE uporabo! Ključno za Balkan kjer je signal šibek. Prenesi pred vožnjo z WiFi, uporabljaj brez signala
 - 53 kuriranih balkanskih cest
 - Vreme ob poti — vremenski pogoji vzdolž celotne rute
 - ROI analiza — ocena vrednosti poti (pokrajina, vijugavost, kvaliteta, vreme, gorivo, čas)
@@ -110,6 +115,7 @@ MotoTrack je **odziv na te pritožbe**:
 - Twistiness Score — ocena vijugavosti poti
 - Touring Score — ocena primernosti za turizem
 - Statistika voženj (Ride Stats Dashboard) — grafi in povzetki
+- **Napredna statistika** — vizualni dashboard: tedenski pregled (stolpični diagram), mesečna aktivnost (površinski graf), distribucija hitrosti (krožni diagram), top rute, rekordi (najdaljša vožnja, najvišja hitrost, najdaljša serija)
 
 ### 🧭 Raziskuj
 - Vodilni položaji (Leaderboard)
@@ -509,6 +515,7 @@ Raziskali smo več kot 15 forumov (Reddit, ADVrider, SpyderLovers, itd.) in zbra
 | GPS sanity check (zavrnitev glitch-ov) | ✅ |
 | Driving Mode (celozaslonski vmesnik za vožnjo) | ✅ |
 | CarPlay / Android Auto | 🔜 Načrtovano |
+| PC → Telefon (QR koda) | ✅ |
 
 ### 🔥 Najnovejše izboljšave (forum-driven)
 
@@ -523,6 +530,12 @@ Glede na raziskavo forumov (Reddit r/motorcycles, ADVrider, SpyderLovers, itd.) 
 4. **Zaznavanje izgube rute** — Če zapustiš načrtovano pot, MotoTrack zazna in ponudi gumb "Preračunaj ruto".
 
 5. **Driving Mode** — Forumi: "My phone does not go anywhere near my handlebars" (Kurviger). Motoristi, ki imajo telefon na volanu, potrebujejo poenostavljen vmesnik. MotoTrack zdaj ponuja Driving Mode: velika hitrost (140px!), naslednji zavoj z razdaljo, doseg goriva, samodejni kompaktni način pri visoki hitrosti, GPS natančnost in baterija — vse na črnem ozadju z minimalnim motnjem.
+
+6. **QR koda za PC → Telefon** — Forumi: "I want to plan routes on my computer and then ride them" (REVER, Calimoto, Kurviger imajo web planner). MotoTrack zdaj generira QR kodo za vsako ruto — načrtuj na PC, skeniraj QR na telefonu in ruta se samodejno naloži! Tudi 6-mestna koda za deljenje po SMS/WhatsApp.
+
+7. **Prednalaganje ploščic za ruto** — Forumi: "Offline maps are essential" (ADVrider). MotoTrack zdaj omogoča prednalaganje zemljevidnih ploščic vzdolž načrtovane rute pred vožnjo. Prenesi z WiFi doma, uporabljaj brez signala v gorah! Zoom nivoji 10-15, buffer 5km okoli rute.
+
+8. **Napredna statistika** — Vizualni dashboard s stolpičnimi diagrami (tedenski pregled), površinskimi grafi (mesečna aktivnost), krožnim diagramom (distribucija hitrosti), top rutami in rekordi.
 
 ---
 

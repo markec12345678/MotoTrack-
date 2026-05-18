@@ -7,7 +7,7 @@ import {
   Cloud, Sun, CloudRain, CloudSnow, CloudFog, CloudLightning,
   Send, Calendar, Download, Camera, ImageIcon, Trash2,
   GitCompare, TrendingUp, TrendingDown, Minus, ChevronDown, ChevronUp,
-  Star, Share2, Hash,
+  Star, Share2, Hash, QrCode,
 } from 'lucide-react'
 import { Dialog, DialogContent, DialogTitle } from '@/components/ui/dialog'
 import { Badge } from '@/components/ui/badge'
@@ -349,6 +349,7 @@ export default function DetailDialog({
   const [isFavorite, setIsFavorite] = useState(false)
   const [favoriteLoading, setFavoriteLoading] = useState(false)
   const [showRouteShare, setShowRouteShare] = useState(false)
+  const [routeShareTab, setRouteShareTab] = useState<'qr' | 'code'>('qr')
 
   // Check if item is favorited
   useEffect(() => {
@@ -592,13 +593,25 @@ export default function DetailDialog({
               <Share2 className="size-3" />
               Deli
             </Button>
-            {/* Route share code button - only for routes */}
+            {/* Route QR code button - only for routes */}
             {!isRide && (
               <Button
                 variant="ghost"
                 size="sm"
                 className="h-7 gap-1 text-xs text-primary hover:text-primary/80"
-                onClick={() => setShowRouteShare(true)}
+                onClick={() => { setRouteShareTab('qr'); setShowRouteShare(true) }}
+              >
+                <QrCode className="size-3" />
+                QR
+              </Button>
+            )}
+            {/* Route share code button - only for routes */}
+            {!isRide && (
+              <Button
+                variant="ghost"
+                size="sm"
+                className="h-7 gap-1 text-xs text-muted-foreground hover:text-primary/80"
+                onClick={() => { setRouteShareTab('code'); setShowRouteShare(true) }}
               >
                 <Hash className="size-3" />
                 Koda
@@ -1022,6 +1035,7 @@ export default function DetailDialog({
           onClose={() => setShowRouteShare(false)}
           routeId={item.id}
           routeTitle={item.title}
+          defaultTab={routeShareTab}
         />
       )}
     </Dialog>

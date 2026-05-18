@@ -27,6 +27,7 @@ import type { RideData, RouteData, UserData, PhotoData, EmergencyContactsData, S
 import { formatDuration, formatDate, categoryLabel, categoryColor } from '@/components/tabs/types'
 import AchievementsPanel from '@/components/tabs/achievements-panel'
 import RideStatsDashboard from '@/components/ride-stats-dashboard'
+import EnhancedStatsDashboard from '@/components/enhanced-stats-dashboard'
 import PointsDisplay from '@/components/points-display'
 import BluetoothPanel from '@/components/bluetooth-panel'
 import OBDPanel from '@/components/obd-panel'
@@ -85,6 +86,9 @@ export default function ProfileTab({ user, allUsers, rides, routes, loading, onS
   const [mileageSaving, setMileageSaving] = useState(false)
   const [replayRide, setReplayRide] = useState<RideData | null>(null)
   const [replayTrackData, setReplayTrackData] = useState<TrackPoint[]>([])
+
+  // Enhanced stats toggle
+  const [showEnhancedStats, setShowEnhancedStats] = useState(false)
 
   // Collapsible section states — first section (Motocikel) expanded by default
   const [sectionOpen, setSectionOpen] = useState<Record<string, boolean>>({
@@ -523,6 +527,35 @@ export default function ProfileTab({ user, allUsers, rides, routes, loading, onS
             STATISTIKA VOŽENJ (always visible)
         ════════════════════════════════════════════════════════════════ */}
         <RideStatsDashboard rides={rides} userId={user.id} />
+
+        {/* ════════════════════════════════════════════════════════════════
+            NAPREDNA STATISTIKA (expandable)
+        ════════════════════════════════════════════════════════════════ */}
+        <Card className="rounded-xl overflow-hidden border-l-4 border-l-orange-500/60">
+          <button
+            className="w-full text-left p-4 flex items-center gap-3"
+            onClick={() => setShowEnhancedStats(prev => !prev)}
+          >
+            <div className="flex items-center justify-center size-8 rounded-lg bg-orange-500/15 shrink-0">
+              <TrendingUp className="size-4 text-orange-500" />
+            </div>
+            <div className="flex-1 min-w-0">
+              <div className="flex items-center gap-2">
+                <CardTitle className="text-sm font-semibold">Napredna statistika</CardTitle>
+                <Badge variant="secondary" className="text-[9px] px-1.5 py-0 h-4 bg-orange-500/10 text-orange-500">
+                  {rides.length} voženj
+                </Badge>
+              </div>
+              <p className="text-[10px] text-muted-foreground mt-0.5">Grafi, distribucija, rekordi</p>
+            </div>
+            <ChevronDown className={`size-4 text-muted-foreground transition-transform duration-200 ${showEnhancedStats ? 'rotate-180' : ''}`} />
+          </button>
+          {showEnhancedStats && (
+            <CardContent className="px-4 pb-4 pt-0">
+              <EnhancedStatsDashboard rides={rides} routes={routes} />
+            </CardContent>
+          )}
+        </Card>
 
         {/* ════════════════════════════════════════════════════════════════
             TOURING SCORE (always visible)

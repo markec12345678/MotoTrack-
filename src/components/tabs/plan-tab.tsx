@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react'
 import dynamic from 'next/dynamic'
-import { Route, Trash2, Save, MapPin, X, Upload, Plus, Calendar, Minus, Hotel, Fuel, ChevronDown, ChevronUp, Eye, Clock, RefreshCw, Navigation, ArrowLeft, ArrowRight, Cloud, Wind, AlertTriangle, Thermometer, Search, Activity, BarChart3, Mountain, TreePine, Sparkles } from 'lucide-react'
+import { Route, Trash2, Save, MapPin, X, Upload, Plus, Calendar, Minus, Hotel, Fuel, ChevronDown, ChevronUp, Eye, Clock, RefreshCw, Navigation, ArrowLeft, ArrowRight, Cloud, Wind, AlertTriangle, Thermometer, Search, Activity, BarChart3, Mountain, TreePine, Sparkles, Smartphone } from 'lucide-react'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
 import { Switch } from '@/components/ui/switch'
@@ -15,6 +15,7 @@ import { toast } from 'sonner'
 import TwistyRoutePlanner from '@/components/twisty-route-planner'
 import GpxManager from '@/components/gpx-manager'
 import OfflineMapsManager from '@/components/offline-maps-manager'
+import RouteTilePreloader from '@/components/route-tile-preloader'
 import { categoryLabel, haversine, poiTypeEmoji, poiTypeColor, poiTypeLabel } from '@/components/tabs/types'
 import type { TripData, TripDayData, PoiData } from '@/components/tabs/types'
 
@@ -51,6 +52,7 @@ interface PlanTabProps {
   distance: number
   onMapClick: (lat: number, lng: number) => void
   onSave: () => void
+  onSendToPhone?: () => void
   userId: string
   onRefresh: () => void
 }
@@ -1093,7 +1095,7 @@ export default function PlanTab({
   waypoints, setWaypoints, title, setTitle,
   category, setCategory, avoidHighways, setAvoidHighways,
   avoidTolls, setAvoidTolls, routingMode, setRoutingMode,
-  distance, onMapClick, onSave, userId, onRefresh,
+  distance, onMapClick, onSave, onSendToPhone, userId, onRefresh,
 }: PlanTabProps) {
   const fileInputRef = useRef<HTMLInputElement>(null)
 
@@ -1623,9 +1625,26 @@ export default function PlanTab({
             {/* Curvature Profile */}
             <CurvatureProfile waypoints={waypoints} />
 
+            {/* Route Tile Preloader */}
+            {waypoints.length >= 2 && (
+              <RouteTilePreloader waypoints={waypoints} />
+            )}
+
             <Button className="w-full" onClick={onSave} disabled={waypoints.length < 2}>
               <Save className="size-4 mr-2" />Shrani pot
             </Button>
+
+            {/* Send to Phone - QR Share */}
+            {onSendToPhone && waypoints.length >= 2 && (
+              <Button
+                variant="outline"
+                className="w-full border-primary/30 bg-primary/5 hover:bg-primary/10 text-primary hover:text-primary gap-2"
+                onClick={onSendToPhone}
+              >
+                <Smartphone className="size-4" />
+                Pošlji na telefon
+              </Button>
+            )}
 
             {/* GPX Import */}
             <Separator />
