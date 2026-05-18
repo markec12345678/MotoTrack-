@@ -75,6 +75,8 @@ MotoTrack je **odziv na te pritožbe**:
 | **Krožna tura v2 (anti-backtrack)** | ✅ | ❌ | ❌ | ❌ | ❌ |
 | **Klepet skupine (realno-časovni)** | ✅ | ❌ | ❌ | ❌ | ❌ |
 | **Koledar voženj** | ✅ | ❌ | ❌ | ❌ | ❌ |
+| **Opozorilo ob zapustitvi rute** | ✅ | ❌ | ❌ | ❌ | ❌ |
+| **Skupnostne cene goriva** | ✅ | ❌ | ❌ | ❌ | ❌ |
 | **Vreme med vožnjo (dež/sneg opozorila)** | ✅ | ❌ | ❌ | ❌ | ❌ |
 | **Kompas + ETA + hitrostni trend** | ✅ | ❌ | ❌ | ❌ | ❌ |
 | **Ocene in mnenja o rutah** | ✅ | ⚠️ | ❌ | ❌ | ❌ |
@@ -141,6 +143,7 @@ MotoTrack je **odziv na te pritožbe**:
 - **Prijavljanje nevarnosti na cesti** — Waze za motoriste! Prijavi plaz, gradbišče, hitrostno kamero, poledico, poplavljeno cesto, živali, razlito olje, luknjo — hitro in enostavno med vožnjo. Prikaz bližnjih nevarnosti z razdaljo
 - **Vreme med vožnjo (Weather Overlay)** — plavajoči vremenski pano med sledenjem! Temperatura, občutek, veter (smer + hitrost), vidljivost, vlažnost. **Sistem opozoril za dež/sneg**: samodejno zazna približujoč dež/sneg iz WMO kod, rumeno/rdeče opozorilo, zvočni alarm ob prvem zaznanju dežja (Web Audio API). Samodejna osvežitev vsakih 10 minut. Kompaktni način za Driving Mode
 - **Klepet skupine** — realno-časovni klepet za grupne vožnje! Socket.io na portu 3003, sobe za vsako vožnjo, pošiljanje lokacije/nevarnosti/statusa, zvočna obvestila, seznam povezanih motoristov
+- **Opozorilo ob zapustitvi rute** — samodejno zazna ko zapustiš načrtovano pot! 4-stopenski sistem: 🟢 na poti (≤50m), 🟡 rahel odmik (50-150m), 🟠 zapustil pot (150-300m), 🔴 preveč oddaljen (>300m). Zvočni alarm, gumb za preračun rute, debounce 10s, cooldown 60s
 
 ### 🧭 Raziskuj
 - Vodilni položaji (Leaderboard)
@@ -156,6 +159,7 @@ MotoTrack je **odziv na te pritožbe**:
 - Primerjava voženj (Compare Rides)
 - Celozaslonski način
 - **Skupnostne rute** — brskajte po rutah skupnosti, filtrirajte po kategoriji, težavnosti, razvrščajte po priljubljenosti. Naloži katerokoli ruto v Načrtuj z enim klikom!
+- **Skupnostne cene goriva** — Waze za cene goriva! Prijavi ceno na črpalki, potrdi cene drugih, primerjaj povprečne cene po državah. Podprte blagovne znamke: Petrol, OMV, MOL, INA, Hemus, Lukoil, NIS. Samodejno zaznavanje države iz GPS
 - **Primerjava voženj** — vizualna primerjava dveh voženj s hitrostnim profilom (SVG), višinskim profilom, statistiko z zmagovalci in analizo segmentov (začetek/sredina/konec)
 - **Ocene in mnenja o rutah** — ocenite ruto z zvezdami (1-5) po kategorijah: kakovost ceste, pokrajina, vijugavost, zahtevnost. Pišite komentarje, berite mnenja drugih
 - **Vzdrževalni opomniki** — sledite vzdrževanju motorja z opomniki po kilometrih in dnevih: olje, pnevmatike, veriga, zavore, filter... Barvni indikatorji stanja (zeleni/rumeni/rdeči), zgodovina servisov
@@ -357,7 +361,7 @@ src/
 │   ├── page.tsx          # Glavna stran
 │   ├── layout.tsx        # Root layout (theme, PWA, error boundary)
 │   ├── globals.css       # Globalni stili
-│   └── api/              # 117 API končnih točk
+│   └── api/              # 119 API končnih točk
 │       ├── achievements/    # Dosežki in gamifikacija
 │       ├── balkan-roads/    # Kurirane balkanske ceste
 │       ├── bluetooth/       # Bluetooth čelada
@@ -377,6 +381,7 @@ src/
 │       ├── friends/         # Prijatelji
 │       ├── fuel/            # Gorivo in poraba
 │       ├── fuel-prices/     # Cene goriva
+│       ├── fuel-prices-community/ # Skupnostne cene goriva
 │       ├── gpx/             # GPX uvoz/izvoz/PDF
 │       ├── group-chat/      # Klepet skupine (REST rezerva)
 │       ├── group-rides/     # Grupne vožnje
@@ -624,6 +629,10 @@ Glede na raziskavo forumov (Reddit r/motorcycles, ADVrider, SpyderLovers, itd.) 
 24. **Klepet skupine v realnem času** — Forumi: "I want to chat with my riding group" (REVER Pro). MotoTrack zdaj ponuja realno-časovni klepet s Socket.io! Pridruži se sobi vožnje, pošiljaj sporočila, delite lokacijo in nevarnosti, sporočaj status (Pripravljen/Na poti/Odmor/Konec). Zvočna obvestila, seznam povezanih motoristov, REST API rezerva.
 
 25. **Koledar voženj** — Forumi: "I want to see my riding history in a calendar" (Strava, REVER). MotoTrack zdaj ponuja mesečni koledar z intenzivnostjo voženj (obarvani dnevi), dnevni detalj s seznamom voženj, mesečno statistiko (skupna razdalja, čas, vzpon, povprečja, rekordi). Klik na vožnjo odpre detalje.
+
+26. **Opozorilo ob zapustitvi rute** — Forumi: "I need to know when I'm off the planned route" (Kurviger, REVER). MotoTrack zdaj samodejno zazna ko zapustiš načrtovano pot z 4-stopnjskim sistemom: na poti (🟢≤50m), rahel odmik (🟡50-150m), zapustil pot (🟠150-300m), preveč oddaljen (🔴>300m). Zvočni alarm, gumb za preračun rute, debounce 10s (brez lažnih alarmov), cooldown 60s.
+
+27. **Skupnostne cene goriva** — Forumi: "Gas prices vary wildly between countries" (ADVrider Balkans). MotoTrack zdaj ponuja Waze-za-cene-goriva sistem: prijavi ceno na črpalki, potrdi cene drugih motoristov, primerjaj povprečne cene po balkanskih državah. Podprte blagovne znamke: Petrol, OMV, MOL, INA, Hemus, Lukoil, NIS. Samodejno zaznavanje države iz GPS.
 
 ---
 
