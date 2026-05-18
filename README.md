@@ -62,7 +62,7 @@ MotoTrack je **odziv na te pritožbe**:
 | **GPX uvoz/izvoz** | ✅ | ✅ | ✅ | ✅ | ✅ |
 | **Večdnevne ture** | ✅ | ❌ | ❌ | ❌ | ❌ |
 | **Nagibni kot (Lean Angle)** | ✅ | ❌ | ❌ | ❌ | ❌ |
-| **Balkanske ceste + ture** | ✅ (63+15) | ❌ | ❌ | ❌ | ❌ |
+| **Balkanske ceste + ture** | ✅ (63+20) | ❌ | ❌ | ❌ | ❌ |
 | **Deljenje rut s kodo + QR** | ✅ | ❌ | ❌ | ❌ | ❌ |
 | **Offline predpomniljenje (SW v2)** | ✅ | ❌ | ❌ | ❌ | ⚠️ |
 | **PC → Telefon (QR koda)** | ✅ | ⚠️ | ⚠️ | ⚠️ | ❌ |
@@ -70,6 +70,8 @@ MotoTrack je **odziv na te pritožbe**:
 | **Napredna statistika (grafi)** | ✅ | ❌ | ❌ | ❌ | ❌ |
 | **BT čelada → Glasovna nav.** | ✅ | ❌ | ❌ | ❌ | ❌ |
 | **GPS ponovna vzpostavitev** | ✅ | ❌ | ❌ | ❌ | ❌ |
+| **Vreme med vožnjo (dež/sneg opozorila)** | ✅ | ❌ | ❌ | ❌ | ❌ |
+| **Kompas + ETA + hitrostni trend** | ✅ | ❌ | ❌ | ❌ | ❌ |
 | **Brez oglasov** | ✅ | ⚠️ Brezplačna verzija ima | ⚠️ | ✅ | ✅ |
 
 > 💡 *Podatki o konkurenci pridobljeni iz forumov: Reddit r/motorcycles, r/NewRiders, r/MotoUK, ADVrider.com, SpyderLovers.com, App Store/Google Play reviews, 2024-2025*
@@ -108,7 +110,7 @@ MotoTrack je **odziv na te pritožbe**:
 - Wake Lock — zaslon ostane vklopljen med vožnjo
 - **Glasna navigacija (TTS v slovenščini)** — PROAKTIVNA obvestila PRED zavoji ("Čez 200 metrov zavijte desno"), prilagojena razdalja obvestila glede na hitrost, navigacija po načrtovani ruti ali nazaj na začetek, predogled naslednjih korakov, zaznavanje izgube rute z gumbom za preračun, AI TTS ali brskalnikov TTS, **avtomatsko usmerjanje zvoka v BT čelado** (Sena, Cardo, Interphone...) — če je čelada povezana, navigacijska sporočila gredo v slušalnik čelade namesto v telefon! Majhna BT ikona (🎧) prikazuje stanje povezave
 - Opozorila o hitrosti (nastavljiva meja, zvočni alarm)
-- **Driving Mode** — poenostavljen celozaslonski vmesnik za vožnjo! Velika hitrost, navigacija, doseg goriva — varno za telefon na volanu (alternativa CarPlay/Android Auto za PWA)
+- **Driving Mode v2** — poenostavljen celozaslonski vmesnik za vožnjo! Velika hitrost, navigacija, doseg goriva — varno za telefon na volanu (alternativa CarPlay/Android Auto za PWA). Novo: **kompas s smerjo** (DeviceOrientation API + GPS fallback), **ETA do cilja**, **trenutno ime ceste**, **hitrostni trend** (pospeševanje/zaviranje), izboljšan spodnji meni z gumbom za začetek/konec sledenja
 - **Zaznavanje trčenja** — samodejno SOS ob trku + obvestilo ICE stikom
 - **Crash recovery** — če app crashne ali gre v ozadje, podatki se obnovijo iz localStorage
 - **Pre-Ride Checklist z vremenom** — pred vsako vožnjo preveri opremo IN vreme (nevarni pogoji blokirajo začetek vožnje!)
@@ -120,14 +122,15 @@ MotoTrack je **odziv na te pritožbe**:
 - Statistika voženj (Ride Stats Dashboard) — grafi in povzetki
 - **Napredna statistika** — vizualni dashboard: tedenski pregled (stolpični diagram), mesečna aktivnost (površinski graf), distribucija hitrosti (krožni diagram), top rute, rekordi (najdaljša vožnja, najvišja hitrost, najdaljša serija)
 - **Prijavljanje nevarnosti na cesti** — Waze za motoriste! Prijavi plaz, gradbišče, hitrostno kamero, poledico, poplavljeno cesto, živali, razlito olje, luknjo — hitro in enostavno med vožnjo. Prikaz bližnjih nevarnosti z razdaljo
+- **Vreme med vožnjo (Weather Overlay)** — plavajoči vremenski pano med sledenjem! Temperatura, občutek, veter (smer + hitrost), vidljivost, vlažnost. **Sistem opozoril za dež/sneg**: samodejno zazna približujoč dež/sneg iz WMO kod, rumeno/rdeče opozorilo, zvočni alarm ob prvem zaznanju dežja (Web Audio API). Samodejna osvežitev vsakih 10 minut. Kompaktni način za Driving Mode
 
 ### 🧭 Raziskuj
 - Vodilni položaji (Leaderboard)
 - Izzivi (Challenges) s točkami in dosežki
 - Skupnosti (5 motociklističnih skupnosti)
 - 63 balkanskih cest z ocenami (10 držav)
-- **15 vgrajenih balkanskih tur** — pripravljenih navigabilnih rut z waypointi (10 originalnih + 5 ikoničnih z GPS koordinatami!)
-- **5 ikoničnih tur z GPS točkami in "Naloži v Načrtuj"** — Soška dolina & Vršič (120km), Crna Gora Loop: Kotor-Lovćen-Skadar (140km), Transfăgărășan Celotna (170km), Albanska riviera: Vlorë-Sarandë (150km), Rodopske gore: Pamporovo-Dospat (130km). Kliknite "Naloži v Načrtuj" in ruta se naloži z dejanskimi GPS koordinatami za navigacijo!
+- **20 vgrajenih balkanskih tur** — pripravljenih navigabilnih rut z waypointi (10 originalnih + 10 ikoničnih z GPS koordinatami!)
+- **10 ikoničnih tur z GPS točkami in "Naloži v Načrtuj"** — Soška dolina & Vršič (120km), Crna Gora Loop: Kotor-Lovćen-Skadar (140km), Transfăgărășan Celotna (170km), Albanska riviera: Vlorë-Sarandë (150km), Rodopske gore: Pamporovo-Dospat (130km), **Pelješki polotok** (130km, Hrvaška), **Čabulja-Prenj gorska zanka** (110km, BiH), **Mavrovo-Debar soteska** (120km, Severna Makedonija), **Zlatibor-Tara narodni park** (140km, Srbija), **Meteora-Pind gorska ruta** (150km, Grčija). Kliknite "Naloži v Načrtuj" in ruta se naloži z dejanskimi GPS koordinatami za navigacijo!
 - 17 motociklističnih dogodkov
 - 15 moto-prijaznih kampingov
 - Iskanje servisov in trgovin
@@ -326,7 +329,7 @@ src/
 │   ├── page.tsx          # Glavna stran
 │   ├── layout.tsx        # Root layout (theme, PWA, error boundary)
 │   ├── globals.css       # Globalni stili
-│   └── api/              # 104 API končnih točk
+│   └── api/              # 110 API končnih točk
 │       ├── achievements/    # Dosežki in gamifikacija
 │       ├── balkan-roads/    # Kurirane balkanske ceste
 │       ├── bluetooth/       # Bluetooth čelada
@@ -466,7 +469,7 @@ src/
 
 ## 🌍 Balkanske ceste & Ture
 
-63 kuriranih motociklističnih cest po 10 državah + **15 vgrajenih turnih rut** (10 originalnih + 5 ikoničnih z GPS točkami):
+63 kuriranih motociklističnih cest po 10 državah + **20 vgrajenih turnih rut** (10 originalnih + 10 ikoničnih z GPS točkami):
 
 ### Vgrajene ture (naloži in pelji!)
 - 🇸🇮 **Prelaz Vršič & Soška dolina** — 85 km, 50 serpentín, 9.5/10
@@ -486,6 +489,11 @@ src/
 - 🇷🇴 **Transfăgărășan Celotna** — 170 km, 11 GPS točk, Băile Olănești→Curtea de Argeș→Bâlea Lake (2034m)→Sibiu, 10/10
 - 🇦🇱 **Albanska riviera: Vlorë-Sarandë** — 150 km, 11 GPS točk, Vlorë→Llogara (1027m)→Dhërmi→Himarë→Sarandë→Ksamil, 9.2/10
 - 🇧🇬 **Rodopske gore: Pamporovo-Dospat** — 130 km, 11 GPS točk, Pamporovo→Shiroka Laka→Devin→Yagodina jama→Trigrad→Dospat, 9.1/10
+- 🇭🇷 **Pelješki polotok** — 130 km, 12 GPS točk, Ston→Mali Ston→Dingač→Trstenik→Orebić→Lovište, 8.8/10
+- 🇧🇦 **Čabulja-Prenj gorska zanka** — 110 km, 12 GPS točk, Mostar→Blagaj→Čabulja→Konjic→Jablanica, 9.0/10
+- 🇲🇰 **Mavrovo-Debar soteska** — 120 km, 12 GPS točk, Skopje→Tetovo→Mavrovo jezero→Debar→Radika soteska, 8.9/10
+- 🇷🇸 **Zlatibor-Tara narodni park** — 140 km, 12 GPS točk, Užice→Zlatibor→Mokra Gora→Tara→Bajina Bašta, 9.1/10
+- 🇬🇷 **Meteora-Pind gorska ruta** — 150 km, 12 GPS točk, Kalambaka→Meteora→Pind prehod→Metsovo→Ioannina, 9.5/10
 
 ### Ceste po državah
 
@@ -552,6 +560,12 @@ Glede na raziskavo forumov (Reddit r/motorcycles, ADVrider, SpyderLovers, itd.) 
 9. **BT čelada → Glasovna navigacija** — Ko je Bluetooth čelada (Sena, Cardo, Interphone, Midland...) povezana, se navigacijska sporočila SAMODEJNO usmerijo v slušalnik čelade. Skupni hook `useBtAudio` preveri stanje povezave in glasnost. Majhna BT ikona (🎧) v vmesniku prikazuje, da je zvok usmerjen v čelado. Brez čelade = vse deluje enako kot prej (100% združljivo nazaj).
 
 10. **GPS ponovna vzpostavitev (re-acquisition)** — Pogost problem na Android PWA: `watchPosition` utihne, ko app gre v ozadje. MotoTrack zdaj vsakih 30s preveri, ali je prišel nov GPS podatek — če ne, samodejno zahteva nov položaj z `getCurrentPosition()`. Ob vrnitvi iz ozadja se takoj pridobi nov GPS fix in prikaže obvestilo o času prekinitve (npr. "Nazaj po 5 min — nadaljujem sledenje"). GPS vrzeli (>30s) se označijo s sentinelno vrednostjo, da preprečijo črte "teleportacije" na zemljevidu. Višina se zdaj pridobiva iz GPS podatkov (samo pozitivne spremembe = vzpon).
+
+11. **Vreme med vožnjo z opozorili za dež/sneg** — Forumi: "Weather warnings while riding are critical" (ADVrider). MotoTrack zdaj prikazuje plavajoči vremenski pano med sledenjem s temperaturo, vetrom, vidljivostjo. Ko se približuje dež ali sneg, se prikaže rumeno/rdeče opozorilo "🌧️ Dež v bližini!" z zvočnim alarmom. Podatki se osvežujejo vsakih 10 minut. Kompaktni način za Driving Mode.
+
+12. **Driving Mode v2 s kompasom, ETA in hitrostnim trendom** — Forumi: "Need to know which direction I'm heading and when I'll arrive" (Kurviger). MotoTrack zdaj ponuja kompas (DeviceOrientation API), ETA do cilja (izračun iz hitrosti + preostale razdalje), ime trenutne ceste iz navigacije in indikator pospeševanja/zaviranja. Izboljšan spodnji meni z gumbom za začetek/konec sledenja.
+
+13. **10 ikoničnih balkanskih tur z GPS koordinatami** — Forumi: "Show me the best roads, not just any road" (REVER, Calimoto). MotoTrack zdaj ponuja 10 ikoničnih tur z dejanskimi GPS koordinatami (vsaka z 12 točkami): Vršič, Kotor serpentine, Transfăgărășan, Albanska riviera, Rodopi, **Pelješki polotok** (Hrvaška), **Čabulja-Prenj** (BiH), **Mavrovo-Debar** (Severna Makedonija), **Zlatibor-Tara** (Srbija), **Meteora-Pind** (Grčija). Vsaka ruta ima gumb "Naloži v Načrtuj" za takojšnjo navigacijo!
 
 ---
 
