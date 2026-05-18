@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react'
 import dynamic from 'next/dynamic'
-import { Play, Pause, Square, Save, Gauge, AlertTriangle, ChevronDown, ChevronUp, Activity, Bike, Moon, Timer, Share2, Navigation2, Volume2, VolumeX, Eye, Headphones } from 'lucide-react'
+import { Play, Pause, Square, Save, Gauge, AlertTriangle, ChevronDown, ChevronUp, Activity, Bike, Moon, Timer, Share2, Navigation2, Volume2, VolumeX, Eye, Headphones, Zap, Radio } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import type { TrackPoint, SpeedAlertSettings } from '@/components/tabs/types'
@@ -90,6 +90,9 @@ interface TrackTabProps {
   unitSystem?: UnitSystem
   autoPauseEnabled?: boolean
   wakelockEnabled?: boolean
+  autoStartEnabled?: boolean
+  autoStartCountdown?: number | null
+  onToggleAutoStart?: () => void
 }
 
 export default function TrackTab({
@@ -100,6 +103,9 @@ export default function TrackTab({
   unitSystem = 'metric',
   autoPauseEnabled = true,
   wakelockEnabled = true,
+  autoStartEnabled = false,
+  autoStartCountdown = null,
+  onToggleAutoStart,
 }: TrackTabProps) {
   // Speed alert state
   const [speedSettings, setSpeedSettings] = useState<SpeedAlertSettings>({
@@ -385,6 +391,19 @@ export default function TrackTab({
       {/* Feature panels toggle - when not tracking */}
       {!isTracking && (
         <div className="absolute top-2 left-2 right-2 z-[1002]">
+          {/* Auto-start monitoring indicator */}
+          {autoStartEnabled && (
+            <div className="mb-2 flex items-center gap-2 px-3 py-1.5 rounded-lg bg-amber-500/15 backdrop-blur-sm border border-amber-500/25">
+              <Zap className="size-3.5 text-amber-400" />
+              <span className="text-[10px] font-bold text-amber-400 uppercase tracking-wider">AUTO-START</span>
+              <span className="size-1.5 rounded-full bg-amber-400 animate-pulse" />
+              {autoStartCountdown !== null && autoStartCountdown > 0 ? (
+                <span className="text-[10px] text-amber-300 ml-auto font-mono">{autoStartCountdown}s</span>
+              ) : (
+                <span className="text-[10px] text-amber-400/60 ml-auto">čakam na gibanje...</span>
+              )}
+            </div>
+          )}
           <button
             onClick={() => setShowFeatures(!showFeatures)}
             className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-background/90 backdrop-blur-sm border border-border/50 text-xs font-medium shadow-sm hover:bg-background transition-all"
@@ -480,6 +499,15 @@ export default function TrackTab({
                 <Bike className="size-4" />
                 <span>Pripravljen na vožnjo</span>
               </div>
+              {/* Auto-start countdown display */}
+              {autoStartEnabled && autoStartCountdown !== null && autoStartCountdown > 0 && (
+                <div className="flex items-center gap-2 px-4 py-2 rounded-xl bg-amber-500/20 border border-amber-500/30 animate-pulse">
+                  <Radio className="size-4 text-amber-400" />
+                  <span className="text-xs font-bold text-amber-300">
+                    Zaznavam gibanje... sledenje se začne čez {autoStartCountdown} s
+                  </span>
+                </div>
+              )}
               <button
                 onClick={() => setShowChecklist(true)}
                 className="relative w-16 h-16 rounded-full bg-primary flex items-center justify-center shadow-lg shadow-primary/40 active:scale-95 transition-transform"
@@ -489,6 +517,24 @@ export default function TrackTab({
                 <div className="absolute inset-0 rounded-full bg-primary/30 animate-ping" />
               </button>
               <span className="text-white/40 text-[10px]">Pritisni za začetek</span>
+              {/* Auto-start toggle */}
+              {onToggleAutoStart && (
+                <button
+                  onClick={onToggleAutoStart}
+                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[10px] font-bold transition-colors ${
+                    autoStartEnabled
+                      ? 'bg-amber-500/20 text-amber-400 border border-amber-500/30'
+                      : 'bg-white/10 text-white/40 border border-white/10 hover:bg-white/15'
+                  }`}
+                  title="Samodejni začetek sledenja pri hitrosti > 20 km/h"
+                >
+                  <Zap className="size-3" />
+                  <span>AUTO-START</span>
+                  {autoStartEnabled && (
+                    <span className="size-1.5 rounded-full bg-amber-400 animate-pulse" />
+                  )}
+                </button>
+              )}
               {/* Pre-Ride Checklist */}
               <PreRideChecklist
                 open={showChecklist}
@@ -726,12 +772,16 @@ export default function TrackTab({
         navStepIdx={navStepIdx}
         navTotalSteps={navSteps.length}
         navDestination={navDestination?.name}
+        navStepType={navActive && navSteps.length > 0 ? navSteps[navStepIdx]?.type : undefined}
         isTracking={isTracking}
         isPaused={isPaused}
         speedLimit={speedSettings.speedLimit}
         isOverSpeed={isOverSpeed}
         voiceEnabled={navVoiceOn}
         onToggleVoice={() => setNavVoiceOn(!navVoiceOn)}
+        currentLat={trackPoints.length > 0 ? trackPoints[trackPoints.length - 1].lat : null}
+        currentLng={trackPoints.length > 0 ? trackPoints[trackPoints.length - 1].lng : null}
+        userId={userId}
       />
     </div>
   )

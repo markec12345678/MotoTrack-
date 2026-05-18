@@ -173,6 +173,19 @@ export default function Home() {
   const autoPauseTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const autoPausedRef = useRef(false)
 
+  // Auto-start tracking state
+  const [autoStartEnabled, setAutoStartEnabled] = useState(() => {
+    if (typeof window !== 'undefined') {
+      try { return localStorage.getItem('mototrack_autoStartTracking') === 'true' } catch { return false }
+    }
+    return false
+  })
+  const [autoStartCountdown, setAutoStartCountdown] = useState<number | null>(null)
+  const autoStartWatchRef = useRef<number | null>(null)
+  const autoStartCountdownRef = useRef<ReturnType<typeof setInterval> | null>(null)
+  const autoStartSpeedAboveRef = useRef<boolean>(false)
+  const autoStartSpeedStartRef = useRef<number>(0)
+
   // Detail dialog
   const [selectedItem, setSelectedItem] = useState<RideData | RouteData | null>(null)
   const [selectedType, setSelectedType] = useState<'ride' | 'route'>('ride')
@@ -620,6 +633,118 @@ export default function Home() {
     setTrackCurrentSpeed(0)
   }, [])
 
+  // Toggle auto-start tracking setting
+  const toggleAutoStart = useCallback(() => {
+    setAutoStartEnabled(prev => {
+      const next = !prev
+      try { localStorage.setItem('mototrack_autoStartTracking', String(next)) } catch {}
+      if (!next) {
+        // Disable: clean up any running monitoring
+        if (autoStartWatchRef.current !== null) {
+          navigator.geolocation.clearWatch(autoStartWatchRef.current)
+          autoStartWatchRef.current = null
+        }
+        if (autoStartCountdownRef.current) {
+          clearInterval(autoStartCountdownRef.current)
+          autoStartCountdownRef.current = null
+        }
+        autoStartSpeedAboveRef.current = false
+        autoStartSpeedStartRef.current = 0
+        setAutoStartCountdown(null)
+        toast.info('⚡ Samodejni začetek izklopljen')
+      } else {
+        toast.success('⚡ Samodejni začetek vklopljen — sledenje se začne pri > 20 km/h')
+      }
+      return next
+    })
+  }, [])
+
+  // Auto-start GPS monitoring: when on "Sledi" tab, not tracking, and auto-start enabled
+  useEffect(() => {
+    if (!autoStartEnabled || activeTab !== 'track' || isTracking) {
+      // Clean up monitoring when not applicable
+      if (autoStartWatchRef.current !== null) {
+        navigator.geolocation.clearWatch(autoStartWatchRef.current)
+        autoStartWatchRef.current = null
+      }
+      if (autoStartCountdownRef.current) {
+        clearInterval(autoStartCountdownRef.current)
+        autoStartCountdownRef.current = null
+      }
+      autoStartSpeedAboveRef.current = false
+      autoStartSpeedStartRef.current = 0
+      setAutoStartCountdown(null)
+      return
+    }
+
+    if (!navigator.geolocation) return
+
+    // Start monitoring GPS for auto-start
+    autoStartWatchRef.current = navigator.geolocation.watchPosition(
+      (pos) => {
+        const speedKmh = pos.coords.speed !== null ? pos.coords.speed * 3.6 : 0
+
+        if (speedKmh > 20) {
+          if (!autoStartSpeedAboveRef.current) {
+            // Speed just crossed threshold — start timing
+            autoStartSpeedAboveRef.current = true
+            autoStartSpeedStartRef.current = Date.now()
+            setAutoStartCountdown(30)
+            toast.info('🚀 Zaznavam gibanje... sledenje se samodejno začne čez 30 sekund')
+
+            // Start countdown interval
+            if (autoStartCountdownRef.current) clearInterval(autoStartCountdownRef.current)
+            autoStartCountdownRef.current = setInterval(() => {
+              const elapsed = Math.floor((Date.now() - autoStartSpeedStartRef.current) / 1000)
+              const remaining = 30 - elapsed
+              if (remaining <= 0) {
+                // 30 seconds of sustained speed > 20 km/h — auto-start!
+                if (autoStartCountdownRef.current) clearInterval(autoStartCountdownRef.current)
+                autoStartCountdownRef.current = null
+                autoStartSpeedAboveRef.current = false
+                setAutoStartCountdown(null)
+                startTracking()
+                toast.success('🚀 Samodejni začetek sledenja!')
+              } else {
+                setAutoStartCountdown(remaining)
+              }
+            }, 1000)
+          }
+          // Speed is still above threshold — check if we should start
+          // (handled by interval above)
+        } else {
+          // Speed dropped below threshold — cancel countdown
+          if (autoStartSpeedAboveRef.current) {
+            autoStartSpeedAboveRef.current = false
+            autoStartSpeedStartRef.current = 0
+            if (autoStartCountdownRef.current) {
+              clearInterval(autoStartCountdownRef.current)
+              autoStartCountdownRef.current = null
+            }
+            setAutoStartCountdown(null)
+          }
+        }
+      },
+      () => {
+        // GPS error — silently ignore during monitoring
+      },
+      { enableHighAccuracy: true, maximumAge: 3000, timeout: 10000 }
+    )
+
+    return () => {
+      if (autoStartWatchRef.current !== null) {
+        navigator.geolocation.clearWatch(autoStartWatchRef.current)
+        autoStartWatchRef.current = null
+      }
+      if (autoStartCountdownRef.current) {
+        clearInterval(autoStartCountdownRef.current)
+        autoStartCountdownRef.current = null
+      }
+      autoStartSpeedAboveRef.current = false
+      autoStartSpeedStartRef.current = 0
+    }
+  }, [autoStartEnabled, activeTab, isTracking, startTracking])
+
   const saveRide = useCallback(async () => {
     if (trackPoints.length < 2) { toast.error('Premalo podatkov'); return }
     try {
@@ -884,6 +1009,9 @@ export default function Home() {
               unitSystem={settings.unitSystem}
               autoPauseEnabled={settings.autoPauseEnabled}
               wakelockEnabled={settings.wakelockEnabled}
+              autoStartEnabled={autoStartEnabled}
+              autoStartCountdown={autoStartCountdown}
+              onToggleAutoStart={toggleAutoStart}
             />
           )}
           {activeTab === 'explore' && (

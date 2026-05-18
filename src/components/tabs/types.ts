@@ -580,6 +580,23 @@ export interface RoundTripResult {
   estimatedDuration: number
   geometry: [number, number][]
   twistyScore: number
+  isLoop?: boolean
+  loopPoints?: Array<{ label: string; lat: number; lng: number }> | { a: { lat: number; lng: number }; b: { lat: number; lng: number } }
+  algorithm?: string
+  avoidSameRoad?: boolean
+  terrain?: string
+  fuelEstimate?: {
+    litersNeeded: number
+    consumptionPer100km: number
+    tankCapacity: number
+    rangeOk: boolean
+    rangeRemaining: number  // km remaining after trip
+  }
+  segmentDistances?: Array<{
+    fromLabel: string
+    toLabel: string
+    distanceMeters: number
+  }>
 }
 
 // Feature 11: GPX
