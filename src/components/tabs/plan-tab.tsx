@@ -27,6 +27,8 @@ import type { TripData, TripDayData, PoiData } from '@/components/tabs/types'
 
 const MotoMap = dynamic(() => import('@/components/moto-map'), { ssr: false })
 const RoundTripGeneratorV2 = dynamic(() => import('@/components/round-trip-generator-v2'), { ssr: false })
+const TwistinessHeatmap = dynamic(() => import('@/components/twistiness-heatmap'), { ssr: false })
+const RouteSimulator = dynamic(() => import('@/components/route-simulator'), { ssr: false })
 
 interface DayPlan {
   dayNumber: number
@@ -1113,6 +1115,8 @@ export default function PlanTab({
 
   // Round trip V2 dialog state
   const [showRoundTripV2, setShowRoundTripV2] = useState(false)
+  const [showTwistinessHeatmap, setShowTwistinessHeatmap] = useState(false)
+  const [showRouteSimulator, setShowRouteSimulator] = useState(false)
 
   // Mode: 'single', 'roundtrip', or 'multiday'
   const [mode, setMode] = useState<PlanMode>('single')
@@ -1681,6 +1685,44 @@ export default function PlanTab({
             <Button className="w-full" onClick={onSave} disabled={waypoints.length < 2}>
               <Save className="size-4 mr-2" />Shrani pot
             </Button>
+
+            {/* Twistiness Heatmap & Route Simulator buttons */}
+            {waypoints.length >= 2 && (
+              <div className="flex gap-2">
+                <Button
+                  variant="outline"
+                  className="flex-1 gap-1.5 text-xs"
+                  onClick={() => setShowTwistinessHeatmap(!showTwistinessHeatmap)}
+                >
+                  <Activity className="size-3.5" />
+                  {showTwistinessHeatmap ? 'Skrij vijugavost' : 'Vijugavost'}
+                </Button>
+                <Button
+                  variant="outline"
+                  className="flex-1 gap-1.5 text-xs"
+                  onClick={() => setShowRouteSimulator(!showRouteSimulator)}
+                >
+                  🏍️ {showRouteSimulator ? 'Skrij simulacijo' : 'Simuliraj'}
+                </Button>
+              </div>
+            )}
+
+            {/* Twistiness Heatmap overlay info */}
+            {showTwistinessHeatmap && waypoints.length >= 2 && (
+              <div className="rounded-lg bg-emerald-500/10 border border-emerald-500/20 p-3">
+                <p className="text-xs font-medium text-emerald-400 mb-2 flex items-center gap-1.5">
+                  <Activity className="size-3.5" /> Vijugavost ceste
+                </p>
+                <div className="grid grid-cols-5 gap-1 text-[9px]">
+                  <div className="text-center"><div className="h-2 rounded bg-emerald-500 mb-0.5" /><span className="text-emerald-400">Ekstremna</span></div>
+                  <div className="text-center"><div className="h-2 rounded bg-green-500 mb-0.5" /><span className="text-green-400">Zelo vijugasta</span></div>
+                  <div className="text-center"><div className="h-2 rounded bg-yellow-500 mb-0.5" /><span className="text-yellow-400">Vijugasta</span></div>
+                  <div className="text-center"><div className="h-2 rounded bg-orange-500 mb-0.5" /><span className="text-orange-400">Rahlo vijug.</span></div>
+                  <div className="text-center"><div className="h-2 rounded bg-red-500 mb-0.5" /><span className="text-red-400">Ravna</span></div>
+                </div>
+                <p className="text-[9px] text-muted-foreground mt-1.5">Zelena = zabavna 🐍 · Rdeča = dolgočasna ➡️</p>
+              </div>
+            )}
 
             {/* Photo Gallery for saved route */}
             {savedRouteId && (

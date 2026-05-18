@@ -30,6 +30,8 @@ import dynamic from 'next/dynamic'
 import { toast } from 'sonner'
 
 const RidePhotoGallery = dynamic(() => import('@/components/ride-photo-gallery'), { ssr: false })
+const ExportPanel = dynamic(() => import('@/components/export-panel'), { ssr: false })
+const RouteSimulator = dynamic(() => import('@/components/route-simulator'), { ssr: false })
 
 interface DetailDialogProps {
   item: RideData | RouteData
@@ -355,6 +357,8 @@ export default function DetailDialog({
   const [favoriteLoading, setFavoriteLoading] = useState(false)
   const [showRouteShare, setShowRouteShare] = useState(false)
   const [routeShareTab, setRouteShareTab] = useState<'qr' | 'code'>('qr')
+  const [showExportPanel, setShowExportPanel] = useState(false)
+  const [showRouteSimulator, setShowRouteSimulator] = useState(false)
 
   // Check if item is favorited
   useEffect(() => {
@@ -539,6 +543,25 @@ export default function DetailDialog({
               GPX
               </a>
             </Button>
+            <Button
+              variant="ghost"
+              size="sm"
+              className="h-7 gap-1 text-xs text-muted-foreground hover:text-foreground"
+              onClick={() => setShowExportPanel(true)}
+            >
+              <Download className="size-3" />
+              Izvozi
+            </Button>
+            {!isRide && item.trackData && (
+              <Button
+                variant="ghost"
+                size="sm"
+                className="h-7 gap-1 text-xs text-muted-foreground hover:text-foreground"
+                onClick={() => setShowRouteSimulator(true)}
+              >
+                🏍️ Simuliraj
+              </Button>
+            )}
             {user && (
               <Button
                 variant="ghost"
@@ -1112,6 +1135,29 @@ export default function DetailDialog({
           routeId={item.id}
           routeTitle={item.title}
           defaultTab={routeShareTab}
+        />
+      )}
+
+      {/* Export Panel */}
+      <ExportPanel
+        rideId={isRide ? item.id : undefined}
+        routeId={!isRide ? item.id : undefined}
+        rideName={item.title}
+        rideDate={item.createdAt}
+        totalDistance={item.distance}
+        isOpen={showExportPanel}
+        onClose={() => setShowExportPanel(false)}
+      />
+
+      {/* Route Simulator */}
+      {showRouteSimulator && !isRide && (
+        <RouteSimulator
+          points={(item as RouteData).waypoints?.map(w => ({ lat: w.lat, lng: w.lng })) || []}
+          routeName={item.title}
+          totalDistance={item.distance}
+          map={null}
+          autoStart={false}
+          onClose={() => setShowRouteSimulator(false)}
         />
       )}
     </Dialog>

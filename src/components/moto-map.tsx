@@ -111,6 +111,7 @@ interface MotoMapProps {
   showCamps?: boolean
   camps?: CampMapData[]
   className?: string
+  onMapReady?: (map: L.Map) => void
 }
 
 const MAP_TILES: Record<string, { url: string; attribution: string; maxZoom: number }> = {
@@ -242,6 +243,7 @@ export default function MotoMap({
   camps = [],
   className = '',
   mapStyle = 'osm',
+  onMapReady,
 }: MotoMapProps) {
   const tileRef = useRef<L.TileLayer | null>(null)
   const mapRef = useRef<L.Map | null>(null)
@@ -338,6 +340,11 @@ export default function MotoMap({
     }
 
     mapRef.current = map
+
+    // Notify parent that map is ready
+    if (onMapReady) {
+      onMapReady(map)
+    }
 
     // Fix size issue - guard against map being removed before timeout fires
     const timerId = setTimeout(() => {

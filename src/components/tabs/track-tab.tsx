@@ -31,6 +31,7 @@ const WindWarningPanel = dynamic(() => import('@/components/wind-warning-panel')
 const EmergencyPanel = dynamic(() => import('@/components/emergency-panel'), { ssr: false })
 const RidePhotoGallery = dynamic(() => import('@/components/ride-photo-gallery'), { ssr: false })
 const PhotoButton = dynamic(() => import('@/components/ride-photo-gallery').then(m => ({ default: m.PhotoButton })), { ssr: false })
+const VoiceCommands = dynamic(() => import('@/components/voice-commands'), { ssr: false })
 
 // Inline voice navigation for track tab (lightweight, no separate component needed)
 interface NavStep {
@@ -600,6 +601,26 @@ export default function TrackTab({
               }
             />
           </div>
+        )}
+        {/* Voice Commands - floating mic button, bottom-right on map */}
+        {isTracking && (
+          <VoiceCommands
+            isTracking={isTracking}
+            isPaused={isPaused}
+            onStartTracking={onStart}
+            onStopTracking={onStop}
+            onPauseTracking={onPause}
+            onResumeTracking={onResume}
+            onReportHazard={() => {/* hazard reporter is always visible */}}
+            onOpenEmergency={() => setShowEmergencyPanel(true)}
+            onSaveRide={onSave}
+            currentSpeed={currentSpeed}
+            currentLat={trackPoints.length > 0 ? trackPoints[trackPoints.length - 1].lat : null}
+            currentLng={trackPoints.length > 0 ? trackPoints[trackPoints.length - 1].lng : null}
+            navRemainingDistance={navRemainingDistance}
+            onOpenNavigation={() => startNav()}
+            className="!bottom-28"
+          />
         )}
       </div>
 

@@ -36,6 +36,7 @@ import { Button } from '@/components/ui/button'
 const RideWeatherOverlay = dynamic(() => import('@/components/ride-weather-overlay'), { ssr: false })
 const WindWarningPanel = dynamic(() => import('@/components/wind-warning-panel'), { ssr: false })
 const EmergencyPanel = dynamic(() => import('@/components/emergency-panel'), { ssr: false })
+const VoiceCommands = dynamic(() => import('@/components/voice-commands'), { ssr: false })
 
 // ===== DRIVING MODE =====
 // Minimal, safe UI for riding — large text, essential info only

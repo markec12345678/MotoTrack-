@@ -373,7 +373,7 @@ src/
 │   ├── page.tsx          # Glavna stran
 │   ├── layout.tsx        # Root layout (theme, PWA, error boundary)
 │   ├── globals.css       # Globalni stili
-│   └── api/              # 121 API končnih točk
+│   └── api/              # 86 API končnih točk
 │       ├── achievements/    # Dosežki in gamifikacija
 │       ├── balkan-roads/    # Kurirane balkanske ceste
 │       ├── bluetooth/       # Bluetooth čelada
@@ -588,6 +588,10 @@ Raziskali smo več kot 15 forumov (Reddit, ADVrider, SpyderLovers, itd.) in zbra
 | Driving Mode (celozaslonski vmesnik za vožnjo) | ✅ |
 | CarPlay / Android Auto | ✅ (PWA način) |
 | PC → Telefon (QR koda) | ✅ |
+| Glasovni ukazi (hands-free) | ✅ |
+| Vijugavostna heatmap | ✅ |
+| Izvoz Strava/Komoot (TCX) | ✅ |
+| Simulator rute (flyover) | ✅ |
 
 ### 🔥 Najnovejše izboljšave (forum-driven)
 
@@ -658,6 +662,14 @@ Glede na raziskavo forumov (Reddit r/motorcycles, ADVrider, SpyderLovers, itd.) 
 32. **Vodnik mejnih prehodov (Balkan)** — Forumi: "I ride across borders and don't know what documents I need" (ADVrider Balkans). MotoTrack zdaj ponuja 10 ključnih mejnih prehodov z vsemi informacijami: potrebni dokumenti, stroški, vinjete (HR, HU, BG, MK), čakalne dobe, omejitve (BiH = potni list OBAVEZEN!), nasveti za hitrejši prehod, povezave za nakup vinjet.
 
 33. **Samodejna tema (dan/noč)** — Forumi: "App should auto-switch to dark mode at night" (Reddit). MotoTrack zdaj samodejno preklaplja med temo in svetlim načinom glede na sončni vzhod in zahod na vaši lokaciji! NOAA algoritem za izračun sončnih časov, prikaz vzhoda/zahoda v nastavitvah.
+
+34. **Glasovni ukazi (Web Speech API)** — Forumi: "I want hands-free control while riding" (Reddit r/motorcycles). MotoTrack zdaj ponuja glasovno krmiljenje s 12 slovenskimi ukazi! "Začni sledenje", "Ustavi", "Kje sem", "Kako hitro", "Vreme", "SOS" in več. Podpora za Bluetooth čelado, zvočna potrditev ukazov (440Hz beep), vizualni odziv (zeleni utrip), neprekinjen poslušalni način. Noise threshold 0.6 za zanesljivo prepoznavo. Podprto v Driving Mode in Track zavihku.
+
+35. **Vijugavostna heatmap** — Forumi: "I want to see which roads are twisty before I ride" (REVER, Calimoto). MotoTrack zdaj ponuja barvno plast vijugavosti na zemljevidu! 🟢 Zelena = ekstremno vijugasta (zabavna!), 🟡 Rumena = zmerno, 🔴 Rdeča = ravna (dolgočasna). Debela črta = bolj vijugasta. Legenda z razlago, vklop/izklop v Načrtuj zavihku. Sliding window 500m za gladko obarvanje.
+
+36. **Izvoz v Strava/Komoot/TCX/KML/CSV** — Forumi: "I want to upload my rides to Strava" (Reddit). MotoTrack zdaj ponuja 5 formatov izvoza! **TCX** (Strava/Garmin — z hitrostjo, višino, lap-i vsakih 5km), **KML** (Google Earth — 3D vizualizacija z waypointi), **CSV** (Excel — podpičje za evropsko združljivost, UTF-8 BOM), **GPX** (že obstoječ), plus prihajajoči FIT format. Dialog z izbiro formata, opcijami (hitrost, višina, waypointi), predogledom statistike.
+
+37. **Simulator rute (animated flyover)** — Forumi: "I want to preview the route before riding" (Kurviger). MotoTrack zdaj ponuja animirani prelet rute! Motorni ikoni 🏍️ se premika po ruti, zemljevid sledi s kamero, dinamični zoom (približa za vijugaste, oddalji za ravne). Hitrostna simulacija (vijugasto 45-80 km/h, ravno 90-120 km/h). Kontrolne tipke: Play/Pause, 1x-16x hitrost, iskalna vrstica. Tipkovnične bližnjice (Space, puščice, 1-5). Mini višinski profil.
 
 ---
 
