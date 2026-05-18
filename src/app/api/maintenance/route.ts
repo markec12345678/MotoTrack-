@@ -33,7 +33,13 @@ export async function GET(req: NextRequest) {
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json()
-    const { userId, type, title, nextMileage, nextDate, intervalKm, intervalDays } = body
+    const {
+      userId, type, title,
+      nextMileage, nextDate,
+      intervalKm, intervalDays,
+      lastServiceKm, lastServiceDate,
+      notes,
+    } = body
 
     if (!userId || !type || !title) {
       return NextResponse.json({ error: 'userId, type in title so obvezni' }, { status: 400 })
@@ -44,10 +50,13 @@ export async function POST(req: NextRequest) {
         userId,
         type,
         title,
-        nextMileage: nextMileage ? parseInt(nextMileage) : null,
+        nextMileage: nextMileage ? parseInt(String(nextMileage)) : null,
         nextDate: nextDate ? new Date(nextDate) : null,
-        intervalKm: intervalKm ? parseInt(intervalKm) : null,
-        intervalDays: intervalDays ? parseInt(intervalDays) : null,
+        intervalKm: intervalKm ? parseInt(String(intervalKm)) : null,
+        intervalDays: intervalDays ? parseInt(String(intervalDays)) : null,
+        lastServiceKm: lastServiceKm ? parseInt(String(lastServiceKm)) : null,
+        lastServiceDate: lastServiceDate ? new Date(lastServiceDate) : null,
+        notes: notes || null,
       },
     })
 

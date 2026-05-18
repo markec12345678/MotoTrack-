@@ -80,6 +80,7 @@ model User {
   videoFootages           VideoFootage[]
   routeRoiScores          RouteRoiScore[]
   offlineSyncQueue        OfflineSyncQueue[]
+  routeReviews            RouteReview[]
 }
 
 model Ride {
@@ -131,6 +132,7 @@ model Route {
   photos      Photo[]
   favorites   Favorite[]
   routeRoiScores RouteRoiScore[]
+  reviews        RouteReview[]
 
   @@index([shareCode])
 }
@@ -349,18 +351,21 @@ model Expense {
 }
 
 model MaintenanceReminder {
-  id            String   @id @default(cuid())
+  id            String    @id @default(cuid())
   userId        String
-  user          User     @relation(fields: [userId], references: [id])
-  type          String   // oil_change, tire_change, chain_service, brake_service, filter_change, inspection, custom
+  user          User      @relation(fields: [userId], references: [id])
+  type          String    // oil, tires, chain, brake, filter, coolant, battery, inspection, custom
   title         String
-  nextMileage   Int?     // next service at this km
+  nextMileage   Int?      // next service at this km
   nextDate      DateTime? // next service by this date
-  intervalKm    Int?     // repeat every X km
-  intervalDays  Int?     // repeat every X days
-  completed     Boolean  @default(false)
+  intervalKm    Int?      // repeat every X km
+  intervalDays  Int?      // repeat every X days
+  lastServiceKm Int?      // km at last service
+  lastServiceDate DateTime? // date of last service
+  notes         String?   // optional notes
+  completed     Boolean   @default(false)
   completedAt   DateTime?
-  createdAt     DateTime @default(now())
+  createdAt     DateTime  @default(now())
 
   @@map("maintenance_reminders")
 }
@@ -807,6 +812,27 @@ model RouteRoiScore {
 
   @@unique([routeId, userId])
   @@map("route_roi_scores")
+}
+
+// Route Reviews - rate and review routes
+model RouteReview {
+  id          String   @id @default(cuid())
+  userId      String
+  routeId     String
+  rating      Int      // 1-5 overall
+  roadQuality Int?     // 1-5
+  scenery     Int?     // 1-5
+  twistiness  Int?     // 1-5
+  difficulty  Int?     // 1-5 (1=easy, 5=expert)
+  comment     String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  user        User     @relation(fields: [userId], references: [id])
+  route       Route    @relation(fields: [routeId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, routeId])
+  @@index([routeId])
+  @@map("route_reviews")
 }
 
 // PWA background sync queue

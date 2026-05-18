@@ -370,3 +370,71 @@ Stage Summary:
 - Improved bottom bar with Start/Stop toggle, duration display, larger hazard button
 - All existing Driving Mode features preserved (nav arrows, fuel range, GPS accuracy, battery, night mode, swipe gestures, lap timer, hazard reporting)
 - No lint errors introduced in any modified files
+
+---
+Task ID: 7-a
+Agent: Route Rating & Review System Engineer
+Task: Create Route Rating & Review System for MotoTrack
+
+Work Log:
+- Read worklog.md to understand prior work (QR sharing, hazard reporting, GPX improvements, GPS reliability, BT helmet, iconic routes, ride weather, driving mode)
+- Read prisma/schema.prisma to understand existing data model (User, Route, RoadRating, etc.)
+- Read detail-dialog.tsx (1043 lines) to understand current route detail dialog structure
+- Read /api/road-ratings/route.ts to understand existing API pattern for ratings
+- Read src/lib/db.ts to understand Prisma client setup
+- Added RouteReview model to prisma/schema.prisma:
+  a. id, userId, routeId, rating (1-5), roadQuality (1-5), scenery (1-5), twistiness (1-5), difficulty (1-5)
+  b. comment (optional text)
+  c. createdAt, updatedAt timestamps
+  d. user relation to User model, route relation to Route model (onDelete: Cascade)
+  e. @@unique([userId, routeId]) — one review per user per route
+  f. @@index([routeId]) for fast lookup
+  g. @@map("route_reviews")
+- Added reverse relations:
+  a. User model: routeReviews RouteReview[]
+  b. Route model: reviews RouteReview[]
+- Ran `bun run db:push` — schema synced successfully, Prisma Client generated
+- Created `/api/route-reviews/route.ts`:
+  a. GET: List reviews for a route (query: ?routeId=X)
+     - Returns reviews with user info, sorted by date (newest first)
+     - Calculates stats: totalReviews, avgRating, avgRoadQuality, avgScenery, avgTwistiness, avgDifficulty
+     - Returns rating distribution (1-5 star counts) for bar chart
+  b. POST: Create/update review for a route
+     - Body: { userId, routeId, rating, roadQuality?, scenery?, twistiness?, difficulty?, comment? }
+     - Validates rating 1-5, validates optional category ratings 1-5
+     - Verifies user and route exist
+     - Upserts: updates existing review if user already reviewed this route
+     - Returns review with user info
+- Created `src/components/route-review-panel.tsx`:
+  a. RouteReviewPanelProps: routeId, userId (optional)
+  b. StarRating component: interactive clickable star rating (1-5), hover effect, readonly mode
+  c. CategoryRating component: icon + label + star rating for road quality, scenery, twistiness, difficulty
+  d. Main component features:
+     - Average rating display card with large number + star bar chart distribution
+     - Category averages grid (Kakovost ceste, Pokrajina, Vijugavost, Zahtevnost)
+     - Review form: overall rating (required), 4 category ratings (optional), comment textarea (500 char limit)
+     - Existing review detection: pre-fills form if user already reviewed
+     - Reviews list: scrollable (max-h-96), each review shows user avatar, name, date, star rating, category badges, comment
+     - Difficulty labels in Slovenian: Lahka, Zmerna, Srednja, Zahtevna, Ekstremna
+  e. All text in Slovenian:
+     - "Oceni ruto" (Rate route), "Kakovost ceste" (Road quality), "Pokrajina" (Scenery)
+     - "Vijugavost" (Twistiness), "Zahtevnost" (Difficulty), "Komentar" (Comment)
+     - "Oddaj oceno" (Submit review), "Ocene" (Reviews), "Povprečna ocena" (Average rating)
+     - "Posodobi oceno" (Update review), "Splošna ocena" (Overall rating)
+     - "Delite svojo izkušnjo s to ruto..." (Share your experience with this route...)
+- Integrated RouteReviewPanel into detail-dialog.tsx:
+  a. Added import for RouteReviewPanel
+  b. Added "Ocene route" section after route elevation profile, before comparison section
+  c. Only shows for routes (not rides) — uses !isRide conditional
+  d. Passes routeId={item.id} and userId={user?.id}
+- Lint check passes — no new errors in any modified files (route-review-panel.tsx, detail-dialog.tsx, route-reviews/route.ts)
+- API endpoint tested: GET /api/route-reviews?routeId=test returns valid JSON response
+
+Stage Summary:
+- RouteReview Prisma model with unique constraint (one review per user per route)
+- API endpoint with GET (list + stats) and POST (create/update with upsert)
+- Full-featured RouteReviewPanel component with star ratings, category ratings, review list
+- Average rating display with distribution bar chart and category breakdown
+- Integrated into detail-dialog.tsx (routes only, not rides)
+- All UI text in Slovenian
+- No lint errors introduced

@@ -24,6 +24,7 @@ import ElevationProfile from '@/components/tabs/elevation-profile'
 import RouteShareDialog from '@/components/route-share-dialog'
 import RideReplay3D from '@/components/ride-replay-3d'
 import GradientAnalysis from '@/components/gradient-analysis'
+import RouteReviewPanel from '@/components/route-review-panel'
 import { toast } from 'sonner'
 
 interface DetailDialogProps {
@@ -834,6 +835,19 @@ export default function DetailDialog({
         {!isRide && (item as RouteData).routeData && (
           <div className="px-4 py-3 border-b border-border/30">
             <ElevationProfile trackData={(item as RouteData).routeData!} />
+          </div>
+        )}
+
+        {/* Route Reviews section - only for routes */}
+        {!isRide && (
+          <div className="px-4 py-3 border-b border-border/30">
+            <h3 className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-3 flex items-center gap-1.5">
+              <Star className="size-3.5" /> Ocene route
+            </h3>
+            <RouteReviewPanel
+              routeId={item.id}
+              userId={user?.id}
+            />
           </div>
         )}
 

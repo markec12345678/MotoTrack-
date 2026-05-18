@@ -23,7 +23,7 @@ import { Label } from '@/components/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible'
-import type { RideData, RouteData, UserData, PhotoData, EmergencyContactsData, SpeedAlertSettings, ExpenseData, MaintenanceReminderData, TrackPoint } from '@/components/tabs/types'
+import type { RideData, RouteData, UserData, PhotoData, EmergencyContactsData, SpeedAlertSettings, ExpenseData, TrackPoint } from '@/components/tabs/types'
 import { formatDuration, formatDate, categoryLabel, categoryColor } from '@/components/tabs/types'
 import AchievementsPanel from '@/components/tabs/achievements-panel'
 import RideStatsDashboard from '@/components/ride-stats-dashboard'
@@ -35,6 +35,8 @@ import RideReplay3D from '@/components/ride-replay-3d'
 import TouringScore from '@/components/touring-score'
 import BikeGarage from '@/components/bike-garage'
 import RideReplayPlayer from '@/components/ride-replay-player'
+import dynamic from 'next/dynamic'
+const MaintenanceTracker = dynamic(() => import('@/components/maintenance-tracker'), { ssr: false })
 import { toast } from 'sonner'
 import { useSettingsStore, saveSettings, type UnitSystem, formatDistance, formatElevation, distanceUnit, elevationUnit } from '@/hooks/use-settings'
 import { MapPin, Shield, Moon, Timer, Ruler, CircleDot, Trash2 as Trash2Icon } from 'lucide-react'
@@ -77,11 +79,7 @@ export default function ProfileTab({ user, allUsers, rides, routes, loading, onS
   const [newExpense, setNewExpense] = useState({ type: 'fuel', amount: '', description: '', mileage: '' })
   const [expenseSaving, setExpenseSaving] = useState(false)
 
-  // Maintenance reminders state
-  const [reminders, setReminders] = useState<MaintenanceReminderData[]>([])
-  const [remindersLoading, setRemindersLoading] = useState(true)
-  const [newReminder, setNewReminder] = useState({ type: 'oil_change', title: '', nextMileage: '', nextDate: '', intervalKm: '', intervalDays: '' })
-  const [reminderSaving, setReminderSaving] = useState(false)
+
   const [currentMileage, setCurrentMileage] = useState(0)
   const [mileageSaving, setMileageSaving] = useState(false)
   const [replayRide, setReplayRide] = useState<RideData | null>(null)
@@ -189,22 +187,7 @@ export default function ProfileTab({ user, allUsers, rides, routes, loading, onS
     return () => { cancelled = true }
   }, [user?.id])
 
-  // Fetch maintenance reminders
-  useEffect(() => {
-    if (!user?.id) return
-    let cancelled = false
-    setRemindersLoading(true)
-    fetch(`/api/maintenance?userId=${user.id}`)
-      .then(r => r.json())
-      .then(j => {
-        if (!cancelled) {
-          setReminders(j.data || [])
-          setRemindersLoading(false)
-        }
-      })
-      .catch(() => { if (!cancelled) setRemindersLoading(false) })
-    return () => { cancelled = true }
-  }, [user?.id])
+
 
   // Fetch current mileage
   useEffect(() => {
@@ -293,74 +276,7 @@ export default function ProfileTab({ user, allUsers, rides, routes, loading, onS
     }
   }, [user?.id])
 
-  // Reminder handlers
-  const addReminder = useCallback(async () => {
-    if (!user?.id || !newReminder.title) return
-    setReminderSaving(true)
-    try {
-      const res = await fetch('/api/maintenance', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          userId: user.id,
-          type: newReminder.type,
-          title: newReminder.title,
-          nextMileage: newReminder.nextMileage ? parseInt(newReminder.nextMileage) : undefined,
-          nextDate: newReminder.nextDate || undefined,
-          intervalKm: newReminder.intervalKm ? parseInt(newReminder.intervalKm) : undefined,
-          intervalDays: newReminder.intervalDays ? parseInt(newReminder.intervalDays) : undefined,
-        }),
-      })
-      if (res.ok) {
-        toast.success('Opomnik dodan')
-        setNewReminder({ type: 'oil_change', title: '', nextMileage: '', nextDate: '', intervalKm: '', intervalDays: '' })
-        // Refresh reminders
-        const j = await (await fetch(`/api/maintenance?userId=${user.id}`)).json()
-        setReminders(j.data || [])
-      } else {
-        toast.error('Napaka pri dodajanju opomnika')
-      }
-    } catch {
-      toast.error('Napaka pri povezavi')
-    } finally {
-      setReminderSaving(false)
-    }
-  }, [user?.id, newReminder])
 
-  const completeReminder = useCallback(async (reminderId: string) => {
-    if (!user?.id) return
-    try {
-      const res = await fetch(`/api/maintenance/${reminderId}`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ userId: user.id, completed: true }),
-      })
-      if (res.ok) {
-        toast.success('Vzdrževanje opravljeno')
-        const j = await (await fetch(`/api/maintenance?userId=${user.id}`)).json()
-        setReminders(j.data || [])
-      } else {
-        toast.error('Napaka pri označevanju')
-      }
-    } catch {
-      toast.error('Napaka pri povezavi')
-    }
-  }, [user?.id])
-
-  const deleteReminder = useCallback(async (reminderId: string) => {
-    if (!user?.id) return
-    try {
-      const res = await fetch(`/api/maintenance/${reminderId}?userId=${user.id}`, { method: 'DELETE' })
-      if (res.ok) {
-        setReminders(prev => prev.filter(r => r.id !== reminderId))
-        toast.success('Opomnik izbrisan')
-      } else {
-        toast.error('Napaka pri brisanju')
-      }
-    } catch {
-      toast.error('Napaka pri povezavi')
-    }
-  }, [user?.id])
 
   const saveMileage = useCallback(async () => {
     if (!user?.id) return
@@ -452,7 +368,7 @@ export default function ProfileTab({ user, allUsers, rides, routes, loading, onS
   // Count items for badges
   const motocikelItemCount = [iceData.iceName1, iceData.iceName2, user.bike, currentMileage > 0].filter(Boolean).length + 2 // +2 for Bluetooth, OBD
   const nadzorItemCount = 2 // speed alerts + crash detection
-  const financijeItemCount = expenses.length + reminders.filter(r => !r.completed).length
+  const financijeItemCount = expenses.length
   const medijiItemCount = photos.length + (rides.filter(r => r.userId === user.id).some(r => r.trackData) ? 1 : 0)
   const dosezkiItemCount = 3 // achievements + points + performance
 
@@ -566,6 +482,15 @@ export default function ProfileTab({ user, allUsers, rides, routes, loading, onS
             BIKE GARAGE (always visible)
         ════════════════════════════════════════════════════════════════ */}
         <BikeGarage userId={user.id} currentMileage={currentMileage} />
+
+        {/* ════════════════════════════════════════════════════════════════
+            MAINTENANCE TRACKER (always visible)
+        ════════════════════════════════════════════════════════════════ */}
+        <MaintenanceTracker
+          userId={user.id}
+          currentMileage={currentMileage}
+          totalRideKm={rides.reduce((sum, r) => sum + r.distance, 0)}
+        />
 
         {/* ════════════════════════════════════════════════════════════════
             RIDE REPLAY (always visible - for last ride)
@@ -890,7 +815,7 @@ export default function ProfileTab({ user, allUsers, rides, routes, loading, onS
 
         {/* ════════════════════════════════════════════════════════════════
             COLLAPSIBLE SECTION 3: 💰 Financije
-            Expenses, maintenance reminders
+            Expenses
         ════════════════════════════════════════════════════════════════ */}
         <Collapsible open={sectionOpen.financije} onOpenChange={() => toggleSection('financije')}>
           <Card className="rounded-xl overflow-hidden border-l-4 border-l-emerald-500/60">
@@ -1055,268 +980,7 @@ export default function ProfileTab({ user, allUsers, rides, routes, loading, onS
                   )}
                 </div>
 
-                <Separator className="opacity-30" />
 
-                {/* ── Maintenance Reminders ── */}
-                <div className="space-y-3">
-                  <div className="flex items-center gap-2">
-                    <Wrench className="size-3.5 text-violet-500" />
-                    <span className="text-xs font-medium">Vzdrževanje & opomniki</span>
-                    {reminders.filter(r => !r.completed).length > 0 && (
-                      <Badge variant="outline" className="text-[9px] px-1.5 py-0 border-violet-300 text-violet-500 h-4">{reminders.filter(r => !r.completed).length}</Badge>
-                    )}
-                  </div>
-
-                  {/* Common presets */}
-                  <div className="flex flex-wrap gap-1">
-                    {[
-                      { type: 'oil_change', title: 'Zamenjava olja', intervalKm: 5000, emoji: '🛢️' },
-                      { type: 'tire_change', title: 'Zamenjava pnevmatik', intervalKm: 10000, emoji: '🛞' },
-                      { type: 'chain_service', title: 'Veriga', intervalKm: 3000, emoji: '⛓️' },
-                      { type: 'brake_service', title: 'Zavore', intervalKm: 15000, emoji: '🛑' },
-                      { type: 'inspection', title: 'Pregled', intervalDays: 365, emoji: '📋' },
-                    ].map(preset => (
-                      <button
-                        key={preset.type}
-                        className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-lg text-[10px] font-medium bg-violet-500/10 text-violet-600 dark:text-violet-400 hover:bg-violet-500/20 transition-colors"
-                        onClick={() => {
-                          const nextKm = preset.intervalKm ? currentMileage + preset.intervalKm : undefined
-                          const nextDt = preset.intervalDays
-                            ? new Date(Date.now() + preset.intervalDays * 24 * 60 * 60 * 1000).toISOString().split('T')[0]
-                            : ''
-                          setNewReminder({
-                            type: preset.type,
-                            title: preset.title,
-                            nextMileage: nextKm ? String(nextKm) : '',
-                            nextDate: nextDt,
-                            intervalKm: preset.intervalKm ? String(preset.intervalKm) : '',
-                            intervalDays: preset.intervalDays ? String(preset.intervalDays) : '',
-                          })
-                        }}
-                      >
-                        {preset.emoji} {preset.title}
-                      </button>
-                    ))}
-                  </div>
-
-                  {/* Add reminder form */}
-                  <div className="space-y-2">
-                    <div className="grid grid-cols-2 gap-2">
-                      <div className="space-y-1">
-                        <Label className="text-[10px] text-muted-foreground">Tip</Label>
-                        <Select value={newReminder.type} onValueChange={val => setNewReminder(prev => ({ ...prev, type: val }))}>
-                          <SelectTrigger className="h-7 text-xs">
-                            <SelectValue />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="oil_change" className="text-xs">🛢️ Zamenjava olja</SelectItem>
-                            <SelectItem value="tire_change" className="text-xs">🛞 Pnevmatike</SelectItem>
-                            <SelectItem value="chain_service" className="text-xs">⛓️ Veriga</SelectItem>
-                            <SelectItem value="brake_service" className="text-xs">🛑 Zavore</SelectItem>
-                            <SelectItem value="filter_change" className="text-xs">🔧 Filter</SelectItem>
-                            <SelectItem value="inspection" className="text-xs">📋 Pregled</SelectItem>
-                            <SelectItem value="custom" className="text-xs">⚙️ Po meri</SelectItem>
-                          </SelectContent>
-                        </Select>
-                      </div>
-                      <div className="space-y-1">
-                        <Label className="text-[10px] text-muted-foreground">Naslov</Label>
-                        <Input
-                          placeholder="Naslov opomnika"
-                          value={newReminder.title}
-                          onChange={e => setNewReminder(prev => ({ ...prev, title: e.target.value }))}
-                          className="h-7 text-xs"
-                        />
-                      </div>
-                    </div>
-                    <div className="grid grid-cols-2 gap-2">
-                      <div className="space-y-1">
-                        <Label className="text-[10px] text-muted-foreground">Naslednji pri km</Label>
-                        <Input
-                          type="number"
-                          placeholder="km"
-                          value={newReminder.nextMileage}
-                          onChange={e => setNewReminder(prev => ({ ...prev, nextMileage: e.target.value }))}
-                          className="h-7 text-xs"
-                        />
-                      </div>
-                      <div className="space-y-1">
-                        <Label className="text-[10px] text-muted-foreground">Naslednji pri datumu</Label>
-                        <Input
-                          type="date"
-                          value={newReminder.nextDate}
-                          onChange={e => setNewReminder(prev => ({ ...prev, nextDate: e.target.value }))}
-                          className="h-7 text-xs"
-                        />
-                      </div>
-                    </div>
-                    <div className="grid grid-cols-2 gap-2">
-                      <div className="space-y-1">
-                        <Label className="text-[10px] text-muted-foreground">Ponovi vsak X km</Label>
-                        <Input
-                          type="number"
-                          placeholder="npr. 5000"
-                          value={newReminder.intervalKm}
-                          onChange={e => setNewReminder(prev => ({ ...prev, intervalKm: e.target.value }))}
-                          className="h-7 text-xs"
-                        />
-                      </div>
-                      <div className="space-y-1">
-                        <Label className="text-[10px] text-muted-foreground">Ponovi vsak X dni</Label>
-                        <Input
-                          type="number"
-                          placeholder="npr. 365"
-                          value={newReminder.intervalDays}
-                          onChange={e => setNewReminder(prev => ({ ...prev, intervalDays: e.target.value }))}
-                          className="h-7 text-xs"
-                        />
-                      </div>
-                    </div>
-                    <Button
-                      size="sm"
-                      className="w-full text-xs gap-2 bg-violet-500 hover:bg-violet-600 text-white h-7"
-                      onClick={addReminder}
-                      disabled={reminderSaving || !newReminder.title}
-                    >
-                      <Plus className="size-3" />
-                      {reminderSaving ? 'Dodajam...' : 'Dodaj opomnik'}
-                    </Button>
-                  </div>
-
-                  {/* Active reminders list */}
-                  <div className="space-y-2">
-                    <span className="text-[11px] font-medium">Aktivni opomniki</span>
-                    {remindersLoading ? (
-                      <div className="space-y-2">
-                        {[1, 2, 3].map(i => <Skeleton key={i} className="h-12 rounded" />)}
-                      </div>
-                    ) : reminders.filter(r => !r.completed).length === 0 ? (
-                      <div className="text-center py-3">
-                        <Wrench className="size-6 mx-auto mb-1 text-muted-foreground/30" />
-                        <p className="text-[10px] text-muted-foreground">Ni aktivnih opomnikov</p>
-                      </div>
-                    ) : (
-                      <ScrollArea className="max-h-56">
-                        <div className="space-y-1.5">
-                          {reminders.filter(r => !r.completed).map(rem => {
-                            let progress = 0
-                            let progressLabel = ''
-                            if (rem.nextMileage && currentMileage > 0) {
-                              const kmRemaining = rem.nextMileage - currentMileage
-                              progress = Math.max(0, Math.min(100, ((rem.nextMileage - kmRemaining) / rem.nextMileage) * 100))
-                              progressLabel = `${Math.max(0, kmRemaining).toLocaleString()} km do naslednjega`
-                            } else if (rem.nextDate) {
-                              const daysLeft = Math.ceil((new Date(rem.nextDate).getTime() - Date.now()) / (1000 * 60 * 60 * 24))
-                              progress = Math.max(0, Math.min(100, 100 - (daysLeft / 365) * 100))
-                              progressLabel = `${Math.max(0, daysLeft)} dni do naslednjega`
-                            }
-
-                            const isOverdue = (rem.nextMileage && currentMileage >= rem.nextMileage) ||
-                              (rem.nextDate && new Date(rem.nextDate) <= new Date())
-
-                            return (
-                              <div
-                                key={rem.id}
-                                className={`rounded-lg border p-2.5 space-y-1.5 ${isOverdue ? 'border-red-300 bg-red-50 dark:bg-red-500/10' : 'border-border/50'}`}
-                              >
-                                <div className="flex items-center justify-between">
-                                  <div className="flex items-center gap-1.5">
-                                    <span className="text-sm">
-                                      {rem.type === 'oil_change' ? '🛢️' : rem.type === 'tire_change' ? '🛞' : rem.type === 'chain_service' ? '⛓️' : rem.type === 'brake_service' ? '🛑' : rem.type === 'filter_change' ? '🔧' : rem.type === 'inspection' ? '📋' : '⚙️'}
-                                    </span>
-                                    <div>
-                                      <p className="text-[11px] font-medium">{rem.title}</p>
-                                      <div className="flex items-center gap-1.5 text-[9px] text-muted-foreground">
-                                        {rem.nextMileage && <span>Ob {rem.nextMileage.toLocaleString()} km</span>}
-                                        {rem.nextDate && (
-                                          <span className="flex items-center gap-0.5">
-                                            <Calendar className="size-2" />
-                                            {new Date(rem.nextDate).toLocaleDateString('sl-SI')}
-                                          </span>
-                                        )}
-                                        {(rem.intervalKm || rem.intervalDays) && (
-                                          <span className="text-violet-500">
-                                            (vsak{rem.intervalKm ? ` ${rem.intervalKm.toLocaleString()} km` : ''}{rem.intervalKm && rem.intervalDays ? ' / ' : ''}{rem.intervalDays ? ` ${rem.intervalDays} dni` : ''})
-                                          </span>
-                                        )}
-                                      </div>
-                                    </div>
-                                  </div>
-                                  {isOverdue && (
-                                    <Badge className="text-[8px] px-1 py-0 bg-red-500 text-white border-0 h-4">Zapadlo</Badge>
-                                  )}
-                                </div>
-                                {(progress > 0 || isOverdue) && (
-                                  <div className="space-y-0.5">
-                                    <div className="relative h-1.5 rounded-full bg-muted overflow-hidden">
-                                      <div
-                                        className={`absolute inset-y-0 left-0 rounded-full transition-all duration-500 ${isOverdue ? 'bg-red-500' : 'bg-violet-500'}`}
-                                        style={{ width: `${isOverdue ? 100 : Math.min(progress, 100)}%` }}
-                                      />
-                                    </div>
-                                    <p className={`text-[9px] ${isOverdue ? 'text-red-500 font-medium' : 'text-muted-foreground'}`}>
-                                      {isOverdue ? 'Potrebno vzdrževanje!' : progressLabel}
-                                    </p>
-                                  </div>
-                                )}
-                                <div className="flex gap-1">
-                                  <Button
-                                    size="sm"
-                                    variant="outline"
-                                    className="h-5 text-[9px] gap-0.5 flex-1 text-emerald-600 border-emerald-300 hover:bg-emerald-50 dark:hover:bg-emerald-500/10 px-1"
-                                    onClick={() => completeReminder(rem.id)}
-                                  >
-                                    <CheckCircle2 className="size-2.5" />
-                                    Opravljeno
-                                  </Button>
-                                  <Button
-                                    size="sm"
-                                    variant="outline"
-                                    className="h-5 text-[9px] gap-0.5 text-destructive border-destructive/30 hover:bg-destructive/10 px-1"
-                                    onClick={() => deleteReminder(rem.id)}
-                                  >
-                                    <Trash2 className="size-2.5" />
-                                  </Button>
-                                </div>
-                              </div>
-                            )
-                          })}
-                        </div>
-                      </ScrollArea>
-                    )}
-
-                    {/* Completed reminders */}
-                    {reminders.filter(r => r.completed).length > 0 && (
-                      <>
-                        <Separator className="opacity-30" />
-                        <div className="space-y-1">
-                          <div className="flex items-center gap-1.5">
-                            <CheckCircle2 className="size-3 text-muted-foreground" />
-                            <span className="text-[10px] text-muted-foreground font-medium">Opravljeno ({reminders.filter(r => r.completed).length})</span>
-                          </div>
-                          <ScrollArea className="max-h-24">
-                            <div className="space-y-0.5">
-                              {reminders.filter(r => r.completed).slice(0, 5).map(rem => (
-                                <div key={rem.id} className="flex items-center justify-between py-0.5 px-2 rounded opacity-50">
-                                  <div className="flex items-center gap-2">
-                                    <CheckCircle2 className="size-3 text-emerald-500" />
-                                    <span className="text-[11px] line-through">{rem.title}</span>
-                                  </div>
-                                  <button
-                                    className="size-4 rounded flex items-center justify-center text-muted-foreground hover:text-destructive"
-                                    onClick={() => deleteReminder(rem.id)}
-                                  >
-                                    <Trash2 className="size-2.5" />
-                                  </button>
-                                </div>
-                              ))}
-                            </div>
-                          </ScrollArea>
-                        </div>
-                      </>
-                    )}
-                  </div>
-                </div>
               </CardContent>
             </CollapsibleContent>
           </Card>
