@@ -72,6 +72,10 @@ MotoTrack je **odziv na te pritožbe**:
 | **GPS ponovna vzpostavitev** | ✅ | ❌ | ❌ | ❌ | ❌ |
 | **Vreme med vožnjo (dež/sneg opozorila)** | ✅ | ❌ | ❌ | ❌ | ❌ |
 | **Kompas + ETA + hitrostni trend** | ✅ | ❌ | ❌ | ❌ | ❌ |
+| **Ocene in mnenja o rutah** | ✅ | ⚠️ | ❌ | ❌ | ❌ |
+| **Vzdrževalni opomniki (km/dnevi)** | ✅ | ❌ | ❌ | ❌ | ❌ |
+| **Primerjava voženj (grafi)** | ✅ | ❌ | ❌ | ❌ | ❌ |
+| **Skupnostne rute (brskanje, deljenje)** | ✅ | ❌ | ⚠️ | ❌ | ❌ |
 | **Brez oglasov** | ✅ | ⚠️ Brezplačna verzija ima | ⚠️ | ✅ | ✅ |
 
 > 💡 *Podatki o konkurenci pridobljeni iz forumov: Reddit r/motorcycles, r/NewRiders, r/MotoUK, ADVrider.com, SpyderLovers.com, App Store/Google Play reviews, 2024-2025*
@@ -137,6 +141,10 @@ MotoTrack je **odziv na te pritožbe**:
 - Socialni Feed — aktivnosti prijateljev
 - Primerjava voženj (Compare Rides)
 - Celozaslonski način
+- **Skupnostne rute** — brskajte po rutah skupnosti, filtrirajte po kategoriji, težavnosti, razvrščajte po priljubljenosti. Naloži katerokoli ruto v Načrtuj z enim klikom!
+- **Primerjava voženj** — vizualna primerjava dveh voženj s hitrostnim profilom (SVG), višinskim profilom, statistiko z zmagovalci in analizo segmentov (začetek/sredina/konec)
+- **Ocene in mnenja o rutah** — ocenite ruto z zvezdami (1-5) po kategorijah: kakovost ceste, pokrajina, vijugavost, zahtevnost. Pišite komentarje, berite mnenja drugih
+- **Vzdrževalni opomniki** — sledite vzdrževanju motorja z opomniki po kilometrih in dnevih: olje, pnevmatike, veriga, zavore, filter... Barvni indikatorji stanja (zeleni/rumeni/rdeči), zgodovina servisov
 
 ### 👤 Profil
 - Osebni podatki in statistika
@@ -566,6 +574,14 @@ Glede na raziskavo forumov (Reddit r/motorcycles, ADVrider, SpyderLovers, itd.) 
 12. **Driving Mode v2 s kompasom, ETA in hitrostnim trendom** — Forumi: "Need to know which direction I'm heading and when I'll arrive" (Kurviger). MotoTrack zdaj ponuja kompas (DeviceOrientation API), ETA do cilja (izračun iz hitrosti + preostale razdalje), ime trenutne ceste iz navigacije in indikator pospeševanja/zaviranja. Izboljšan spodnji meni z gumbom za začetek/konec sledenja.
 
 13. **10 ikoničnih balkanskih tur z GPS koordinatami** — Forumi: "Show me the best roads, not just any road" (REVER, Calimoto). MotoTrack zdaj ponuja 10 ikoničnih tur z dejanskimi GPS koordinatami (vsaka z 12 točkami): Vršič, Kotor serpentine, Transfăgărășan, Albanska riviera, Rodopi, **Pelješki polotok** (Hrvaška), **Čabulja-Prenj** (BiH), **Mavrovo-Debar** (Severna Makedonija), **Zlatibor-Tara** (Srbija), **Meteora-Pind** (Grčija). Vsaka ruta ima gumb "Naloži v Načrtuj" za takojšnjo navigacijo!
+
+14. **Ocene in mnenja o rutah** — Forumi: "I want to know if a road is worth riding before I go" (REVER, Calimoto). MotoTrack zdaj omogoča ocenjevanje rut z zvezdami (1-5) po kategorijah: kakovost ceste, pokrajina, vijugavost, zahtevnost. Pišite komentarje in berite mnenja drugih motoristov. Povprečna ocena s porazdelitvijo zvezd.
+
+15. **Vzdrževalni opomniki po kilometrih/dnevih** — Forumi: "I need maintenance reminders based on mileage" (ADVrider). MotoTrack zdaj ponuja celovit sistem vzdrževanja: opomniki za olje, pnevmatike, verigo, zavore, filter z intervali v km in dnevih. Barvni indikatorji (zeleni >50%, rumeni 25-50%, rdeči <25%) in zgodovina servisov.
+
+16. **Skupnostne rute — brskajte in delite** — Forumi: "I want to discover routes from other riders" (Kurviger, REVER). MotoTrack zdaj ponuja ploščo skupnostnih rut s filtrom po kategoriji, težavnosti, razvrščanjem po priljubljenosti/času/razdalji. Vsaka ruta ima gumb "Naloži v Načrtuj" za takojšnjo navigacijo. Lajkanje rut in preklapljanje med skupnostjo in mojimi rutami.
+
+17. **Primerjava voženj z vizualnimi grafi** — Forumi: "I want to compare my rides visually" (Strava). MotoTrack zdaj ponuja vizualno primerjavo dveh voženj: hitrostni profil (SVG), višinski profil z obarvanimi površinami, statistika z zmagovalci (🏆) in analiza segmentov (začetek/sredina/konec tretjine).
 
 ---
 
