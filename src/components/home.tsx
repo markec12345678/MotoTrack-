@@ -351,6 +351,8 @@ export default function Home() {
   const lastGpsFixRef = useRef<number>(0) // timestamp of last GPS fix
   const gpsErrorCountRef = useRef<number>(0) // consecutive GPS errors
   const lastValidPointRef = useRef<TrackPoint | null>(null) // for GPS sanity checks
+  const gpsReacquireIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null) // periodic GPS re-acquisition
+  const lastAltitudeRef = useRef<number | null>(null) // last known altitude for elevation tracking
 
   // Handle visibility change (app going to background/foreground)
   // Key fix: re-acquire WakeLock and GPS when app comes back to foreground
@@ -363,10 +365,38 @@ export default function Home() {
         if (settings.wakelockEnabled && 'wakeLock' in navigator) {
           try { await navigator.wakeLock.request('screen') } catch {}
         }
-        // Check if GPS was lost during background
+        // Immediately request a fresh GPS fix when returning from background
+        if (navigator.geolocation) {
+          navigator.geolocation.getCurrentPosition(
+            (pos) => {
+              const point: TrackPoint = { lat: pos.coords.latitude, lng: pos.coords.longitude, alt: pos.coords.altitude, timestamp: Date.now() }
+              // Only accept if accuracy is reasonable
+              if (pos.coords.accuracy <= 200) {
+                lastGpsFixRef.current = Date.now()
+                lastValidPointRef.current = point
+                // Update altitude tracking
+                if (pos.coords.altitude !== null) {
+                  if (lastAltitudeRef.current !== null) {
+                    const altDiff = pos.coords.altitude - lastAltitudeRef.current
+                    if (altDiff > 0) {
+                      setTrackElevation(prev => Math.round((prev + altDiff) * 10) / 10)
+                    }
+                  }
+                  lastAltitudeRef.current = pos.coords.altitude
+                }
+              }
+            },
+            () => {}, // silently ignore errors on foreground resume
+            { enableHighAccuracy: true, maximumAge: 0, timeout: 10000 }
+          )
+        }
+        // Calculate time gap since last GPS fix and show informative toast
         const timeSinceLastFix = Date.now() - lastGpsFixRef.current
-        if (timeSinceLastFix > 60000 && lastGpsFixRef.current > 0) {
-          toast.info('📡 Ponovna vzpostavitev GPS signala...')
+        if (lastGpsFixRef.current > 0 && timeSinceLastFix > 30000) {
+          const gapMinutes = Math.round(timeSinceLastFix / 60000)
+          const gapSeconds = Math.round(timeSinceLastFix / 1000)
+          const gapText = gapMinutes >= 1 ? `${gapMinutes} min` : `${gapSeconds} s`
+          toast.info(`📡 Nazaj po ${gapText} — nadaljujem sledenje`)
         }
       } else {
         // Going to background — save current state immediately
@@ -394,6 +424,7 @@ export default function Home() {
     lastGpsFixRef.current = Date.now()
     gpsErrorCountRef.current = 0
     lastValidPointRef.current = null
+    lastAltitudeRef.current = null
 
     // Acquire WakeLock to prevent screen from turning off (key for reliable tracking)
     if (settings.wakelockEnabled && 'wakeLock' in navigator) {
@@ -401,6 +432,62 @@ export default function Home() {
     }
 
     timerRef.current = setInterval(() => { if (!isPausedRef.current) setTrackDuration(p => p + 1) }, 1000)
+
+    // Periodic GPS re-acquisition: if no GPS fix for 30 seconds while tracking,
+    // try to get a new position. This handles the case where watchPosition
+    // silently stops updating (common on Android PWAs in background)
+    gpsReacquireIntervalRef.current = setInterval(() => {
+      if (!isPausedRef.current) {
+        const timeSinceLastFix = Date.now() - lastGpsFixRef.current
+        if (timeSinceLastFix > 30000) {
+          toast.info('📡 Ponovna vzpostavitev GPS...')
+          navigator.geolocation.getCurrentPosition(
+            (pos) => {
+              if (pos.coords.accuracy <= 200) {
+                const point: TrackPoint = { lat: pos.coords.latitude, lng: pos.coords.longitude, alt: pos.coords.altitude, timestamp: Date.now() }
+                lastGpsFixRef.current = Date.now()
+                lastValidPointRef.current = point
+                gpsErrorCountRef.current = 0
+                // Update altitude tracking
+                if (pos.coords.altitude !== null) {
+                  if (lastAltitudeRef.current !== null) {
+                    const altDiff = pos.coords.altitude - lastAltitudeRef.current
+                    if (altDiff > 0) {
+                      setTrackElevation(prev => Math.round((prev + altDiff) * 10) / 10)
+                    }
+                  }
+                  lastAltitudeRef.current = pos.coords.altitude
+                }
+                // Add the re-acquired point to track
+                setTrackPoints(prev => {
+                  // Check for GPS gap — if > 30s since last point, insert gap marker
+                  const newPoints = [...prev]
+                  if (newPoints.length > 0) {
+                    const lastPoint = newPoints[newPoints.length - 1]
+                    // Don't add gap marker after existing gap markers
+                    if (lastPoint.alt !== -9999) {
+                      const gapTime = point.timestamp - lastPoint.timestamp
+                      if (gapTime > 30000) {
+                        newPoints.push({ lat: lastPoint.lat, lng: lastPoint.lng, alt: -9999, timestamp: lastPoint.timestamp + 1 })
+                      }
+                    }
+                  }
+                  newPoints.push(point)
+                  // Auto-save to localStorage
+                  if (Date.now() - lastAutoSaveRef.current > 15000) {
+                    lastAutoSaveRef.current = Date.now()
+                    try { localStorage.setItem('mototrack_autosave', JSON.stringify(newPoints)) } catch {}
+                  }
+                  return newPoints
+                })
+              }
+            },
+            () => {}, // silently ignore errors
+            { enableHighAccuracy: true, maximumAge: 0, timeout: 15000 }
+          )
+        }
+      }
+    }, 30000)
     watchIdRef.current = navigator.geolocation.watchPosition(
       (pos) => {
         const point: TrackPoint = { lat: pos.coords.latitude, lng: pos.coords.longitude, alt: pos.coords.altitude, timestamp: Date.now() }
@@ -424,9 +511,34 @@ export default function Home() {
         lastGpsFixRef.current = Date.now()
         gpsErrorCountRef.current = 0 // Reset error counter on success
         lastValidPointRef.current = point
-        
+
+        // Elevation tracking from GPS altitude
+        // Only count positive altitude changes (climbing), not descending
+        if (pos.coords.altitude !== null) {
+          if (lastAltitudeRef.current !== null) {
+            const altDiff = pos.coords.altitude - lastAltitudeRef.current
+            if (altDiff > 0) {
+              setTrackElevation(prev => Math.round((prev + altDiff) * 10) / 10)
+            }
+          }
+          lastAltitudeRef.current = pos.coords.altitude
+        }
+
         setTrackPoints(prev => {
-          const newPoints = [...prev, point]
+          const newPoints = [...prev]
+          // GPS gap interpolation: if > 30s since last point, insert gap marker
+          // This prevents "teleportation" lines on the map when GPS signal is lost and regained
+          if (newPoints.length > 0) {
+            const lastPoint = newPoints[newPoints.length - 1]
+            // Don't add gap marker after existing gap markers
+            if (lastPoint.alt !== -9999) {
+              const gapTime = point.timestamp - lastPoint.timestamp
+              if (gapTime > 30000) {
+                newPoints.push({ lat: lastPoint.lat, lng: lastPoint.lng, alt: -9999, timestamp: lastPoint.timestamp + 1 })
+              }
+            }
+          }
+          newPoints.push(point)
           // Auto-save to localStorage every 15 seconds (was 30s — more frequent for reliability)
           if (newPoints.length > 0 && Date.now() - lastAutoSaveRef.current > 15000) {
             lastAutoSaveRef.current = Date.now()
@@ -434,7 +546,14 @@ export default function Home() {
               localStorage.setItem('mototrack_autosave', JSON.stringify(newPoints))
             } catch {}
           }
-          if (prev.length > 0 && !isPausedRef.current) { const lp = prev[prev.length - 1]; const d = haversine(lp.lat, lp.lng, point.lat, point.lng); setTrackDistance(dd => Math.round((dd + d) * 100) / 100) }
+          if (prev.length > 0 && !isPausedRef.current) {
+            // Only calculate distance for non-gap points
+            const lastNonGapPoint = [...prev].reverse().find(p => p.alt !== -9999)
+            if (lastNonGapPoint) {
+              const d = haversine(lastNonGapPoint.lat, lastNonGapPoint.lng, point.lat, point.lng)
+              setTrackDistance(dd => Math.round((dd + d) * 100) / 100)
+            }
+          }
           return newPoints
         })
         if (pos.coords.speed !== null && pos.coords.speed >= 0) {
@@ -479,7 +598,7 @@ export default function Home() {
         }
         // Don't stop tracking on GPS errors — keep timer running, just skip the point
       },
-      { enableHighAccuracy: true, maximumAge: 3000, timeout: 10000 }
+      { enableHighAccuracy: true, maximumAge: 0, timeout: 15000 }
     )
   }, [settings.autoPauseEnabled, settings.autoPauseSpeedThreshold, settings.wakelockEnabled])
 
@@ -491,6 +610,7 @@ export default function Home() {
     if (timerRef.current) { clearInterval(timerRef.current); timerRef.current = null }
     if (autoPauseTimerRef.current) { clearTimeout(autoPauseTimerRef.current); autoPauseTimerRef.current = null }
     if (autoSaveIntervalRef.current) { clearInterval(autoSaveIntervalRef.current); autoSaveIntervalRef.current = null }
+    if (gpsReacquireIntervalRef.current) { clearInterval(gpsReacquireIntervalRef.current); gpsReacquireIntervalRef.current = null }
     // Clean up auto-save from localStorage
     try { localStorage.removeItem('mototrack_autosave') } catch {}
     // Release WakeLock
@@ -535,7 +655,9 @@ export default function Home() {
         })
       }
 
-      const trackData = JSON.stringify(filteredPoints.map(p => [p.lat, p.lng, p.alt, p.timestamp]))
+      // Filter out GPS gap points (alt: -9999) before saving — these are interpolation markers
+      const nonGapPoints = filteredPoints.filter(p => p.alt !== -9999)
+      const trackData = JSON.stringify(nonGapPoints.map(p => [p.lat, p.lng, p.alt, p.timestamp]))
       const res = await fetch('/api/rides', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ title: `Vožnja ${new Date().toLocaleDateString('sl-SI')}`, distance: trackDistance, duration: trackDuration, avgSpeed: trackDuration > 0 ? Math.round((trackDistance / (trackDuration / 3600)) * 10) / 10 : 0, maxSpeed: trackMaxSpeed, elevation: Math.round(trackElevation), trackData, startLat, startLng, endLat, endLng, isPublic: true }) })
       if (res.ok) { toast.success('Vožnja shranjena!'); setTrackPoints([]); setTrackDuration(0); setTrackDistance(0); setTrackMaxSpeed(0); setTrackElevation(0); fetchData(); if (user?.id) fetch('/api/achievements', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ userId: user.id }) }).then(r => r.json()).then(j => { if (j.data?.newlyEarned?.length > 0) j.data.newlyEarned.forEach((a: { title: string; icon: string }) => toast.success(`🏆 Nov dosežek: ${a.icon} ${a.title}!`)) }).catch(() => {}) }
       else toast.error('Napaka pri shranjevanju')
@@ -582,6 +704,14 @@ export default function Home() {
       toast.error('Napaka pri pošiljanju na telefon')
     }
   }, [planWaypoints, planTitle, planDistance, planCategory, fetchData, user?.id])
+
+  // Load a tour's waypoints into the Plan tab for navigation
+  const loadTourToPlan = useCallback((waypoints: { lat: number; lng: number }[], name: string) => {
+    setPlanWaypoints(waypoints)
+    setPlanTitle(name)
+    setPlanCategory('scenic')
+    setActiveTab('plan')
+  }, [])
 
   useEffect(() => {
     return () => { if (watchIdRef.current !== null) navigator.geolocation.clearWatch(watchIdRef.current); if (timerRef.current) clearInterval(timerRef.current) }
@@ -763,6 +893,7 @@ export default function Home() {
               userId={user?.id}
               fullscreen={exploreFullscreen}
               onToggleFullscreen={setExploreFullscreen}
+              onLoadToPlan={loadTourToPlan}
             />
           )}
           {activeTab === 'profile' && (

@@ -62,12 +62,14 @@ MotoTrack je **odziv na te pritožbe**:
 | **GPX uvoz/izvoz** | ✅ | ✅ | ✅ | ✅ | ✅ |
 | **Večdnevne ture** | ✅ | ❌ | ❌ | ❌ | ❌ |
 | **Nagibni kot (Lean Angle)** | ✅ | ❌ | ❌ | ❌ | ❌ |
-| **Balkanske ceste + ture** | ✅ (53+10) | ❌ | ❌ | ❌ | ❌ |
+| **Balkanske ceste + ture** | ✅ (63+15) | ❌ | ❌ | ❌ | ❌ |
 | **Deljenje rut s kodo + QR** | ✅ | ❌ | ❌ | ❌ | ❌ |
 | **Offline predpomniljenje (SW v2)** | ✅ | ❌ | ❌ | ❌ | ⚠️ |
 | **PC → Telefon (QR koda)** | ✅ | ⚠️ | ⚠️ | ⚠️ | ❌ |
 | **Prednalaganje ploščic za ruto** | ✅ | ❌ | ❌ | ❌ | ⚠️ |
 | **Napredna statistika (grafi)** | ✅ | ❌ | ❌ | ❌ | ❌ |
+| **BT čelada → Glasovna nav.** | ✅ | ❌ | ❌ | ❌ | ❌ |
+| **GPS ponovna vzpostavitev** | ✅ | ❌ | ❌ | ❌ | ❌ |
 | **Brez oglasov** | ✅ | ⚠️ Brezplačna verzija ima | ⚠️ | ✅ | ✅ |
 
 > 💡 *Podatki o konkurenci pridobljeni iz forumov: Reddit r/motorcycles, r/NewRiders, r/MotoUK, ADVrider.com, SpyderLovers.com, App Store/Google Play reviews, 2024-2025*
@@ -99,12 +101,12 @@ MotoTrack je **odziv na te pritožbe**:
 - ROI analiza — ocena vrednosti poti (pokrajina, vijugavost, kvaliteta, vreme, gorivo, čas)
 
 ### ▶️ Sledi vožnji
-- **Zanesljivo GPS sledenje** — WakeLock API + visibility change handler (ponovna vzpostavitev GPS ob vrnitvi iz ozadja), auto-save vsakih 15s v localStorage (crash recovery), GPS sanity check (zavrnitev skokov >500m, nizka natančnost), odporna obravnava napak (ne ustavi snemanja ob izgubi signala)
+- **Zanesljivo GPS sledenje** — WakeLock API + visibility change handler (ponovna vzpostavitev GPS ob vrnitvi iz ozadja), auto-save vsakih 15s v localStorage (crash recovery), GPS sanity check (zavrnitev skokov >500m, nizka natančnost), odporna obravnava napak (ne ustavi snemanja ob izgubi signala), **periodična ponovna vzpostavitev GPS** (vsakih 30s če watchPosition utihne — pogost Android PWA problem), sledenje višine iz GPS podatkov (samo vzpon), zaznavanje in označevanje GPS vrzeli (prepreči črte teleportacije na zemljevidu)
 - Trenutna hitrost, razdalja, trajanje, višina, najvišja hitrost
 - **Mini višinski profil v živo** — SVG vizualizacija sprememb nadmorske višine med vožnjo z gradient fill, trenutna višina, skupni vzpon/spust
 - Samodejni premor (auto-pause) pri nizki hitrosti
 - Wake Lock — zaslon ostane vklopljen med vožnjo
-- **Glasna navigacija (TTS v slovenščini)** — PROAKTIVNA obvestila PRED zavoji ("Čez 200 metrov zavijte desno"), prilagojena razdalja obvestila glede na hitrost, navigacija po načrtovani ruti ali nazaj na začetek, predogled naslednjih korakov, zaznavanje izgube rute z gumbom za preračun, AI TTS ali brskalnikov TTS
+- **Glasna navigacija (TTS v slovenščini)** — PROAKTIVNA obvestila PRED zavoji ("Čez 200 metrov zavijte desno"), prilagojena razdalja obvestila glede na hitrost, navigacija po načrtovani ruti ali nazaj na začetek, predogled naslednjih korakov, zaznavanje izgube rute z gumbom za preračun, AI TTS ali brskalnikov TTS, **avtomatsko usmerjanje zvoka v BT čelado** (Sena, Cardo, Interphone...) — če je čelada povezana, navigacijska sporočila gredo v slušalnik čelade namesto v telefon! Majhna BT ikona (🎧) prikazuje stanje povezave
 - Opozorila o hitrosti (nastavljiva meja, zvočni alarm)
 - **Driving Mode** — poenostavljen celozaslonski vmesnik za vožnjo! Velika hitrost, navigacija, doseg goriva — varno za telefon na volanu (alternativa CarPlay/Android Auto za PWA)
 - **Zaznavanje trčenja** — samodejno SOS ob trku + obvestilo ICE stikom
@@ -123,8 +125,9 @@ MotoTrack je **odziv na te pritožbe**:
 - Vodilni položaji (Leaderboard)
 - Izzivi (Challenges) s točkami in dosežki
 - Skupnosti (5 motociklističnih skupnosti)
-- 53 balkanskih cest z ocenami (10 držav)
-- **10 vgrajenih balkanskih tur** — pripravljenih navigabilnih rut z waypointi (Vršič, Kotor serpentine, Transfăgărășan, Transalpina, SH8 obala, itd.)
+- 63 balkanskih cest z ocenami (10 držav)
+- **15 vgrajenih balkanskih tur** — pripravljenih navigabilnih rut z waypointi (10 originalnih + 5 ikoničnih z GPS koordinatami!)
+- **5 ikoničnih tur z GPS točkami in "Naloži v Načrtuj"** — Soška dolina & Vršič (120km), Crna Gora Loop: Kotor-Lovćen-Skadar (140km), Transfăgărășan Celotna (170km), Albanska riviera: Vlorë-Sarandë (150km), Rodopske gore: Pamporovo-Dospat (130km). Kliknite "Naloži v Načrtuj" in ruta se naloži z dejanskimi GPS koordinatami za navigacijo!
 - 17 motociklističnih dogodkov
 - 15 moto-prijaznih kampingov
 - Iskanje servisov in trgovin
@@ -463,19 +466,26 @@ src/
 
 ## 🌍 Balkanske ceste & Ture
 
-53 kuriranih motociklističnih cest po 10 državah + **10 vgrajenih turnih rut**:
+63 kuriranih motociklističnih cest po 10 državah + **15 vgrajenih turnih rut** (10 originalnih + 5 ikoničnih z GPS točkami):
 
 ### Vgrajene ture (naloži in pelji!)
 - 🇸🇮 **Prelaz Vršič & Soška dolina** — 85 km, 50 serpentín, 9.5/10
 - 🇸🇮 **Jadranska obala** — 95 km, sproščujoča obalna ruta
 - 🇸🇮 **Jezersko & Pokljuka** — 70 km, gorski prelazi in gozdne ceste
 - 🇭🇷 **Gorski Kotar** — 120 km, gozdne ceste in jezera
-- 🇭🇷 **Jadranska magistrala** — 180 km, legendarna obalna cesta
+- 🇭🇷 **Jadranska magistrala** — 180 km, legendarne obalna cesta
 - 🇲🇪 **Kotor serpentine** — 45 km, 25 ozkih serpentín (10/10!)
 - 🇷🇴 **Transfăgărășan** — 150 km, Top Gearjeva najljubša cesta
 - 🇷🇴 **Transalpina** — 140 km, najvišja cesta v Romuniji (2145m)
 - 🇦🇱 **SH8 Obala** — 130 km, albanska riviera
 - 🇧🇬 **Prelaz Šipka** — 110 km, Dolina vrtnic
+
+### 🌟 Ikonične ture z GPS točkami (naloži v Načrtuj!)
+- 🇸🇮 **Soška dolina & Vršič Full Loop** — 120 km, 12 GPS točk, Tolmin→Kobarid→Bovec→Vršič→Kranjska Gora→Trenta→Bovec, 9.8/10
+- 🇲🇪 **Crna Gora Loop: Kotor-Lovćen-Skadar** — 140 km, 12 GPS točk, Kotor serpentine→Lovćen→Cetinje→Skadar→Budva, 9.9/10
+- 🇷🇴 **Transfăgărășan Celotna** — 170 km, 11 GPS točk, Băile Olănești→Curtea de Argeș→Bâlea Lake (2034m)→Sibiu, 10/10
+- 🇦🇱 **Albanska riviera: Vlorë-Sarandë** — 150 km, 11 GPS točk, Vlorë→Llogara (1027m)→Dhërmi→Himarë→Sarandë→Ksamil, 9.2/10
+- 🇧🇬 **Rodopske gore: Pamporovo-Dospat** — 130 km, 11 GPS točk, Pamporovo→Shiroka Laka→Devin→Yagodina jama→Trigrad→Dospat, 9.1/10
 
 ### Ceste po državah
 
@@ -538,6 +548,10 @@ Glede na raziskavo forumov (Reddit r/motorcycles, ADVrider, SpyderLovers, itd.) 
 7. **Prednalaganje ploščic za ruto** — Forumi: "Offline maps are essential" (ADVrider). MotoTrack zdaj omogoča prednalaganje zemljevidnih ploščic vzdolž načrtovane rute pred vožnjo. Prenesi z WiFi doma, uporabljaj brez signala v gorah! Zoom nivoji 10-15, buffer 5km okoli rute.
 
 8. **Napredna statistika** — Vizualni dashboard s stolpičnimi diagrami (tedenski pregled), površinskimi grafi (mesečna aktivnost), krožnim diagramom (distribucija hitrosti), top rutami in rekordi.
+
+9. **BT čelada → Glasovna navigacija** — Ko je Bluetooth čelada (Sena, Cardo, Interphone, Midland...) povezana, se navigacijska sporočila SAMODEJNO usmerijo v slušalnik čelade. Skupni hook `useBtAudio` preveri stanje povezave in glasnost. Majhna BT ikona (🎧) v vmesniku prikazuje, da je zvok usmerjen v čelado. Brez čelade = vse deluje enako kot prej (100% združljivo nazaj).
+
+10. **GPS ponovna vzpostavitev (re-acquisition)** — Pogost problem na Android PWA: `watchPosition` utihne, ko app gre v ozadje. MotoTrack zdaj vsakih 30s preveri, ali je prišel nov GPS podatek — če ne, samodejno zahteva nov položaj z `getCurrentPosition()`. Ob vrnitvi iz ozadja se takoj pridobi nov GPS fix in prikaže obvestilo o času prekinitve (npr. "Nazaj po 5 min — nadaljujem sledenje"). GPS vrzeli (>30s) se označijo s sentinelno vrednostjo, da preprečijo črte "teleportacije" na zemljevidu. Višina se zdaj pridobiva iz GPS podatkov (samo pozitivne spremembe = vzpon).
 
 ---
 

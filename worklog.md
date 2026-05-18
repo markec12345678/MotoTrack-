@@ -89,3 +89,93 @@ Stage Summary:
 - Hazard reporting system (Waze for motorcyclists) - key forum request
 - Mini elevation profile during tracking - visual altitude changes
 - All files pass TypeScript and lint checks
+
+---
+Task ID: 10
+Agent: Main
+Task: GPX export/import improvements with waypoints and metadata
+
+Work Log:
+- Rewrote /api/gpx/export/route.ts with full GPX 1.1 support
+- Added wpt (waypoint) elements with symbols (Flag, Green/Red/Blue)
+- Added rte (route) element with rtept points for route navigation
+- Added MotoTrack XML namespace extensions (mt:type, mt:category, mt:difficulty, mt:distance, mt:shareCode)
+- Added author, description, and time metadata
+- Improved /api/gpx/import/route.ts to read MotoTrack extensions
+- Import now preserves category and difficulty from MotoTrack exports
+- Slovenian filenames in Content-Disposition header
+- Pushed to GitHub (commit b2931bc)
+
+Stage Summary:
+- GPX export now fully compatible with REVER, Calimoto, Kurviger, OsmAnd
+- Round-trip: export from MotoTrack → import to another app → re-import preserves metadata
+- Waypoint symbols for visual distinction on GPS devices
+
+---
+Task ID: 3
+Agent: GPS Tracking Reliability Engineer
+Task: Enhance GPS tracking reliability for background/foreground transitions
+
+Work Log:
+- Read worklog.md to understand prior work (QR sharing, hazard reporting, GPX improvements)
+- Read types.ts to verify TrackPoint type (alt: number | null) supports -9999 sentinel value
+- Read home.tsx (full file) to understand existing GPS tracking implementation (lines 347-501)
+- Added gpsReacquireIntervalRef and lastAltitudeRef refs for new tracking features
+- Implemented periodic GPS re-acquisition: 30s interval checks lastGpsFixRef, calls getCurrentPosition() with high accuracy if no fix for 30s, shows toast "📡 Ponovna vzpostavitev GPS..."
+- Changed watchPosition options: maximumAge from 3000 to 0 (freshest position only), timeout from 10000 to 15000 (more time for GPS fix)
+- Implemented GPS gap interpolation: when >30s gap between consecutive track points, inserts a marker point with alt: -9999 to prevent "teleportation" lines on the map
+- Implemented elevation tracking from GPS altitude: tracks positive altitude changes (climbing only) using lastAltitudeRef, updates trackElevation state
+- Enhanced visibility change handler: on foreground return, immediately calls getCurrentPosition() for fresh GPS fix; calculates and displays time gap message "📡 Nazaj po 5 min — nadaljujem sledenje"
+- Updated stopTracking to clean up gpsReacquireIntervalRef interval
+- Updated saveRide to filter out gap marker points (alt: -9999) before saving track data
+- Fixed distance calculation to skip gap marker points when computing haversine distance
+- All lint checks pass for home.tsx (no new errors introduced)
+- All UI text in Slovenian as required
+
+Stage Summary:
+- GPS tracking now reliably re-acquires position when watchPosition silently stops (common Android PWA issue)
+- Background→foreground transition immediately gets fresh GPS fix and shows time gap notification
+- GPS gap markers (alt: -9999) prevent "teleportation" lines on map; filtered out before saving
+- Elevation tracking now uses real GPS altitude data (climbing only, not descending)
+- watchPosition uses maximumAge: 0 for always-fresh positions and timeout: 15000 for better fix chances
+- All existing functionality preserved (auto-pause, WakeLock, auto-save, GPS sanity checks)
+
+---
+Task ID: 2
+Agent: Voice Nav + BT Helmet Bridge Engineer
+Task: Bridge Voice Navigation with Bluetooth Helmet speaker routing
+
+Work Log:
+- Read worklog.md to understand prior work (QR sharing, hazard reporting, GPX improvements, GPS reliability)
+- Read bluetooth-helmet.tsx to understand BT helmet implementation: exposes `window.__mototrack_bt_nav` function when connected with nav prompts enabled, volume stored in localStorage `mototrack_bt_volume`
+- Read voice-navigation.tsx to understand standalone voice nav: browser TTS + AI TTS, no BT helmet awareness
+- Read track-tab.tsx to understand inline voice navigation: standalone speakNav using synthRef, no BT check
+- Created `src/hooks/use-bt-audio.ts` shared hook:
+  a. Checks `window.__mototrack_bt_nav` for connected BT helmet (polls every 2s)
+  b. Returns `speak(text)` function that routes through BT helmet when connected, falls back to browser speechSynthesis
+  c. Returns `isConnected` boolean and `volume` (from localStorage)
+  d. Uses lazy initializer for volume state (avoids cascading render lint error)
+  e. Declares global Window type for `__mototrack_bt_nav`
+  f. Fully backward compatible - if no BT helmet, works identically to before
+- Updated `src/components/tabs/track-tab.tsx`:
+  a. Added Headphones import from lucide-react
+  b. Imported useBtAudio hook
+  c. Removed synthRef and its useEffect initializer (now handled by useBtAudio)
+  d. Replaced speakNav callback to use btSpeak from useBtAudio instead of synthRef.current.speak()
+  e. Added BT indicator badge (Headphones icon + "BT" text) next to voice toggle button in nav banner, visible only when BT helmet is connected
+- Updated `src/components/voice-navigation.tsx`:
+  a. Added Headphones import from lucide-react
+  b. Imported useBtAudio hook
+  c. Removed synthRef and its useEffect initializer
+  d. Updated speakBrowser to check btConnected first: if connected, delegates to btSpeak; otherwise uses window.speechSynthesis directly
+  e. Added BT indicator badge (Headphones icon + "BT" text) in header section next to "Navigacija" label, visible only when BT helmet is connected
+- All three modified files pass lint with zero new errors
+- All UI text in Slovenian as required
+
+Stage Summary:
+- Shared `useBtAudio` hook created at `src/hooks/use-bt-audio.ts` - single source of truth for BT audio routing
+- Track tab inline voice navigation now routes through BT helmet when connected (was phone-only before)
+- Voice navigation component now routes through BT helmet when connected (was phone-only before)
+- Small BT indicator badge (🎧 + "BT") appears in both nav UIs when helmet is connected
+- Fully backward compatible - no BT helmet = everything works exactly as before
+- No lint errors introduced in any modified files

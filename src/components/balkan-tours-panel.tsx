@@ -15,6 +15,8 @@ import {
   Route as RouteIcon,
   Loader2,
   Zap,
+  Compass,
+  Sparkles,
 } from 'lucide-react'
 import { toast } from 'sonner'
 
@@ -37,9 +39,11 @@ interface TourRoute {
   bestSeason: string
   rating: number
   tags: string[]
+  isIconic?: boolean // Flag for the 5 new iconic routes
 }
 
 const BALKAN_TOURS: TourRoute[] = [
+  // ===== ORIGINAL 10 TOURS =====
   {
     id: 'slo-vrsic-pass',
     name: 'Prelaz Vršič & Soška dolina',
@@ -260,17 +264,170 @@ const BALKAN_TOURS: TourRoute[] = [
     rating: 8.0,
     tags: ['gorski prehod', 'gozd', 'razgledi', 'Triglav'],
   },
+
+  // ===== 5 NEW ICONIC BALKAN TOUR ROUTES =====
+  // Extended routes with detailed GPS waypoints for real navigation
+
+  {
+    id: 'slo-soca-vrsic-loop',
+    name: 'Soška dolina & Vršič',
+    nameEn: 'Soča Valley & Vršič Full Loop',
+    country: 'SI',
+    countryFlag: '🇸🇮',
+    distance: 120,
+    duration: 210,
+    difficulty: 'hard',
+    description: 'Polni krog Soške doline in Vršiča — od Tolmina ob smaragdni Soči, čez Kobarid in Bovec, na Vršič (1611m) in nazaj skozi Trento. Najlepša slovenska motoristična ruta!',
+    highlights: ['Smaragdna Soča', 'Kobarid - muzej', 'Bovec - adrenalinski park', 'Vršič 50 serpentín', 'Kranjska Gora', 'Trenta dolina', 'Slap Boka'],
+    waypoints: [
+      { lat: 46.1850, lng: 13.7300, name: 'Tolmin' },
+      { lat: 46.2180, lng: 13.6600, name: 'Kamno ob Soči' },
+      { lat: 46.2450, lng: 13.5800, name: 'Kobarid' },
+      { lat: 46.2700, lng: 13.5700, name: 'Slap Boka' },
+      { lat: 46.3050, lng: 13.5600, name: 'Žaga' },
+      { lat: 46.3350, lng: 13.5550, name: 'Bovec' },
+      { lat: 46.3800, lng: 13.6400, name: 'Trenta - začetek klanca' },
+      { lat: 46.4330, lng: 13.7330, name: 'Vršič - prelaz (1611m)' },
+      { lat: 46.4150, lng: 13.7800, name: 'Vršič - ruska kapelica' },
+      { lat: 46.4800, lng: 13.7900, name: 'Kranjska Gora' },
+      { lat: 46.3700, lng: 13.7500, name: 'Trenta vas' },
+      { lat: 46.3350, lng: 13.5550, name: 'Bovec (konec)' },
+    ],
+    bestSeason: 'Maj - Oktober',
+    rating: 9.8,
+    tags: ['ikonična', 'serpentine', 'reka', 'gorski prehod', 'zanka'],
+    isIconic: true,
+  },
+  {
+    id: 'mne-kotor-lovcen-skadar',
+    name: 'Crna Gora Loop',
+    nameEn: 'Montenegro Loop: Kotor-Lovćen-Skadar',
+    country: 'ME',
+    countryFlag: '🇲🇪',
+    distance: 140,
+    duration: 300,
+    difficulty: 'expert',
+    description: 'Ekstremna črnogorska zanka — Kotor serpentine, Lovćen narodni park, Cetinje, Skadransko jezero in Budva riviera. Navor in lepotica v enem!',
+    highlights: ['Kotor serpentine (25 ovinkov)', 'Lovćen (1749m)', 'Mauzolej Njegoš', 'Cetinje - stara prestolnica', 'Skadransko jezero', 'Budva riviera', 'Sveti Stefan razgled'],
+    waypoints: [
+      { lat: 42.4250, lng: 18.7700, name: 'Kotor' },
+      { lat: 42.4100, lng: 18.7750, name: 'Kotor - serpentine začetek' },
+      { lat: 42.3800, lng: 18.8000, name: 'Kotor serpentine - sredina' },
+      { lat: 42.3600, lng: 18.8500, name: 'Njeguši' },
+      { lat: 42.3800, lng: 18.8700, name: 'Lovćen - Mauzolej Njegoš' },
+      { lat: 42.3950, lng: 18.8900, name: 'Ivanova Korita' },
+      { lat: 42.3900, lng: 18.9100, name: 'Cetinje' },
+      { lat: 42.3500, lng: 19.0200, name: 'Rijeka Crnojevića' },
+      { lat: 42.2500, lng: 19.1500, name: 'Virpazar - Skadransko jezero' },
+      { lat: 42.2600, lng: 19.0500, name: 'Sutomore' },
+      { lat: 42.2800, lng: 18.8400, name: 'Budva' },
+      { lat: 42.4250, lng: 18.7700, name: 'Kotor (konec)' },
+    ],
+    bestSeason: 'Maj - September',
+    rating: 9.9,
+    tags: ['ikonična', 'serpentine', 'narodni park', 'jezero', 'obala', 'zanka'],
+    isIconic: true,
+  },
+  {
+    id: 'rou-transfagarasan-full',
+    name: 'Transfăgărășan Celotna',
+    nameEn: 'Transfăgărășan Full Route',
+    country: 'RO',
+    countryFlag: '🇷🇴',
+    distance: 170,
+    duration: 330,
+    difficulty: 'expert',
+    description: 'Celotna Transfăgărășan od Băile Olănești preko Curtea de Argeș do vrha pri Bâlea Lake (2034m) in naprej do Sibiuja. Top Gearjeva najljubša cesta — vsestranska!',
+    highlights: ['Bâlea Lake (2034m)', 'Predor Capra (900m)', 'Piscul Negru', 'Curtea de Argeș samostan', 'Cârțișoara vas', 'Sibiu - Evropska prestolnica kulture'],
+    waypoints: [
+      { lat: 45.4300, lng: 24.2100, name: 'Băile Olănești' },
+      { lat: 45.3800, lng: 24.3500, name: 'Titești' },
+      { lat: 45.2900, lng: 24.5100, name: 'Perișani' },
+      { lat: 45.1400, lng: 24.6800, name: 'Curtea de Argeș' },
+      { lat: 45.4400, lng: 24.6200, name: 'Arefu' },
+      { lat: 45.5900, lng: 24.6200, name: 'Piscul Negru' },
+      { lat: 45.6000, lng: 24.6400, name: 'Bâlea Lake (2034m)' },
+      { lat: 45.6100, lng: 24.5800, name: 'Predor Capra' },
+      { lat: 45.6300, lng: 24.5000, name: 'Bâlea Cascadă' },
+      { lat: 45.7700, lng: 24.6100, name: 'Cârțișoara' },
+      { lat: 45.7900, lng: 24.1500, name: 'Sibiu' },
+    ],
+    bestSeason: 'Julij - Oktober (zaprt pozimi!)',
+    rating: 10.0,
+    tags: ['ikonična', 'gorski prehod', 'serpentine', 'legendarna', 'Top Gear'],
+    isIconic: true,
+  },
+  {
+    id: 'alb-riviera-vlore-sarande',
+    name: 'Albanska riviera',
+    nameEn: 'Albanian Riviera: Vlorë-Sarandë',
+    country: 'AL',
+    countryFlag: '🇦🇱',
+    distance: 150,
+    duration: 270,
+    difficulty: 'medium',
+    description: 'Albanska riviera — spektakularna SH8 cesta od Vlorëja čez Llogara prelaz (1027m) vzdolž Jonskega morja do Sarandëja in Ksamila. Kristalno čisto morje in divji razgledi!',
+    highlights: ['Llogara prelaz (1027m)', 'Dhërmi - modra jama', 'Himarë - grad', 'Lukova plaža', 'Sarandë - obala', 'Ksamil - otoki', 'Razgled na Krf'],
+    waypoints: [
+      { lat: 40.4700, lng: 19.4900, name: 'Vlorë' },
+      { lat: 40.3800, lng: 19.5200, name: 'Orikum' },
+      { lat: 40.1800, lng: 19.5800, name: 'Llogara prelaz (1027m)' },
+      { lat: 40.1500, lng: 19.5900, name: 'Llogara - razgled na morje' },
+      { lat: 40.1100, lng: 19.6200, name: 'Dhërmi' },
+      { lat: 40.1000, lng: 19.6800, name: 'Gjipe plaža' },
+      { lat: 40.0800, lng: 19.7400, name: 'Himarë' },
+      { lat: 40.0300, lng: 19.8300, name: 'Lukova' },
+      { lat: 39.9500, lng: 19.9200, name: 'Borsh' },
+      { lat: 39.8700, lng: 20.0100, name: 'Sarandë' },
+      { lat: 39.7700, lng: 20.0000, name: 'Ksamil' },
+    ],
+    bestSeason: 'Maj - Oktober',
+    rating: 9.2,
+    tags: ['ikonična', 'obala', 'morje', 'prelaz', 'plaža', 'razgledi'],
+    isIconic: true,
+  },
+  {
+    id: 'bul-rhodope-pamporovo-dospat',
+    name: 'Rodopske gore',
+    nameEn: 'Rhodope Mountains: Pamporovo-Dospat',
+    country: 'BG',
+    countryFlag: '🇧🇬',
+    distance: 130,
+    duration: 270,
+    difficulty: 'hard',
+    description: 'Rodopske gore — divje gozdne ceste od Pamporova skozi Shiroka Laka, Devin, Yagodino jamo in Trigrad sotesko. Samotne ceste, jame in osupljiva narava!',
+    highlights: ['Shiroka Laka - arhitektura', 'Devin - vroči izviri', 'Yagodina jama', 'Trigrad soteska', 'Buynovo soteska', 'Dospat jezero', 'Orlovo oko razgled'],
+    waypoints: [
+      { lat: 41.6500, lng: 24.7000, name: 'Pamporovo' },
+      { lat: 41.6400, lng: 24.6600, name: 'Stoikite' },
+      { lat: 41.6300, lng: 24.5500, name: 'Shiroka Laka' },
+      { lat: 41.6700, lng: 24.4800, name: 'Gela' },
+      { lat: 41.7200, lng: 24.4000, name: 'Devin' },
+      { lat: 41.7000, lng: 24.3800, name: 'Trigradska reka' },
+      { lat: 41.6600, lng: 24.3500, name: 'Yagodina jama' },
+      { lat: 41.6300, lng: 24.3700, name: 'Trigrad' },
+      { lat: 41.6400, lng: 24.4000, name: 'Buynovo soteska' },
+      { lat: 41.6800, lng: 24.3000, name: 'Beden' },
+      { lat: 41.6400, lng: 24.1600, name: 'Dospat' },
+    ],
+    bestSeason: 'Maj - Oktober',
+    rating: 9.1,
+    tags: ['ikonična', 'gozd', 'jama', 'soteska', 'jezero', 'samotna'],
+    isIconic: true,
+  },
 ]
 
 interface BalkanToursProps {
   onSelectTour?: (waypoints: { lat: number; lng: number }[]) => void
   onStartNavigation?: (destination: { lat: number; lng: number; name: string }) => void
+  onLoadToPlan?: (waypoints: { lat: number; lng: number }[], name: string) => void
 }
 
-export default function BalkanTours({ onSelectTour, onStartNavigation }: BalkanToursProps) {
+export default function BalkanTours({ onSelectTour, onStartNavigation, onLoadToPlan }: BalkanToursProps) {
   const [expandedTour, setExpandedTour] = useState<string | null>(null)
   const [loadingTour, setLoadingTour] = useState<string | null>(null)
   const [selectedTour, setSelectedTour] = useState<string | null>(null)
+  const [showIconicFirst, setShowIconicFirst] = useState(true)
 
   const handleSelectTour = useCallback((tour: TourRoute) => {
     setSelectedTour(tour.id)
@@ -283,6 +440,12 @@ export default function BalkanTours({ onSelectTour, onStartNavigation }: BalkanT
     onStartNavigation?.({ lat: start.lat, lng: start.lng, name: start.name })
     toast.info(`Navigacija do ${start.name}...`)
   }, [onStartNavigation])
+
+  const handleLoadToPlan = useCallback((tour: TourRoute) => {
+    const waypoints = tour.waypoints.map(w => ({ lat: w.lat, lng: w.lng }))
+    onLoadToPlan?.(waypoints, tour.name)
+    toast.success(`🗺️ Ruta "${tour.name}" naložena v Načrtuj!`)
+  }, [onLoadToPlan])
 
   const difficultyColor = (d: string) => {
     switch (d) {
@@ -304,19 +467,66 @@ export default function BalkanTours({ onSelectTour, onStartNavigation }: BalkanT
     }
   }
 
+  // Sort: iconic tours first when filter is on
+  const sortedTours = showIconicFirst
+    ? [...BALKAN_TOURS].sort((a, b) => (b.isIconic ? 1 : 0) - (a.isIconic ? 1 : 0))
+    : BALKAN_TOURS
+
+  const iconicCount = BALKAN_TOURS.filter(t => t.isIconic).length
+
   return (
     <div className="space-y-3">
-      <div className="flex items-center gap-2 mb-2">
-        <Mountain className="size-5 text-primary" />
-        <h3 className="text-sm font-bold uppercase tracking-wider">Balkanske ture</h3>
-        <Badge variant="secondary" className="text-[9px]">{BALKAN_TOURS.length} rut</Badge>
+      {/* Header */}
+      <div className="flex items-center justify-between mb-2">
+        <div className="flex items-center gap-2">
+          <Mountain className="size-5 text-primary" />
+          <h3 className="text-sm font-bold uppercase tracking-wider">Balkanske ture</h3>
+          <Badge variant="secondary" className="text-[9px]">{BALKAN_TOURS.length} rut</Badge>
+        </div>
+        <button
+          onClick={() => setShowIconicFirst(!showIconicFirst)}
+          className={`flex items-center gap-1 text-[10px] px-2 py-1 rounded-full transition-colors ${
+            showIconicFirst
+              ? 'bg-primary/20 text-primary'
+              : 'text-muted-foreground hover:bg-secondary'
+          }`}
+        >
+          <Sparkles className="size-3" />
+          Ikonične prve
+        </button>
       </div>
 
-      {BALKAN_TOURS.map(tour => {
+      {/* Iconic tours highlight banner */}
+      {iconicCount > 0 && (
+        <div className="bg-gradient-to-r from-primary/10 via-primary/5 to-transparent rounded-lg p-3 border border-primary/20">
+          <div className="flex items-center gap-2 mb-1">
+            <Sparkles className="size-4 text-primary" />
+            <span className="text-xs font-bold text-primary">{iconicCount} ikoničnih tur z GPS točkami</span>
+          </div>
+          <p className="text-[10px] text-muted-foreground">
+            Naložite v Načrtuj za navigacijo z dejanskimi GPS koordinatami!
+          </p>
+        </div>
+      )}
+
+      {sortedTours.map(tour => {
         const isExpanded = expandedTour === tour.id
+        const isIconic = tour.isIconic
         return (
-          <Card key={tour.id} className={`transition-all ${selectedTour === tour.id ? 'ring-2 ring-primary' : ''}`}>
-            <CardContent className="p-3 space-y-2">
+          <Card key={tour.id} className={`transition-all ${selectedTour === tour.id ? 'ring-2 ring-primary' : ''} ${isIconic ? 'border-primary/30' : ''}`}>
+            <CardContent className={`p-3 space-y-2 ${isIconic ? '' : ''}`}>
+              {/* Iconic badge strip */}
+              {isIconic && (
+                <div className="flex items-center gap-1.5 -mt-1 -mx-1 mb-1">
+                  <div className="flex-1 h-0.5 bg-gradient-to-r from-primary via-primary/60 to-transparent rounded-full" />
+                  <span className="text-[8px] font-bold text-primary uppercase tracking-widest flex items-center gap-1">
+                    <Sparkles className="size-2.5" />
+                    Ikonična
+                  </span>
+                  <div className="flex-1 h-0.5 bg-gradient-to-l from-primary via-primary/60 to-transparent rounded-full" />
+                </div>
+              )}
+
               {/* Tour header */}
               <button
                 onClick={() => setExpandedTour(isExpanded ? null : tour.id)}
@@ -326,7 +536,7 @@ export default function BalkanTours({ onSelectTour, onStartNavigation }: BalkanT
                   <span className="text-lg leading-none mt-0.5">{tour.countryFlag}</span>
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2">
-                      <p className="text-sm font-medium truncate">{tour.name}</p>
+                      <p className={`text-sm truncate ${isIconic ? 'font-bold' : 'font-medium'}`}>{tour.name}</p>
                       <Badge className={`text-[9px] px-1.5 py-0 border ${difficultyColor(tour.difficulty)}`}>
                         {difficultyLabel(tour.difficulty)}
                       </Badge>
@@ -345,6 +555,12 @@ export default function BalkanTours({ onSelectTour, onStartNavigation }: BalkanT
                         <Star className="size-3 text-amber-400" />
                         {tour.rating}
                       </span>
+                      {isIconic && (
+                        <span className="flex items-center gap-1 text-primary">
+                          <MapPin className="size-3" />
+                          {tour.waypoints.length} GPS
+                        </span>
+                      )}
                     </div>
                   </div>
                   {isExpanded ? <ChevronUp className="size-4 text-muted-foreground flex-shrink-0" /> : <ChevronDown className="size-4 text-muted-foreground flex-shrink-0" />}
@@ -368,14 +584,25 @@ export default function BalkanTours({ onSelectTour, onStartNavigation }: BalkanT
 
                   {/* Waypoints */}
                   <div>
-                    <p className="text-[10px] text-muted-foreground uppercase tracking-wider font-medium mb-1">Pot ({tour.waypoints.length} točk)</p>
-                    <div className="space-y-0.5">
+                    <p className="text-[10px] text-muted-foreground uppercase tracking-wider font-medium mb-1">
+                      Pot ({tour.waypoints.length} točk{isIconic ? ' · GPS navigacija' : ''})
+                    </p>
+                    <div className="space-y-0.5 max-h-48 overflow-y-auto custom-scrollbar">
                       {tour.waypoints.map((wp, i) => (
                         <div key={i} className="flex items-center gap-2 text-xs">
-                          <span className="size-4 rounded-full bg-primary/20 text-primary flex items-center justify-center text-[8px] font-bold flex-shrink-0">
+                          <span className={`size-4 rounded-full flex items-center justify-center text-[8px] font-bold flex-shrink-0 ${
+                            i === 0
+                              ? 'bg-emerald-500/20 text-emerald-400'
+                              : i === tour.waypoints.length - 1
+                                ? 'bg-red-500/20 text-red-400'
+                                : 'bg-primary/20 text-primary'
+                          }`}>
                             {i + 1}
                           </span>
                           <span className="truncate">{wp.name}</span>
+                          <span className="text-[8px] text-muted-foreground ml-auto flex-shrink-0">
+                            {wp.lat.toFixed(3)}, {wp.lng.toFixed(3)}
+                          </span>
                         </div>
                       ))}
                     </div>
@@ -387,15 +614,28 @@ export default function BalkanTours({ onSelectTour, onStartNavigation }: BalkanT
                   </div>
                   <div className="flex flex-wrap gap-1">
                     {tour.tags.map((tag, i) => (
-                      <span key={i} className="text-[9px] bg-muted/50 px-1.5 py-0.5 rounded">#{tag}</span>
+                      <span key={i} className={`text-[9px] px-1.5 py-0.5 rounded ${
+                        tag === 'ikonična' ? 'bg-primary/20 text-primary font-medium' : 'bg-muted/50'
+                      }`}>#{tag}</span>
                     ))}
                   </div>
 
                   {/* Actions */}
                   <div className="flex gap-2 pt-1">
+                    {isIconic && onLoadToPlan && (
+                      <Button
+                        size="sm"
+                        className="flex-1 text-xs gap-1"
+                        onClick={() => handleLoadToPlan(tour)}
+                      >
+                        <Compass className="size-3" />
+                        Naloži v Načrtuj
+                      </Button>
+                    )}
                     <Button
                       size="sm"
-                      className="flex-1 text-xs gap-1"
+                      variant={isIconic && onLoadToPlan ? 'outline' : 'default'}
+                      className={`text-xs gap-1 ${!isIconic || !onLoadToPlan ? 'flex-1' : ''}`}
                       onClick={() => handleSelectTour(tour)}
                     >
                       <Zap className="size-3" />

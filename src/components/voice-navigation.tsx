@@ -1,9 +1,10 @@
 'use client'
 
 import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react'
-import { Navigation2, Volume2, VolumeX, X, SkipForward, Loader2, AlertTriangle, Reroute } from 'lucide-react'
+import { Navigation2, Volume2, VolumeX, X, SkipForward, Loader2, AlertTriangle, Reroute, Headphones } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Progress } from '@/components/ui/progress'
+import { useBtAudio } from '@/hooks/use-bt-audio'
 
 // ===== TYPES =====
 
@@ -80,20 +81,16 @@ export default function VoiceNavigation({
   const [bearingToNextStep, setBearingToNextStep] = useState<number | null>(null)
   const spokenStepsRef = useRef<Set<number>>(new Set())
   const spokenProactiveRef = useRef<Map<number, Set<number>>>(new Map()) // step -> Set of threshold index
-  const synthRef = useRef<SpeechSynthesis | null>(null)
   const routeRef = useRef(route)
   const audioRef = useRef<HTMLAudioElement | null>(null)
   const offRouteCounterRef = useRef(0)
   const lastPositionRef = useRef<{ lat: number; lng: number; ts: number } | null>(null)
 
+  // BT audio hook - routes through helmet when connected
+  const { isConnected: btConnected, speak: btSpeak } = useBtAudio()
+
   // Keep routeRef in sync
   useEffect(() => { routeRef.current = route }, [route])
-
-  useEffect(() => {
-    if (typeof window !== 'undefined' && window.speechSynthesis) {
-      synthRef.current = window.speechSynthesis
-    }
-  }, [])
 
   // Cleanup audio on unmount
   useEffect(() => {
@@ -106,19 +103,25 @@ export default function VoiceNavigation({
     }
   }, [])
 
-  // ===== Browser TTS =====
+  // ===== Browser TTS (with BT helmet routing) =====
   const speakBrowser = useCallback((text: string) => {
-    if (!synthRef.current) return
-    synthRef.current.cancel()
+    // If BT helmet connected, route through helmet speaker
+    if (btConnected) {
+      btSpeak(text)
+      return
+    }
+    // Fallback to regular browser TTS
+    if (typeof window === 'undefined' || !window.speechSynthesis) return
+    window.speechSynthesis.cancel()
     const utter = new SpeechSynthesisUtterance(text)
     utter.lang = 'sl-SI'
     utter.rate = 0.9
     utter.volume = 1.0
-    const voices = synthRef.current.getVoices()
+    const voices = window.speechSynthesis.getVoices()
     const slVoice = voices.find(v => v.lang.startsWith('sl'))
     if (slVoice) utter.voice = slVoice
-    synthRef.current.speak(utter)
-  }, [])
+    window.speechSynthesis.speak(utter)
+  }, [btConnected, btSpeak])
 
   // ===== AI TTS via API =====
   const speakAI = useCallback(async (text: string) => {
@@ -357,6 +360,12 @@ export default function VoiceNavigation({
             }`}>
               {isOffRoute ? 'Zunaj rute' : isArrived ? 'Prispeli!' : 'Navigacija'}
             </span>
+            {btConnected && (
+              <span className="flex items-center gap-0.5 px-1 py-0.5 rounded bg-primary/20 text-primary" title="Bluetooth čelada povezana - zvok gre skozi čelado">
+                <Headphones className="size-3" />
+                <span className="text-[7px] font-bold">BT</span>
+              </span>
+            )}
             {ttsLoading && <Loader2 className="size-3 text-primary animate-spin" />}
           </div>
           <div className="flex items-center gap-1">

@@ -2,12 +2,13 @@
 
 import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react'
 import dynamic from 'next/dynamic'
-import { Play, Pause, Square, Save, Gauge, AlertTriangle, ChevronDown, ChevronUp, Activity, Bike, Moon, Timer, Share2, Navigation2, Volume2, VolumeX, Eye } from 'lucide-react'
+import { Play, Pause, Square, Save, Gauge, AlertTriangle, ChevronDown, ChevronUp, Activity, Bike, Moon, Timer, Share2, Navigation2, Volume2, VolumeX, Eye, Headphones } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import type { TrackPoint, SpeedAlertSettings } from '@/components/tabs/types'
 import { formatDuration } from '@/components/tabs/types'
 import { type UnitSystem, convertSpeed, convertDistance, speedUnit, distanceUnit } from '@/hooks/use-settings'
+import { useBtAudio } from '@/hooks/use-bt-audio'
 
 const CrashDetectionPanel = dynamic(() => import('@/components/crash-detection-panel'), { ssr: false })
 const LiveTrackingPanel = dynamic(() => import('@/components/live-tracking-panel'), { ssr: false })
@@ -122,32 +123,17 @@ export default function TrackTab({
   const [navLoading, setNavLoading] = useState(false)
   const [navDistToStep, setNavDistToStep] = useState<number | null>(null)
   const [navDestination, setNavDestination] = useState<{lat: number; lng: number; name: string} | null>(null)
-  const synthRef = useRef<SpeechSynthesis | null>(null)
   const spokenStepsRef = useRef<Set<number>>(new Set())
   const spokenProactiveRef = useRef<Map<number, Set<string>>>(new Map()) // step -> Set of distance thresholds spoken
 
-  // Init speech synthesis for voice navigation
-  useEffect(() => {
-    if (typeof window !== 'undefined' && window.speechSynthesis) {
-      synthRef.current = window.speechSynthesis
-    }
-  }, [])
+  // BT audio hook - routes through helmet when connected
+  const { isConnected: btConnected, speak: btSpeak } = useBtAudio()
 
-  // Speak a navigation instruction (supports both browser TTS and AI TTS)
+  // Speak a navigation instruction via BT helmet or phone speaker
   const speakNav = useCallback((text: string) => {
     if (!navVoiceOn) return
-    // Use browser TTS for nav (fast, low latency - critical for turn-by-turn)
-    if (!synthRef.current) return
-    synthRef.current.cancel()
-    const utter = new SpeechSynthesisUtterance(text)
-    utter.lang = 'sl-SI'
-    utter.rate = 0.95
-    utter.volume = 1.0
-    const voices = synthRef.current.getVoices()
-    const slVoice = voices.find(v => v.lang.startsWith('sl'))
-    if (slVoice) utter.voice = slVoice
-    synthRef.current.speak(utter)
-  }, [navVoiceOn])
+    btSpeak(text)
+  }, [navVoiceOn, btSpeak])
 
   // Calculate distance to current nav step + auto-advance
   useEffect(() => {
@@ -523,9 +509,17 @@ export default function TrackTab({
                     <div className="flex-1 min-w-0">
                       <p className="text-xs font-medium text-white truncate">{navSteps[navStepIdx]?.instruction || 'Nadaljuj naravnost'}</p>
                     </div>
-                    <button onClick={() => setNavVoiceOn(!navVoiceOn)} className="p-1 rounded hover:bg-white/10 flex-shrink-0">
-                      {navVoiceOn ? <Volume2 className="size-3.5 text-primary" /> : <VolumeX className="size-3.5 text-white/30" />}
-                    </button>
+                    <div className="flex items-center gap-0.5 flex-shrink-0">
+                      {btConnected && (
+                        <span className="flex items-center gap-0.5 px-1 py-0.5 rounded bg-primary/20 text-primary" title="Bluetooth čelada povezana">
+                          <Headphones className="size-3" />
+                          <span className="text-[8px] font-bold">BT</span>
+                        </span>
+                      )}
+                      <button onClick={() => setNavVoiceOn(!navVoiceOn)} className="p-1 rounded hover:bg-white/10">
+                        {navVoiceOn ? <Volume2 className="size-3.5 text-primary" /> : <VolumeX className="size-3.5 text-white/30" />}
+                      </button>
+                    </div>
                     <button onClick={() => setNavActive(false)} className="p-1 rounded hover:bg-red-500/20 text-red-400 flex-shrink-0">
                       <Square className="size-3" />
                     </button>
