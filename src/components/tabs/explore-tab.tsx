@@ -143,7 +143,7 @@ const ExploreTabInner = React.memo(function ExploreTabInner({ rides, routes, lea
       .catch(() => setFeedLoading(false))
   }, [userId])
 
-  // eslint-disable-next-line react-hooks/set-state-in-effect
+   
   useEffect(() => { fetchFeed() }, [fetchFeed])
 
   // Fetch favorites
@@ -156,7 +156,7 @@ const ExploreTabInner = React.memo(function ExploreTabInner({ rides, routes, lea
       .catch(() => setFavoritesLoading(false))
   }, [userId])
 
-  // eslint-disable-next-line react-hooks/set-state-in-effect
+   
   useEffect(() => { fetchFavorites() }, [fetchFavorites])
 
   // Fetch communities

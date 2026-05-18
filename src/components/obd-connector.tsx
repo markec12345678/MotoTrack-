@@ -92,7 +92,7 @@ export default function ObdConnector({ onClose }: ObdConnectorProps) {
   // Check Web Serial API support
   useEffect(() => {
     if (typeof navigator !== 'undefined' && 'serial' in navigator) {
-      // eslint-disable-next-line react-hooks/set-state-in-effect
+       
       setSerialSupported(true)
     }
   }, [])
@@ -126,7 +126,7 @@ export default function ObdConnector({ onClose }: ObdConnectorProps) {
 
   // Initial fetch and auto-refresh
   useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect
+     
     fetchObdData()
     intervalRef.current = setInterval(fetchObdData, 2000)
     return () => {

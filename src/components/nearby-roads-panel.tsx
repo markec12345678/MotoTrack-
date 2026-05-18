@@ -72,7 +72,7 @@ export default function NearbyRoadsPanel({ userLat, userLng, onSelectRoad, filte
       .catch(() => setLoading(false))
   }, [userLat, userLng, filterCountry, filterDifficulty])
 
-  // eslint-disable-next-line react-hooks/set-state-in-effect
+   
   useEffect(() => { fetchRoads() }, [fetchRoads])
 
   const sortedRoads = useMemo(() => {

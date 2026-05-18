@@ -88,7 +88,7 @@ export default function ServiceLocator({ userId }: { userId?: string }) {
   }, [typeFilter, brandFilter, radius, userLat, userLng])
 
   // Auto-fetch when filters change
-  // eslint-disable-next-line react-hooks/set-state-in-effect
+   
   useEffect(() => { fetchLiveCenters() }, [fetchLiveCenters])
 
   // Explicit web search

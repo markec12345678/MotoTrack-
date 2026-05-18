@@ -90,7 +90,7 @@ export default function WeatherSuitability({ lat = 46.0569, lng = 14.5058 }: Wea
       .catch(() => setLoading(false))
   }, [lat, lng])
 
-  // eslint-disable-next-line react-hooks/set-state-in-effect
+   
   useEffect(() => { fetchWeather() }, [fetchWeather])
 
   if (loading) {

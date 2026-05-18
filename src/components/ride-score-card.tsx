@@ -54,7 +54,7 @@ export function RideScoreCard({ lat, lng }: { lat?: number; lng?: number }) {
   // Fetch on mount and when location changes
   useEffect(() => {
     fetchScore()
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+   
   }, [lat, lng])
 
   if (loading && !data) {

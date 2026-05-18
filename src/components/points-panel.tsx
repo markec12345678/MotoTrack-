@@ -63,9 +63,9 @@ export default function PointsPanel({ userId, compact = false, onClose }: Points
   }, [userId])
 
   useEffect(() => {
-    /* eslint-disable react-hooks/set-state-in-effect */
+     
     fetchPoints()
-    /* eslint-enable react-hooks/set-state-in-effect */
+     
   }, [fetchPoints])
 
   if (loading) {
