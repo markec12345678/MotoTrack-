@@ -897,3 +897,30 @@ Stage Summary:
 - 33 total forum-driven improvements documented
 - 121 total API endpoints
 - All changes pushed to https://github.com/markec12345678/MotoTrack-
+
+---
+Task ID: 5
+Agent: Main Coordinator
+Task: Implement Voice Commands, Twistiness Heatmap, Export (TCX/KML/CSV), Route Simulator
+
+Work Log:
+- Checked project state: all 4 component files already existed from prior subagent creation
+- Verified component quality: voice-commands.tsx (24KB), twistiness-heatmap.tsx (19KB), export-panel.tsx (18KB), route-simulator.tsx (31KB)
+- Fixed voice-commands.tsx: moved announcement functions (announceLocation, announceSpeed, announceRemaining, announceWeather) before executeCommand to fix "accessed before declaration" errors
+- Fixed route-simulator.tsx: moved handleRestart and seekToProgress before keyboard shortcuts useEffect, used animateRef pattern for recursive requestAnimationFrame calls
+- Fixed twistiness-heatmap.tsx: removed unused eslint-disable directive
+- Created missing API routes: /api/export/kml/route.ts, /api/export/csv/route.ts, /api/route-simulator/route.ts
+- Added ExportPanel and RouteSimulator dynamic imports to detail-dialog.tsx
+- Added "Izvozi" and "Simuliraj" buttons in detail dialog header
+- Added TwistinessHeatmap and RouteSimulator dynamic imports to plan-tab.tsx
+- Added "Vijugavost" and "Simuliraj" toggle buttons with heatmap legend in plan-tab
+- Updated README with 4 new features (#34-37) and comparison table rows
+- Lint: 0 errors across all files
+- Committed and pushed to GitHub (commit 8970110)
+
+Stage Summary:
+- 4 new features: Voice Commands, Twistiness Heatmap, Export (TCX/KML/CSV), Route Simulator
+- 4 new components + 5 new API routes
+- Integration in plan-tab, detail-dialog, track-tab, driving-mode
+- 106 components total, 86 API endpoints, 37 forum-driven improvements
+- All changes pushed to https://github.com/markec12345678/MotoTrack-
