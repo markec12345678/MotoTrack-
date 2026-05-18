@@ -76,6 +76,10 @@ MotoTrack je **odziv na te pritožbe**:
 | **Vzdrževalni opomniki (km/dnevi)** | ✅ | ❌ | ❌ | ❌ | ❌ |
 | **Primerjava voženj (grafi)** | ✅ | ❌ | ❌ | ❌ | ❌ |
 | **Skupnostne rute (brskanje, deljenje)** | ✅ | ❌ | ⚠️ | ❌ | ❌ |
+| **Opozorila za bočni veter** | ✅ | ❌ | ❌ | ❌ | ❌ |
+| **Nujna pomoč (državne številke)** | ✅ | ❌ | ❌ | ❌ | ❌ |
+| **Počivališča ob ruti** | ✅ | ❌ | ❌ | ❌ | ⚠️ |
+| **Kalkulator zahtevnosti** | ✅ | ❌ | ❌ | ❌ | ❌ |
 | **Brez oglasov** | ✅ | ⚠️ Brezplačna verzija ima | ⚠️ | ✅ | ✅ |
 
 > 💡 *Podatki o konkurenci pridobljeni iz forumov: Reddit r/motorcycles, r/NewRiders, r/MotoUK, ADVrider.com, SpyderLovers.com, App Store/Google Play reviews, 2024-2025*
@@ -145,6 +149,10 @@ MotoTrack je **odziv na te pritožbe**:
 - **Primerjava voženj** — vizualna primerjava dveh voženj s hitrostnim profilom (SVG), višinskim profilom, statistiko z zmagovalci in analizo segmentov (začetek/sredina/konec)
 - **Ocene in mnenja o rutah** — ocenite ruto z zvezdami (1-5) po kategorijah: kakovost ceste, pokrajina, vijugavost, zahtevnost. Pišite komentarje, berite mnenja drugih
 - **Vzdrževalni opomniki** — sledite vzdrževanju motorja z opomniki po kilometrih in dnevih: olje, pnevmatike, veriga, zavore, filter... Barvni indikatorji stanja (zeleni/rumeni/rdeči), zgodovina servisov
+- **Opozorila za bočni veteran** — navzkrižni veteran je eden največjih nevarnosti za motoriste! MotoTrack samodejno izračuna bočni veteran iz smeri vožnje in smeri vetra. 4-stopenski sistem opozoril: zmeren/močan/nevaren. Zvočni alarm pri >40 km/h, rdeči utripajoči zaslon pri >60 km/h. Opozorilo za mostove (povečan veteran)
+- **Nujna pomoč (Emergency Panel)** — hitri dostop do reševalnih številk za VSE balkanske države! Samodejno zazna državo iz GPS. Policija, reševalci, gasilci, 112. ICE stiki, deljenje lokacije, pomoč na cesti (HAK, AMZS, AMS...). Deluje BREZ interneta!
+- **Počivališča ob ruti** — poiščite kavarnice, restavracije, razgledišča, bencinske črpeljke in počivališča vzdolž načrtovane rute. Dodaj kot waypoint z enim klikom
+- **Kalkulator zahtevnosti vožnje** — samodejni izračun težavnosti iz 5 faktorjev: vzpon, nagib, razdalja, vijugavost, najvišja točka. Ocena: LAHKA/SREDNJA/TEŽKA/STROKOVNA
 
 ### 👤 Profil
 - Osebni podatki in statistika
@@ -582,6 +590,12 @@ Glede na raziskavo forumov (Reddit r/motorcycles, ADVrider, SpyderLovers, itd.) 
 16. **Skupnostne rute — brskajte in delite** — Forumi: "I want to discover routes from other riders" (Kurviger, REVER). MotoTrack zdaj ponuja ploščo skupnostnih rut s filtrom po kategoriji, težavnosti, razvrščanjem po priljubljenosti/času/razdalji. Vsaka ruta ima gumb "Naloži v Načrtuj" za takojšnjo navigacijo. Lajkanje rut in preklapljanje med skupnostjo in mojimi rutami.
 
 17. **Primerjava voženj z vizualnimi grafi** — Forumi: "I want to compare my rides visually" (Strava). MotoTrack zdaj ponuja vizualno primerjavo dveh voženj: hitrostni profil (SVG), višinski profil z obarvanimi površinami, statistika z zmagovalci (🏆) in analiza segmentov (začetek/sredina/konec tretjine).
+
+18. **Opozorila za bočni veter** — Forumi: "Crosswind is terrifying on a motorcycle" (Reddit r/motorcycles). MotoTrack zdaj samodejno izračuna bočni veter iz smeri vožnje in smeri vetra. 4-stopenski sistem: zmeren (20-40 km/h), močan (40-60 km/h, zvočni alarm), nevaren (>60 km/h, rdeči utripajoči zaslon, "USTAVI SE!"). Opozorilo za mostove z povečanim vetrom. Napoved vetra za 3 dni.
+
+19. **Nujna pomoč z državnimi številkami** — Forumi: "I ride across borders and don't know the local emergency numbers" (ADVrider). MotoTrack zdaj ponuja hitri dostop do reševalnih številk za VSE 10 balkanskih držav. Samodejno zazna državo iz GPS. Policija, reševalci, gasilci, EU 112. ICE stiki s krvno skupino, deljenje lokacije, pomoč na cesti (HAK, AMZS, AMS...). **Deluje brez interneta!**
+
+20. **Počivališča ob ruti in kalkulator zahtevnosti** — Forumi: "I need to know where to stop and how hard the route is" (REVER, Calimoto). MotoTrack zdaj ponuja iskanje počivališč (kavarnice, restavracije, razgledišča) vzdolž načrtovane rute z dodajanjem kot waypoint. Samodejni kalkulator zahtevnosti iz 5 faktorjev (vzpon, nagib, razdalja, vijugavost, najvišja točka) oceni ruto kot LAHKA/SREDNJA/TEŽKA/STROKOVNA.
 
 ---
 
