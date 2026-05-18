@@ -24,6 +24,7 @@ const DrivingMode = dynamic(() => import('@/components/driving-mode'), { ssr: fa
 const FuelRangeIndicator = dynamic(() => import('@/components/fuel-range-indicator'), { ssr: false })
 const RoadHazardReporter = dynamic(() => import('@/components/road-hazard-reporter'), { ssr: false })
 const MiniElevationProfile = dynamic(() => import('@/components/mini-elevation-profile'), { ssr: false })
+const RideWeatherOverlay = dynamic(() => import('@/components/ride-weather-overlay'), { ssr: false })
 
 // Inline voice navigation for track tab (lightweight, no separate component needed)
 interface NavStep {
@@ -384,6 +385,12 @@ export default function TrackTab({
   const speedUnitLabel = speedUnit(unitSystem)
   const distanceUnitLabel = distanceUnit(unitSystem)
 
+  // Calculate remaining distance for nav ETA
+  const navRemainingDistance = useMemo(() => {
+    if (!navActive || navSteps.length === 0) return undefined
+    return navSteps.slice(navStepIdx).reduce((sum, s) => sum + s.distance, 0) + (navDistToStep ?? 0)
+  }, [navActive, navSteps, navStepIdx, navDistToStep])
+
   return (
     <div className={`relative w-full h-[calc(100vh-120px)] flex flex-col transition-all duration-200 ${
       isOverSpeed && flashOn ? 'ring-4 ring-inset ring-red-500/70' : ''
@@ -439,6 +446,17 @@ export default function TrackTab({
             <Gauge className="size-3.5" />
             <span>{Math.round(convertSpeed(speedSettings.speedLimit, unitSystem))} {speedUnitLabel}</span>
             {isOverSpeed && <AlertTriangle className="size-3.5 ml-0.5 animate-pulse" />}
+          </div>
+        )}
+
+        {/* Ride Weather Overlay - floating, below speed limit badge */}
+        {isTracking && (
+          <div className="absolute top-12 right-3 z-[1001] w-48">
+            <RideWeatherOverlay
+              lat={trackPoints.length > 0 ? trackPoints[trackPoints.length - 1].lat : null}
+              lng={trackPoints.length > 0 ? trackPoints[trackPoints.length - 1].lng : null}
+              isTracking={isTracking}
+            />
           </div>
         )}
 
@@ -773,8 +791,11 @@ export default function TrackTab({
         navTotalSteps={navSteps.length}
         navDestination={navDestination?.name}
         navStepType={navActive && navSteps.length > 0 ? navSteps[navStepIdx]?.type : undefined}
+        navRoadName={navActive && navSteps.length > 0 ? navSteps[navStepIdx]?.name || undefined : undefined}
+        navRemainingDistance={navRemainingDistance}
         isTracking={isTracking}
         isPaused={isPaused}
+        onStartStopTrack={isTracking ? onStop : onStart}
         speedLimit={speedSettings.speedLimit}
         isOverSpeed={isOverSpeed}
         voiceEnabled={navVoiceOn}

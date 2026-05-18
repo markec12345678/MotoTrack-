@@ -1,6 +1,7 @@
 'use client'
 
 import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react'
+import dynamic from 'next/dynamic'
 import {
   Volume2,
   VolumeX,
@@ -20,8 +21,18 @@ import {
   Flag,
   ChevronUp,
   RotateCcw,
+  Play,
+  Pause,
+  Square,
+  Compass,
+  TrendingUp,
+  TrendingDown,
+  Minus,
+  Clock,
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
+
+const RideWeatherOverlay = dynamic(() => import('@/components/ride-weather-overlay'), { ssr: false })
 
 // ===== DRIVING MODE =====
 // Minimal, safe UI for riding — large text, essential info only
@@ -117,9 +128,12 @@ interface DrivingModeProps {
   navTotalSteps?: number
   navDestination?: string
   navStepType?: string // e.g. 'turn', 'new name', 'arrive'
+  navRoadName?: string // current road/street name from nav step
+  navRemainingDistance?: number // meters remaining to destination
   // Tracking
   isTracking: boolean
   isPaused: boolean
+  onStartStopTrack?: () => void // toggle start/stop tracking
   // Speed alert
   speedLimit?: number
   isOverSpeed?: boolean
@@ -179,8 +193,11 @@ export default function DrivingMode({
   navTotalSteps,
   navDestination,
   navStepType,
+  navRoadName,
+  navRemainingDistance,
   isTracking,
   isPaused,
+  onStartStopTrack,
   speedLimit = 90,
   isOverSpeed = false,
   voiceEnabled = true,
@@ -217,6 +234,14 @@ export default function DrivingMode({
   // Nearest fuel station
   const [nearestStation, setNearestStation] = useState<NearestStation | null>(null)
 
+  // Compass heading from device orientation
+  const [compassHeading, setCompassHeading] = useState<number | null>(null)
+  const compassRequestedRef = useRef(false)
+
+  // Speed trend tracking (last 3 readings)
+  const speedHistoryRef = useRef<number[]>([])
+  const [speedTrend, setSpeedTrend] = useState<'accelerating' | 'decelerating' | 'steady'>('steady')
+
   // ─── Computed ───────────────────────────────────────────────────────────
   const isCompact = displayMode === 'compact'
 
@@ -228,6 +253,21 @@ export default function DrivingMode({
 
   useEffect(() => {
     if (currentSpeed > 0) lastSpeedRef.current = currentSpeed
+  }, [currentSpeed])
+
+  // Speed trend calculation
+  useEffect(() => {
+    speedHistoryRef.current = [...speedHistoryRef.current.slice(-2), currentSpeed]
+    const hist = speedHistoryRef.current
+    if (hist.length >= 3) {
+      const [s1, s2, s3] = hist
+      const diff1 = s2 - s1
+      const diff2 = s3 - s2
+      const avgDiff = (diff1 + diff2) / 2
+      if (avgDiff > 3) setSpeedTrend('accelerating')
+      else if (avgDiff < -5) setSpeedTrend('decelerating')
+      else setSpeedTrend('steady')
+    }
   }, [currentSpeed])
 
   // Parse arrow direction from nav instruction
@@ -321,6 +361,53 @@ export default function DrivingMode({
     const interval = setInterval(fetchStation, 120000)
     return () => clearInterval(interval)
   }, [isActive, currentLat, currentLng])
+
+  // Compass heading from DeviceOrientationEvent
+  useEffect(() => {
+    if (!isActive) return
+
+    const handleOrientation = (e: DeviceOrientationEvent) => {
+      // iOS uses webkitCompassHeading, Android uses alpha
+      const h = (e as any).webkitCompassHeading ?? (e.alpha != null ? (360 - e.alpha + 360) % 360 : null)
+      if (h != null) setCompassHeading(Math.round(h))
+    }
+
+    const startListening = () => {
+      window.addEventListener('deviceorientation', handleOrientation, true)
+    }
+
+    // iOS 13+ requires permission request
+    if (typeof DeviceOrientationEvent !== 'undefined' &&
+        'requestPermission' in DeviceOrientationEvent &&
+        !compassRequestedRef.current) {
+      compassRequestedRef.current = true
+      ;(DeviceOrientationEvent as any).requestPermission()
+        .then((permission: string) => {
+          if (permission === 'granted') startListening()
+        })
+        .catch(() => { /* permission denied or not HTTPS */ })
+    } else {
+      startListening()
+    }
+
+    return () => {
+      window.removeEventListener('deviceorientation', handleOrientation, true)
+    }
+  }, [isActive])
+
+  // Effective heading: compass > GPS heading fallback
+  const effectiveHeading = compassHeading ?? heading
+
+  // ETA calculation when navigation is active
+  const etaDisplay = useMemo(() => {
+    if (!navDestination || !navRemainingDistance || navRemainingDistance <= 0) return null
+    const speedMs = currentSpeed / 3.6 // km/h to m/s
+    if (speedMs < 2) return null // need at least ~7 km/h for meaningful ETA
+    const remainingKm = navRemainingDistance / 1000
+    const hoursRemaining = remainingKm / currentSpeed
+    const eta = new Date(Date.now() + hoursRemaining * 3600000)
+    return `${eta.getHours().toString().padStart(2, '0')}:${eta.getMinutes().toString().padStart(2, '0')}`
+  }, [navDestination, navRemainingDistance, currentSpeed])
 
   // ─── Handlers ───────────────────────────────────────────────────────────
 
@@ -449,7 +536,12 @@ export default function DrivingMode({
   const bgCard = nightMode ? 'bg-red-950/20' : 'bg-white/10'
 
   // Fuel station arrow rotation (relative to heading)
-  const fuelBearing = nearestStation ? ((nearestStation.bearing - heading + 360) % 360) : 0
+  const fuelBearing = nearestStation ? ((nearestStation.bearing - effectiveHeading + 360) % 360) : 0
+
+  // Compass cardinal direction label
+  const compassDir = effectiveHeading != null
+    ? ['S', 'JV', 'J', 'JZ', 'Z', 'SZ', 'S', 'SV'][Math.round(effectiveHeading / 45) % 8]
+    : null
 
   return (
     <div
@@ -586,6 +678,38 @@ export default function DrivingMode({
         </div>
       )}
 
+      {/* ─── Compass heading indicator (top-center, small circular) ──────── */}
+      <div className="absolute top-2 left-1/2 -translate-x-1/2 z-10">
+        <div className={`relative size-14 rounded-full ${bgCard} border border-white/15 flex items-center justify-center overflow-hidden`}>
+          {/* Compass needle - rotates with heading */}
+          <div
+            className="absolute inset-0 transition-transform duration-300 ease-out"
+            style={{ transform: `rotate(${-effectiveHeading}deg)` }}
+          >
+            {/* N marker */}
+            <span className="absolute top-0.5 left-1/2 -translate-x-1/2 text-[8px] font-black text-red-400">S</span>
+            {/* S marker */}
+            <span className={`absolute bottom-0.5 left-1/2 -translate-x-1/2 text-[8px] font-bold ${textTertiary}`}>J</span>
+            {/* E marker */}
+            <span className={`absolute right-0.5 top-1/2 -translate-y-1/2 text-[8px] font-bold ${textTertiary}`}>V</span>
+            {/* W marker */}
+            <span className={`absolute left-0.5 top-1/2 -translate-y-1/2 text-[8px] font-bold ${textTertiary}`}>Z</span>
+            {/* Needle */}
+            <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-full w-0.5 h-5 bg-red-400 rounded-full" />
+            <div className="absolute top-1/2 left-1/2 -translate-x-1/2 w-0.5 h-5 bg-white/30 rounded-full" />
+          </div>
+          {/* Center dot */}
+          <div className="relative z-10 size-1.5 rounded-full bg-white/60" />
+        </div>
+        {/* Heading in degrees + cardinal direction */}
+        <div className="text-center mt-0.5">
+          <span className={`text-[10px] font-bold ${textSecondary}`}>
+            {effectiveHeading != null ? `${Math.round(effectiveHeading)}°` : '---°'}
+            {compassDir && <span className="ml-1">{compassDir}</span>}
+          </span>
+        </div>
+      </div>
+
       {/* ─── Main content - centered, large text ──────────────────────────── */}
       <div className="h-full flex flex-col items-center justify-center px-6">
 
@@ -605,6 +729,18 @@ export default function DrivingMode({
             </div>
             <div className="flex items-center justify-center gap-3 mt-1">
               <span className={`text-xl ${textSecondary} font-medium`}>{speedUnitLabel}</span>
+              {/* Speed trend indicator */}
+              {currentSpeed > 5 && (
+                <span className={`flex items-center gap-0.5 text-sm font-bold ${
+                  speedTrend === 'accelerating' ? 'text-amber-400' :
+                  speedTrend === 'decelerating' ? 'text-red-400' :
+                  'text-emerald-400'
+                }`}>
+                  {speedTrend === 'accelerating' ? <TrendingUp className="size-3.5" /> :
+                   speedTrend === 'decelerating' ? <TrendingDown className="size-3.5" /> :
+                   <Minus className="size-3.5" />}
+                </span>
+              )}
               {speedLimit > 0 && (
                 <div className={`flex items-center justify-center rounded-full px-3 py-1 text-sm font-bold ${
                   isOverSpeed
@@ -616,6 +752,12 @@ export default function DrivingMode({
                 </div>
               )}
             </div>
+            {/* Current road name */}
+            {navRoadName && (
+              <p className={`text-sm ${textTertiary} font-medium mt-1 truncate max-w-[250px] mx-auto`}>
+                {navRoadName}
+              </p>
+            )}
           </div>
         )}
 
@@ -674,6 +816,20 @@ export default function DrivingMode({
           </div>
         )}
 
+        {/* ETA to destination (when navigation is active) */}
+        {etaDisplay && (
+          <div className={`mt-3 flex items-center gap-2 px-4 py-2 rounded-xl ${bgCard} border border-white/10`}>
+            <Clock className={`size-4 ${textTertiary}`} />
+            <span className={`text-xs ${textTertiary} uppercase tracking-wider`}>Prihod</span>
+            <span className={`text-lg font-bold ${textPrimary}`}>{etaDisplay}</span>
+            {navRemainingDistance !== undefined && (
+              <span className={`text-xs ${textTertiary} ml-1`}>
+                ({navRemainingDistance >= 1000 ? `${(navRemainingDistance / 1000).toFixed(1)} km` : `${Math.round(navRemainingDistance)} m`})
+              </span>
+            )}
+          </div>
+        )}
+
         {/* Fuel range indicator */}
         {fuelRange !== undefined && fuelRange > 0 && (
           <div className={`mt-6 flex items-center gap-3 px-5 py-3 rounded-2xl ${
@@ -706,6 +862,16 @@ export default function DrivingMode({
             )}
           </div>
         )}
+
+        {/* Ride Weather Overlay - compact mode */}
+        <div className="mt-3">
+          <RideWeatherOverlay
+            lat={currentLat ?? null}
+            lng={currentLng ?? null}
+            isTracking={isTracking}
+            compact={true}
+          />
+        </div>
 
         {/* Auto-pause indicator */}
         {isPaused && isTracking && (
@@ -751,7 +917,30 @@ export default function DrivingMode({
 
       {/* ─── Bottom bar - controls + hazard button ──────────────────────────── */}
       <div className="absolute bottom-0 left-0 right-0 pb-safe">
-        <div className="flex items-center justify-center gap-4 py-4 px-4">
+        {/* Tracking duration compact display */}
+        {isTracking && duration > 0 && (
+          <div className={`text-center pb-1 text-[10px] ${textTertiary} font-mono`}>
+            {formatDriveDuration(duration)}
+          </div>
+        )}
+        <div className="flex items-center justify-center gap-3 py-3 px-4">
+
+          {/* Start/Stop Track toggle */}
+          {onStartStopTrack && (
+            <button
+              onClick={onStartStopTrack}
+              className={`relative p-3 rounded-full transition-colors active:scale-90 ${
+                isTracking
+                  ? 'bg-red-500/80 hover:bg-red-500 shadow-lg shadow-red-500/30'
+                  : 'bg-emerald-500/80 hover:bg-emerald-500 shadow-lg shadow-emerald-500/30'
+              }`}
+              title={isTracking ? 'Ustavi sledenje' : 'Začni sledenje'}
+            >
+              {isTracking
+                ? <Square className="size-5 text-white fill-white" />
+                : <Play className="size-5 text-white fill-white ml-0.5" />}
+            </button>
+          )}
 
           {/* Fuel station direction arrow */}
           {nearestStation && (
@@ -787,18 +976,18 @@ export default function DrivingMode({
              <Maximize2 className={`size-5 ${textSecondary}`} />}
           </button>
 
-          {/* ─── Quick hazard reporting button — big, easy to tap ────────── */}
+          {/* ─── Quick hazard reporting button — bigger, easy to tap ────── */}
           <button
             onClick={handleQuickHazard}
             disabled={hazardSending}
-            className={`relative size-16 rounded-full flex items-center justify-center active:scale-90 transition-all ${
+            className={`relative size-[72px] rounded-full flex items-center justify-center active:scale-90 transition-all ${
               hazardFlash
                 ? 'bg-red-500 scale-110'
                 : 'bg-red-500/80 hover:bg-red-500'
             } shadow-lg shadow-red-500/40`}
             title={`Prijavi: ${QUICK_HAZARD_TYPES[hazardIdx].label}`}
           >
-            <span className="text-2xl">{QUICK_HAZARD_TYPES[hazardIdx].emoji}</span>
+            <span className="text-3xl">{QUICK_HAZARD_TYPES[hazardIdx].emoji}</span>
             {/* Next hazard type indicator */}
             <span className="absolute -bottom-1 text-[8px] text-white/60 font-medium">
               {QUICK_HAZARD_TYPES[(hazardIdx + 1) % QUICK_HAZARD_TYPES.length].emoji}
