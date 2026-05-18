@@ -1,7 +1,7 @@
 'use client'
 
 import React, { useState, useEffect } from 'react'
-import { ClipboardCheck, SkipForward, Play, Check, X } from 'lucide-react'
+import { ClipboardCheck, SkipForward, Play, Check, X, Cloud, Sun, AlertTriangle, Thermometer, Wind } from 'lucide-react'
 import { Dialog, DialogContent, DialogTitle } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
 import { Progress } from '@/components/ui/progress'
@@ -21,6 +21,16 @@ const CHECKLIST_ITEMS = [
 
 const STORAGE_KEY = 'mototrack-preride-checklist'
 
+interface WeatherInfo {
+  temp: number
+  description: string
+  icon: string
+  windSpeed: number
+  humidity: number
+  isDangerous: boolean
+  warning?: string
+}
+
 interface PreRideChecklistProps {
   open: boolean
   onClose: (skipped: boolean) => void
@@ -28,7 +38,6 @@ interface PreRideChecklistProps {
 }
 
 export default function PreRideChecklist({ open, onClose, onStartRide }: PreRideChecklistProps) {
-  // Initialize from localStorage
   const [checked, setChecked] = useState<Record<string, boolean>>(() => {
     if (typeof window === 'undefined') return {}
     try {
@@ -38,6 +47,59 @@ export default function PreRideChecklist({ open, onClose, onStartRide }: PreRide
       return {}
     }
   })
+  const [weather, setWeather] = useState<WeatherInfo | null>(null)
+  const [weatherLoading, setWeatherLoading] = useState(false)
+
+  // Fetch weather when dialog opens
+  useEffect(() => {
+    if (!open) return
+    setWeatherLoading(true)
+    setWeather(null)
+    if (navigator.geolocation) {
+      navigator.geolocation.getCurrentPosition(
+        async (pos) => {
+          try {
+            const res = await fetch(`/api/weather?lat=${pos.coords.latitude}&lng=${pos.coords.longitude}`)
+            if (res.ok) {
+              const j = await res.json()
+              const data = j.data
+              if (data) {
+                const isDangerous = 
+                  (data.windSpeed ?? 0) > 50 ||
+                  data.description?.toLowerCase().includes('thunder') ||
+                  data.description?.toLowerCase().includes('storm') ||
+                  data.description?.toLowerCase().includes('snow') ||
+                  (data.temp ?? 20) < 0
+                
+                let warning: string | undefined
+                if ((data.windSpeed ?? 0) > 50) warning = 'Močan veter! Nevarno za vožnjo.'
+                else if (data.description?.toLowerCase().includes('thunder')) warning = 'Nevihte! Odložite vožnjo.'
+                else if (data.description?.toLowerCase().includes('snow')) warning = 'Sneg! Nevarno za motor.'
+                else if ((data.temp ?? 20) < 0) warning = 'Zmrzal! Preverite ceste.'
+                else if ((data.temp ?? 20) < 5) warning = 'Nizka temperatura. Topla oblačila!'
+                else if ((data.windSpeed ?? 0) > 30) warning = 'Zmeren veter. Bodite previdni.'
+                
+                setWeather({
+                  temp: Math.round(data.temp ?? 0),
+                  description: data.description || '',
+                  icon: data.icon || '',
+                  windSpeed: Math.round(data.windSpeed ?? 0),
+                  humidity: data.humidity ?? 0,
+                  isDangerous,
+                  warning,
+                })
+              }
+            }
+          } catch { /* weather not available */ }
+          setWeatherLoading(false)
+        },
+        () => setWeatherLoading(false),
+        { enableHighAccuracy: false, timeout: 5000 }
+      )
+    } else {
+      setWeatherLoading(false)
+    }
+  }, [open])
 
   // Save to localStorage on change
   useEffect(() => {
@@ -84,8 +146,51 @@ export default function PreRideChecklist({ open, onClose, onStartRide }: PreRide
             <ClipboardCheck className="size-5" />
             Pre-Ride Checklist
           </DialogTitle>
-          <p className="text-white/80 text-xs mt-1">Preverite opremo pred vožnjo</p>
+          <p className="text-white/80 text-xs mt-1">Preverite opremo in vreme pred vožnjo</p>
         </div>
+
+        {/* Weather check */}
+        {weather && (
+          <div className={`mx-4 mt-2 p-3 rounded-lg border ${
+            weather.isDangerous 
+              ? 'bg-red-500/10 border-red-500/30' 
+              : weather.warning 
+                ? 'bg-amber-500/10 border-amber-500/20' 
+                : 'bg-emerald-500/10 border-emerald-500/20'
+          }`}>
+            <div className="flex items-center gap-2">
+              {weather.isDangerous ? (
+                <AlertTriangle className="size-4 text-red-500" />
+              ) : weather.warning ? (
+                <Cloud className="size-4 text-amber-500" />
+              ) : (
+                <Sun className="size-4 text-emerald-500" />
+              )}
+              <div className="flex-1">
+                <div className="flex items-center gap-2">
+                  <Thermometer className="size-3 text-muted-foreground" />
+                  <span className="text-sm font-bold">{weather.temp}°C</span>
+                  <Wind className="size-3 text-muted-foreground ml-2" />
+                  <span className="text-xs text-muted-foreground">{weather.windSpeed} km/h</span>
+                </div>
+                {weather.description && (
+                  <p className="text-xs text-muted-foreground capitalize">{weather.description}</p>
+                )}
+              </div>
+            </div>
+            {weather.warning && (
+              <p className={`text-xs font-medium mt-1.5 ${weather.isDangerous ? 'text-red-500' : 'text-amber-500'}`}>
+                ⚠️ {weather.warning}
+              </p>
+            )}
+          </div>
+        )}
+        {weatherLoading && (
+          <div className="mx-4 mt-2 p-2 rounded-lg bg-muted/30 flex items-center gap-2">
+            <div className="size-3 border-2 border-primary border-t-transparent rounded-full animate-spin" />
+            <span className="text-xs text-muted-foreground">Preverjam vreme...</span>
+          </div>
+        )}
 
         {/* Progress */}
         <div className="px-4 pt-3">
@@ -99,7 +204,7 @@ export default function PreRideChecklist({ open, onClose, onStartRide }: PreRide
         </div>
 
         {/* Checklist items */}
-        <div className="px-4 py-2 space-y-1.5 max-h-[320px] overflow-y-auto">
+        <div className="px-4 py-2 space-y-1.5 max-h-[280px] overflow-y-auto">
           {CHECKLIST_ITEMS.map(item => (
             <button
               key={item.id}
@@ -164,14 +269,24 @@ export default function PreRideChecklist({ open, onClose, onStartRide }: PreRide
                 : 'bg-primary hover:bg-primary/90'
             }`}
             onClick={handleStartRide}
+            disabled={weather?.isDangerous}
           >
             <Play className="size-3.5" />
-            {allChecked ? 'Začni vožnjo ✓' : enoughChecked ? 'Začni vožnjo' : 'Preveri opremo'}
+            {weather?.isDangerous ? 'Nevarno!' : allChecked ? 'Začni vožnjo ✓' : enoughChecked ? 'Začni vožnjo' : 'Preveri opremo'}
           </Button>
         </div>
 
+        {/* Weather danger warning */}
+        {weather?.isDangerous && (
+          <div className="px-4 pb-3">
+            <p className="text-[9px] text-red-500 text-center font-medium">
+              ⚠️ Vremenski pogoji so nevarni za vožnjo z motorjem! Razmislite o odlogi.
+            </p>
+          </div>
+        )}
+
         {/* Warning if not enough checked */}
-        {!enoughChecked && checkedCount > 0 && (
+        {!enoughChecked && checkedCount > 0 && !weather?.isDangerous && (
           <div className="px-4 pb-3">
             <p className="text-[9px] text-amber-400 text-center">
               ⚠️ Priporočamo preverjanje vsaj 5 postavk pred vožnjo

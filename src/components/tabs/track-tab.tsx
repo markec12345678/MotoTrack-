@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react'
 import dynamic from 'next/dynamic'
-import { Play, Pause, Square, Save, Gauge, AlertTriangle, ChevronDown, ChevronUp, Activity, Bike, Moon, Timer, Share2, Navigation2, Volume2, VolumeX } from 'lucide-react'
+import { Play, Pause, Square, Save, Gauge, AlertTriangle, ChevronDown, ChevronUp, Activity, Bike, Moon, Timer, Share2, Navigation2, Volume2, VolumeX, Eye } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import type { TrackPoint, SpeedAlertSettings } from '@/components/tabs/types'
@@ -19,6 +19,8 @@ const RideShareCard = dynamic(() => import('@/components/ride-share-card'), { ss
 const PreRideChecklist = dynamic(() => import('@/components/pre-ride-checklist'), { ssr: false })
 
 const MotoMap = dynamic(() => import('@/components/moto-map'), { ssr: false })
+const DrivingMode = dynamic(() => import('@/components/driving-mode'), { ssr: false })
+const FuelRangeIndicator = dynamic(() => import('@/components/fuel-range-indicator'), { ssr: false })
 
 // Inline voice navigation for track tab (lightweight, no separate component needed)
 interface NavStep {
@@ -108,6 +110,7 @@ export default function TrackTab({
   const hasPlayedBeepRef = useRef(false)
   const [showFeatures, setShowFeatures] = useState(false)
   const [showShareCard, setShowShareCard] = useState(false)
+  const [drivingMode, setDrivingMode] = useState(false)
 
   // Voice navigation state
   const [navActive, setNavActive] = useState(false)
@@ -447,6 +450,19 @@ export default function TrackTab({
                 <span>Zaslon ON</span>
               </div>
             )}
+            {/* Driving Mode toggle */}
+            <button
+              onClick={() => setDrivingMode(!drivingMode)}
+              className={`flex items-center gap-1 px-2 py-1 rounded-full text-[10px] font-bold shadow-lg transition-colors ${
+                drivingMode
+                  ? 'bg-primary text-white'
+                  : 'bg-white/10 backdrop-blur-sm text-white/60 hover:bg-white/20'
+              }`}
+              title="Driving Mode - poenostavljen vmesnik za vožnjo"
+            >
+              <Eye className="size-3" />
+              <span>DRIVE</span>
+            </button>
           </div>
         )}
 
@@ -593,6 +609,18 @@ export default function TrackTab({
                 </div>
               )}
 
+              {/* Fuel range indicator */}
+              {isTracking && (
+                <div className="mb-2">
+                  <FuelRangeIndicator
+                    userId={userId}
+                    currentSpeed={currentSpeed}
+                    distance={distance}
+                    unitSystem={unitSystem}
+                  />
+                </div>
+              )}
+
               {/* Control buttons */}
               <div className="flex items-center justify-center gap-4 pb-1">
                 {isPaused ? (
@@ -671,6 +699,29 @@ export default function TrackTab({
           )}
         </div>
       </div>
+
+      {/* Driving Mode - fullscreen minimal UI for riding */}
+      <DrivingMode
+        isActive={drivingMode && isTracking}
+        onToggle={() => setDrivingMode(!drivingMode)}
+        currentSpeed={currentSpeed}
+        maxSpeed={maxSpeed}
+        distance={distance}
+        duration={duration}
+        elevation={elevation}
+        unitSystem={unitSystem}
+        navInstruction={navActive && navSteps.length > 0 ? navSteps[navStepIdx]?.instruction : undefined}
+        navDistanceToStep={navDistToStep}
+        navStepIdx={navStepIdx}
+        navTotalSteps={navSteps.length}
+        navDestination={navDestination?.name}
+        isTracking={isTracking}
+        isPaused={isPaused}
+        speedLimit={speedSettings.speedLimit}
+        isOverSpeed={isOverSpeed}
+        voiceEnabled={navVoiceOn}
+        onToggleVoice={() => setNavVoiceOn(!navVoiceOn)}
+      />
     </div>
   )
 }

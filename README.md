@@ -47,6 +47,8 @@ MotoTrack je **odziv na te pritožbe**:
 | **Brezplačno** | ✅ | ⚠️ Pro=$40/leto | ⚠️ Pro=$50+/leto | ⚠️ Pro=€20/leto | ✅ | 
 | **Odprta koda** | ✅ | ❌ | ❌ | ❌ | ✅ |
 | **Vijugasto rutiranje** | ✅ | ⚠️ | ✅ | ✅ | ❌ |
+| **Proaktivna glasovna nav.** | ✅ | ❌ | ⚠️ | ⚠️ | ❌ |
+| **Driving Mode** | ✅ | ❌ | ❌ | ❌ | ❌ |
 | **Crash detection** | ✅ | ❌ | ❌ | ❌ | ❌ |
 | **Sledenje v živo** | ✅ | ⚠️ | ❌ | ❌ | ❌ |
 | **Vreme ob poti** | ✅ | ❌ | ❌ | ❌ | ❌ |
@@ -59,7 +61,7 @@ MotoTrack je **odziv na te pritožbe**:
 | **GPX uvoz/izvoz** | ✅ | ✅ | ✅ | ✅ | ✅ |
 | **Večdnevne ture** | ✅ | ❌ | ❌ | ❌ | ❌ |
 | **Nagibni kot (Lean Angle)** | ✅ | ❌ | ❌ | ❌ | ❌ |
-| **Balkanske ceste** | ✅ (53) | ❌ | ❌ | ❌ | ❌ |
+| **Balkanske ceste + ture** | ✅ (53+10) | ❌ | ❌ | ❌ | ❌ |
 | **Brez oglasov** | ✅ | ⚠️ Brezplačna verzija ima | ⚠️ | ✅ | ✅ |
 
 > 💡 *Podatki o konkurenci pridobljeni iz forumov: Reddit r/motorcycles, r/NewRiders, r/MotoUK, ADVrider.com, SpyderLovers.com, App Store/Google Play reviews, 2024-2025*
@@ -95,8 +97,10 @@ MotoTrack je **odziv na te pritožbe**:
 - Wake Lock — zaslon ostane vklopljen med vožnjo
 - **Glasna navigacija (TTS v slovenščini)** — PROAKTIVNA obvestila PRED zavoji ("Čez 200 metrov zavijte desno"), prilagojena razdalja obvestila glede na hitrost, navigacija po načrtovani ruti ali nazaj na začetek, predogled naslednjih korakov, zaznavanje izgube rute z gumbom za preračun, AI TTS ali brskalnikov TTS
 - Opozorila o hitrosti (nastavljiva meja, zvočni alarm)
+- **Driving Mode** — poenostavljen celozaslonski vmesnik za vožnjo! Velika hitrost, navigacija, doseg goriva — varno za telefon na volanu (alternativa CarPlay/Android Auto za PWA)
 - **Zaznavanje trčenja** — samodejno SOS ob trku + obvestilo ICE stikom
 - **Crash recovery** — če app crashne ali gre v ozadje, podatki se obnovijo iz localStorage
+- **Pre-Ride Checklist z vremenom** — pred vsako vožnjo preveri opremo IN vreme (nevarni pogoji blokirajo začetek vožnje!)
 - Merjenje nagiba klanca (Lean Angle)
 - Replay voženj — predvajanje preteklih voženj na zemljevidu
 - 3D Replay — trodimenzionalni ogled vožnje
@@ -120,7 +124,7 @@ MotoTrack je **odziv na te pritožbe**:
 ### 👤 Profil
 - Osebni podatki in statistika
 - **Nastavitve goriva** — rezervoar, poraba, doseg, trenutno gorivo
-- **Pametna poraba** (Smart Consumption) — izračun dosega + opomnik za gorivo
+- **Pametna poraba** (Smart Consumption) — izračun dosega + opomnik za gorivo + Fuel Range Indicator med vožnjo (kako daleč lahko greš, iskanje najbližje bencinske, čas do praznega)
 - **ICE stiki** (v sili) — krvna skupina, alergije, telefonske številke
 - **Vzdrževanje in opomniki** — olje, pnevmatike, veriga, zavora, filter...
 - **Sledenje stroškom** — gorivo, servis, zavarovanje, deli, cestnina, parkiranje
@@ -498,6 +502,7 @@ Raziskali smo več kot 15 forumov (Reddit, ADVrider, SpyderLovers, itd.) in zbra
 | Izbegovanje nevarnih cest | ✅ |
 | Zaznavanje izgube rute + preračun | ✅ |
 | GPS sanity check (zavrnitev glitch-ov) | ✅ |
+| Driving Mode (celozaslonski vmesnik za vožnjo) | ✅ |
 | CarPlay / Android Auto | 🔜 Načrtovano |
 
 ### 🔥 Najnovejše izboljšave (forum-driven)
@@ -511,6 +516,8 @@ Glede na raziskavo forumov (Reddit r/motorcycles, ADVrider, SpyderLovers, itd.) 
 3. **Izboljšan krožni algoritem** — Kurviger forum: "Specify a round trip and how long and how curvy the roads". Zato MotoTrack zdaj uporablja multi-waypoint loop z 2-4 intermediate točkami, ne več samo trikotnika. Višja vijugavost = več točk + širši odmik od direktne poti.
 
 4. **Zaznavanje izgube rute** — Če zapustiš načrtovano pot, MotoTrack zazna in ponudi gumb "Preračunaj ruto".
+
+5. **Driving Mode** — Forumi: "My phone does not go anywhere near my handlebars" (Kurviger). Motoristi, ki imajo telefon na volanu, potrebujejo poenostavljen vmesnik. MotoTrack zdaj ponuja Driving Mode: velika hitrost (140px!), naslednji zavoj z razdaljo, doseg goriva, samodejni kompaktni način pri visoki hitrosti, GPS natančnost in baterija — vse na črnem ozadju z minimalnim motnjem.
 
 ---
 
