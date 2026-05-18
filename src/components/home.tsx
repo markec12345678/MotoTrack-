@@ -19,6 +19,7 @@ import {
   Activity,
   Download,
   Film,
+  Menu,
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Skeleton } from '@/components/ui/skeleton'
@@ -27,6 +28,7 @@ import { useTheme } from 'next-themes'
 
 
 import type { TabId, RideData, RouteData, UserData, CommentData, WeatherData, LeaderboardUser, TrackPoint } from '@/components/tabs/types'
+const HeaderDrawer = dynamic(withRetry(() => import('@/components/header-drawer')), { ssr: false, loading: () => null })
 import { haversine, formatDuration, formatDate, categoryLabel, categoryColor } from '@/components/tabs/types'
 import { useSettingsStore, useFetchSettings, useWakeLock, isInPrivacyZone, obfuscateCoordinate, type UnitSystem } from '@/hooks/use-settings'
 
@@ -240,6 +242,9 @@ export default function Home() {
 
   // Global search
   const [searchOpen, setSearchOpen] = useState(false)
+
+  // Header drawer menu (mobile)
+  const [headerDrawerOpen, setHeaderDrawerOpen] = useState(false)
 
   // Night riding mode
   const [nightMode, setNightMode] = useState(false)
@@ -1041,60 +1046,7 @@ export default function Home() {
         </div>
         {mounted && (
           <div className="flex items-center gap-0.5">
-            {/* Feature Hub button */}
-            <Button
-              variant="ghost"
-              size="icon"
-              className="size-8 rounded-lg hover:bg-primary/10 relative"
-              onClick={() => setFeatureOpen(true)}
-              title="Napredne funkcije"
-            >
-              <Sparkles className="size-3.5 text-primary" />
-              <span className="absolute -top-0.5 -right-0.5 w-2 h-2 bg-primary rounded-full animate-pulse" />
-            </Button>
-            <NotificationBell userId={user?.id} />
-            <AppShareButton />
-            <NightModeToggle enabled={nightMode} onToggle={setNightMode} />
-            {/* Voice commands toggle */}
-            <Button
-              variant="ghost"
-              size="icon"
-              className={`size-8 rounded-lg ${voiceEnabled ? 'bg-red-500/20 text-red-400' : 'hover:bg-primary/10'}`}
-              onClick={() => { setVoiceEnabled(v => !v); toast[voiceEnabled ? 'info' : 'success'](voiceEnabled ? '🔇 Glasovni ukazi izklopljeni' : '🎤 Glasovni ukazi vklopljeni') }}
-              title={voiceEnabled ? 'Izklopi glasovne ukaze' : 'Vklopi glasovne ukaze'}
-            >
-              <Mic className={`size-3.5 ${voiceEnabled ? 'text-red-400' : ''}`} />
-            </Button>
-            {/* Twistiness heatmap toggle */}
-            <Button
-              variant="ghost"
-              size="icon"
-              className={`size-8 rounded-lg ${showTwistiness ? 'bg-emerald-500/20 text-emerald-400' : 'hover:bg-primary/10'}`}
-              onClick={() => setShowTwistiness(t => !t)}
-              title={showTwistiness ? 'Skrij heatmap vijugavosti' : 'Prikaži heatmap vijugavosti'}
-            >
-              <Activity className={`size-3.5 ${showTwistiness ? 'text-emerald-400' : ''}`} />
-            </Button>
-            {/* Export button */}
-            <Button
-              variant="ghost"
-              size="icon"
-              className="size-8 rounded-lg hover:bg-primary/10"
-              onClick={() => setShowExport(true)}
-              title="Izvozi vožnjo (GPX/TCX/KML)"
-            >
-              <Download className="size-3.5" />
-            </Button>
-            {/* Route simulator */}
-            <Button
-              variant="ghost"
-              size="icon"
-              className={`size-8 rounded-lg ${showSimulator ? 'bg-orange-500/20 text-orange-400' : 'hover:bg-primary/10'}`}
-              onClick={() => { if (planWaypoints.length < 2) { toast.error('Narišite ruto za simulacijo'); return } setShowSimulator(s => !s) }}
-              title="Simulacija rute"
-            >
-              <Film className={`size-3.5 ${showSimulator ? 'text-orange-400' : ''}`} />
-            </Button>
+            {/* Search - always visible */}
             <Button
               variant="ghost"
               size="icon"
@@ -1104,14 +1056,78 @@ export default function Home() {
             >
               <Search className="size-3.5" />
             </Button>
+
+            {/* Desktop: full icon set visible on md+ */}
+            <div className="hidden md:flex items-center gap-0.5">
+              <Button
+                variant="ghost"
+                size="icon"
+                className="size-8 rounded-lg hover:bg-primary/10 relative"
+                onClick={() => setFeatureOpen(true)}
+                title="Napredne funkcije"
+              >
+                <Sparkles className="size-3.5 text-primary" />
+                <span className="absolute -top-0.5 -right-0.5 w-2 h-2 bg-primary rounded-full animate-pulse" />
+              </Button>
+              <NotificationBell userId={user?.id} />
+              <AppShareButton />
+              <NightModeToggle enabled={nightMode} onToggle={setNightMode} />
+              <Button
+                variant="ghost"
+                size="icon"
+                className={`size-8 rounded-lg ${voiceEnabled ? 'bg-red-500/20 text-red-400' : 'hover:bg-primary/10'}`}
+                onClick={() => { setVoiceEnabled(v => !v); toast[voiceEnabled ? 'info' : 'success'](voiceEnabled ? '🔇 Glasovni ukazi izklopljeni' : '🎤 Glasovni ukazi vklopljeni') }}
+                title={voiceEnabled ? 'Izklopi glasovne ukaze' : 'Vklopi glasovne ukaze'}
+              >
+                <Mic className={`size-3.5 ${voiceEnabled ? 'text-red-400' : ''}`} />
+              </Button>
+              <Button
+                variant="ghost"
+                size="icon"
+                className={`size-8 rounded-lg ${showTwistiness ? 'bg-emerald-500/20 text-emerald-400' : 'hover:bg-primary/10'}`}
+                onClick={() => setShowTwistiness(t => !t)}
+                title={showTwistiness ? 'Skrij heatmap vijugavosti' : 'Prikaži heatmap vijugavosti'}
+              >
+                <Activity className={`size-3.5 ${showTwistiness ? 'text-emerald-400' : ''}`} />
+              </Button>
+              <Button
+                variant="ghost"
+                size="icon"
+                className="size-8 rounded-lg hover:bg-primary/10"
+                onClick={() => setShowExport(true)}
+                title="Izvozi vožnjo (GPX/TCX/KML)"
+              >
+                <Download className="size-3.5" />
+              </Button>
+              <Button
+                variant="ghost"
+                size="icon"
+                className={`size-8 rounded-lg ${showSimulator ? 'bg-orange-500/20 text-orange-400' : 'hover:bg-primary/10'}`}
+                onClick={() => { if (planWaypoints.length < 2) { toast.error('Narišite ruto za simulacijo'); return } setShowSimulator(s => !s) }}
+                title="Simulacija rute"
+              >
+                <Film className={`size-3.5 ${showSimulator ? 'text-orange-400' : ''}`} />
+              </Button>
+              <Button
+                variant="ghost"
+                size="icon"
+                className="size-8 rounded-lg hover:bg-primary/10"
+                onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
+                title={theme === 'dark' ? 'Svetla tema' : 'Temna tema'}
+              >
+                {theme === 'dark' ? <Sun className="size-3.5" /> : <Moon className="size-3.5" />}
+              </Button>
+            </div>
+
+            {/* Mobile: hamburger menu */}
             <Button
               variant="ghost"
               size="icon"
-              className="size-8 rounded-lg hover:bg-primary/10"
-              onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
-              title={theme === 'dark' ? 'Svetla tema' : 'Temna tema'}
+              className="size-8 rounded-lg hover:bg-primary/10 md:hidden"
+              onClick={() => setHeaderDrawerOpen(true)}
+              title="Meni"
             >
-              {theme === 'dark' ? <Sun className="size-3.5" /> : <Moon className="size-3.5" />}
+              <Menu className="size-4" />
             </Button>
           </div>
         )}
@@ -1300,6 +1316,25 @@ export default function Home() {
           defaultTab="qr"
         />
       )}
+
+      {/* Header Drawer Menu (mobile) */}
+      <HeaderDrawer
+        open={headerDrawerOpen}
+        onOpenChange={setHeaderDrawerOpen}
+        onOpenFeatureHub={() => setFeatureOpen(true)}
+        onOpenSearch={() => setSearchOpen(true)}
+        onToggleVoice={() => { setVoiceEnabled(v => !v); toast[voiceEnabled ? 'info' : 'success'](voiceEnabled ? '🔇 Glasovni ukazi izklopljeni' : '🎤 Glasovni ukazi vklopljeni') }}
+        onToggleTwistiness={() => setShowTwistiness(t => !t)}
+        onOpenExport={() => setShowExport(true)}
+        onOpenSimulator={() => { if (planWaypoints.length < 2) { toast.error('Narišite ruto za simulacijo'); return } setShowSimulator(true) }}
+        onToggleTheme={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
+        voiceEnabled={voiceEnabled}
+        showTwistiness={showTwistiness}
+        theme={theme}
+        notificationBell={<NotificationBell userId={user?.id} />}
+        shareButton={<AppShareButton />}
+        nightModeToggle={<NightModeToggle enabled={nightMode} onToggle={setNightMode} />}
+      />
 
       {/* Night Riding Mode Overlay */}
       {nightMode && (

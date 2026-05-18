@@ -5,6 +5,7 @@ import dynamic from 'next/dynamic'
 import { Play, Pause, Square, Save, Gauge, AlertTriangle, ChevronDown, ChevronUp, Activity, Bike, Moon, Timer, Share2, Navigation2, Volume2, VolumeX, Eye, Headphones, Zap, Radio, ShieldAlert, Camera, Monitor, MapPin, Globe } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
+import { Drawer, DrawerContent, DrawerTitle } from '@/components/ui/drawer'
 import type { TrackPoint, SpeedAlertSettings } from '@/components/tabs/types'
 import { formatDuration } from '@/components/tabs/types'
 import { type UnitSystem, convertSpeed, convertDistance, speedUnit, distanceUnit } from '@/hooks/use-settings'
@@ -139,6 +140,32 @@ export default function TrackTab({
   const [showFeatures, setShowFeatures] = useState(false)
   const [showShareCard, setShowShareCard] = useState(false)
   const [drivingMode, setDrivingMode] = useState(false)
+
+  // Auto-enter driving mode when tracking starts and speed > 0
+  const drivingModeTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  useEffect(() => {
+    if (isTracking && currentSpeed > 10 && !drivingMode && !isPaused) {
+      // Auto-enter driving mode after 5 seconds of sustained speed > 10 km/h
+      if (!drivingModeTimerRef.current) {
+        drivingModeTimerRef.current = setTimeout(() => {
+          setDrivingMode(true)
+          drivingModeTimerRef.current = null
+        }, 5000)
+      }
+    } else {
+      // Cancel timer if speed drops or tracking stops
+      if (drivingModeTimerRef.current) {
+        clearTimeout(drivingModeTimerRef.current)
+        drivingModeTimerRef.current = null
+      }
+    }
+    return () => {
+      if (drivingModeTimerRef.current) {
+        clearTimeout(drivingModeTimerRef.current)
+        drivingModeTimerRef.current = null
+      }
+    }
+  }, [isTracking, currentSpeed, drivingMode, isPaused])
   const [showEmergencyPanel, setShowEmergencyPanel] = useState(false)
   const [showPhotoGallery, setShowPhotoGallery] = useState(false)
   const [photoCount, setPhotoCount] = useState(0)
@@ -624,10 +651,15 @@ export default function TrackTab({
         )}
       </div>
 
-      {/* REVER-style Dark Dashboard Overlay */}
-      <div className="absolute bottom-0 left-0 right-0 z-[1000]">
-        {/* Dark glass panel */}
-        <div className="bg-black/90 backdrop-blur-xl border-t border-white/10">
+      {/* Draggable Bottom Sheet Dashboard */}
+      <Drawer
+        shouldScaleBackground={false}
+        snapPoints={[0.16, 0.55, 0.92]}
+        defaultSnap={isTracking ? 0.55 : 0.16}
+        snapToSequentialPointOnSnap={true}
+      >
+        <DrawerContent className="bg-black/95 backdrop-blur-xl border-t border-white/10 max-h-[92vh]">
+          <DrawerTitle className="sr-only">Sledenje vožnji</DrawerTitle>
           
           {/* When not tracking - Start button */}
           {!isTracking && !trackPoints.length && (
@@ -964,10 +996,8 @@ export default function TrackTab({
               />
             </div>
           )}
-        </div>
-      </div>
-
-      {/* Driving Mode - fullscreen minimal UI for riding */}
+        </DrawerContent>
+      </Drawer>
       <DrivingMode
         isActive={drivingMode && isTracking}
         onToggle={() => setDrivingMode(!drivingMode)}

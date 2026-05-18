@@ -526,7 +526,49 @@ Stage Summary:
 - Red/white emergency color scheme, works offline, all Slovenian text
 - No lint errors introduced
 Agent: Wind Warning System Engineer
-Task: Create Wind Warning System for motorcyclists in MotoTrack
+Task: Phase 1 UI Simplification — Header Drawer Menu + Bottom Sheet + Driving Mode auto-enter
+
+Work Log:
+- Read current project state: home.tsx (1434 lines), track-tab.tsx (1000+ lines), driving-mode.tsx (1103 lines)
+- Created `src/components/header-drawer.tsx`:
+  a. Sheet-based hamburger menu for mobile (md:hidden hamburger button in header)
+  b. Organized menu sections: Orodja (Tools), Zemljevid (Map), Izvozi in deli (Export & Share), Videz (Appearance)
+  c. Each menu item has icon, label, description, active indicator, and badge (NEW)
+  d. Inline components: NotificationBell, AppShareButton, NightModeToggle
+  e. Footer with version info
+  f. All text in Slovenian
+- Updated `src/components/home.tsx`:
+  a. Added Menu icon import and HeaderDrawer dynamic import
+  b. Added headerDrawerOpen state
+  c. Header now shows: Search (always) + Desktop icons (md:flex) + Hamburger (md:hidden)
+  d. On mobile: only Search + Hamburger visible (9 icons hidden in drawer)
+  e. On desktop: all icons visible inline (same as before)
+  f. Added HeaderDrawer component with all action handlers
+- Created `src/components/track-bottom-sheet.tsx`:
+  a. Vaul-based draggable bottom sheet with snap points [0.18, 0.55, 0.92]
+  b. Collapsed (0.18): speed + distance + duration + quick action buttons
+  c. Half-expanded (0.55): full stats grid + nav banner + controls
+  d. Full-expanded (0.92): all features (weather, fuel, elevation, nav, photos)
+  e. Auto-snaps to 0.55 when tracking, 0.18 when not tracking
+- Updated `src/components/tabs/track-tab.tsx`:
+  a. Added Drawer/DrawerContent/DrawerTitle imports from vaul
+  b. Replaced "REVER-style Dark Dashboard Overlay" div with Drawer wrapper
+  c. Dashboard now uses vaul snap points for drag-to-expand/collapse
+  d. Added auto-enter driving mode: when tracking + speed > 10 km/h for 5s → auto-enter Driving Mode
+  e. Auto-cancel timer when speed drops or tracking stops
+- Lint check passes — 0 errors in all modified files
+
+Stage Summary:
+- Header drawer menu on mobile (hamburger → organized sheet with sections)
+- Track dashboard is now a draggable bottom sheet with 3 snap points (REVER/Calimoto style)
+- Auto-enter Driving Mode when riding (speed > 10 km/h for 5 seconds)
+- Mobile header now shows only Search + Hamburger (clean, minimal)
+- Desktop header unchanged (all icons visible inline)
+- All UI text in Slovenian, no lint errors
+
+---
+Task ID: Wind Warning System
+Agent: Wind Warning System Engineer
 
 Work Log:
 - Read worklog.md to understand prior work (QR sharing, hazard reporting, GPX, GPS reliability, BT helmet, iconic routes, ride weather, driving mode, route reviews, maintenance, community routes, ride comparison)
