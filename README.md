@@ -70,6 +70,8 @@ MotoTrack je **odziv na te pritožbe**:
 | **Napredna statistika (grafi)** | ✅ | ❌ | ❌ | ❌ | ❌ |
 | **BT čelada → Glasovna nav.** | ✅ | ❌ | ❌ | ❌ | ❌ |
 | **GPS ponovna vzpostavitev** | ✅ | ❌ | ❌ | ❌ | ❌ |
+| **GPS zanesljivost (WakeLock + Heartbeat)** | ✅ | ❌ | ❌ | ❌ | ❌ |
+| **Načrtovanje na PC → Telefon sinhronizacija** | ✅ | ❌ | ❌ | ❌ | ❌ |
 | **Vreme med vožnjo (dež/sneg opozorila)** | ✅ | ❌ | ❌ | ❌ | ❌ |
 | **Kompas + ETA + hitrostni trend** | ✅ | ❌ | ❌ | ❌ | ❌ |
 | **Ocene in mnenja o rutah** | ✅ | ⚠️ | ❌ | ❌ | ❌ |
@@ -105,6 +107,8 @@ MotoTrack je **odziv na te pritožbe**:
 - GPX izvoz in PDF izvoz poti
 - **Deljenje rut s kodo + QR** — generiraj 6-mestno kodo (npr. MT3K7X) ALI QR kodo! Načrtuj na PC, skeniraj QR na telefonu —ruta se naloži samodejno. Podprta tudi Web Share API in kopiranje povezave
 - **📱 Pošlji na telefon** — gumb za neposreden prenos rute iz Načrtuj na telefon (PC → telefon sinhronizacija)
+- **☁️ Route Sync (PC → Telefon)** — načrtuj ruto na PC, naloži v oblak s 6-mestno kodo (MT3K7P), QR koda za hitri prenos na telefon! Rute izginejo po 24h. Predogled rute pred prenosom, varno nadomeščanje obstoječe rute
+- **Izboljšan načrtovalnik rut** — povleci za prerazporeditev waypointov, klik na zemljevid za dodajanje, nastavitve rute (izogibaj avtoceste, raje vijugaste, izogibaj cestnino), shranjevanje rut v knjižnico, GPX izvoz iz načrta
 - **Prednalaganje ploščic za ruto** — prednaloži zemljevidne ploščice vzdolž načrtovane rute za OFFLINE uporabo! Ključno za Balkan kjer je signal šibek. Prenesi pred vožnjo z WiFi, uporabljaj brez signala
 - 53 kuriranih balkanskih cest
 - Vreme ob poti — vremenski pogoji vzdolž celotne rute
@@ -112,6 +116,7 @@ MotoTrack je **odziv na te pritožbe**:
 
 ### ▶️ Sledi vožnji
 - **Zanesljivo GPS sledenje** — WakeLock API + visibility change handler (ponovna vzpostavitev GPS ob vrnitvi iz ozadja), auto-save vsakih 15s v localStorage (crash recovery), GPS sanity check (zavrnitev skokov >500m, nizka natančnost), odporna obravnava napak (ne ustavi snemanja ob izgubi signala), **periodična ponovna vzpostavitev GPS** (vsakih 30s če watchPosition utihne — pogost Android PWA problem), sledenje višine iz GPS podatkov (samo vzpon), zaznavanje in označevanje GPS vrzeli (prepreči črte teleportacije na zemljevidu)
+- **GPS zanesljivost (Enhanced)** — 🟢🟡🟠🔴 indikator kakovosti signala (natančnost), **WakeLock** samodejno ponovno pridobi ob vrnitvi iz ozadja, **Heartbeat sistem** (vsakih 30s preveri GPS), **exponential backoff** za TIMEOUT napake, **PERMISSION_DENIED/UNAVAILABLE** obravnava, validacija točk (>200m skok pri >120km/h = zavrnjeno), štetje ponovnih povezav, **diagnostika po vožnji** (ocena zanesljivosti 0-100)
 - Trenutna hitrost, razdalja, trajanje, višina, najvišja hitrost
 - **Mini višinski profil v živo** — SVG vizualizacija sprememb nadmorske višine med vožnjo z gradient fill, trenutna višina, skupni vzpon/spust
 - Samodejni premor (auto-pause) pri nizki hitrosti
@@ -200,6 +205,7 @@ MotoTrack je **odziv na te pritožbe**:
 - **Nevarnosti na cesti** — Waze za motoriste (kamere, plazovi, gradbišča)
 - **Cestne razmere** — ocene podlage (asfalt, makadam, pesek)
 - **Servisi** — iskanje servisov in trgovin z deli
+- **Fotogalerija voženj** — dodaj do 10 fotografij med vožnjo! Samodejna geolokacija, samodejno stiskanje (resize), swipe navigacija, brisanje, prikaz na zemljevidu
 
 ---
 
@@ -345,7 +351,7 @@ src/
 │   ├── page.tsx          # Glavna stran
 │   ├── layout.tsx        # Root layout (theme, PWA, error boundary)
 │   ├── globals.css       # Globalni stili
-│   └── api/              # 110 API končnih točk
+│   └── api/              # 115 API končnih točk
 │       ├── achievements/    # Dosežki in gamifikacija
 │       ├── balkan-roads/    # Kurirane balkanske ceste
 │       ├── bluetooth/       # Bluetooth čelada
@@ -394,6 +400,8 @@ src/
 │       ├── route-roi/       # ROI analiza rut
 │       ├── routes/          # CRUD za rute
 │       │   └── share/       # Deljenje rut s kodo (MT3K7X)
+│       ├── route-sync/      # PC→Telefon sinhronizacija rut
+│       ├── saved-routes/    # Shranjene rute (knjižnica)
 │       ├── seed/            # Seed podatki
 │       ├── service-centers/ # Servisi
 │       ├── services/        # Iskanje servisov
@@ -406,6 +414,7 @@ src/
 │       ├── subscription/    # Naročnina (prosti del)
 │       ├── sync-queue/      # Offline sinhronizacija
 │       ├── touring-score/   # Touring Score
+│       ├── tracking-diagnostics/ # GPS diagnostika po vožnji
 │       ├── traffic/         # Promet
 │       ├── trips/           # Večdnevna potovanja
 │       ├── tts/             # Besedilo v govor
@@ -596,6 +605,10 @@ Glede na raziskavo forumov (Reddit r/motorcycles, ADVrider, SpyderLovers, itd.) 
 19. **Nujna pomoč z državnimi številkami** — Forumi: "I ride across borders and don't know the local emergency numbers" (ADVrider). MotoTrack zdaj ponuja hitri dostop do reševalnih številk za VSE 10 balkanskih držav. Samodejno zazna državo iz GPS. Policija, reševalci, gasilci, EU 112. ICE stiki s krvno skupino, deljenje lokacije, pomoč na cesti (HAK, AMZS, AMS...). **Deluje brez interneta!**
 
 20. **Počivališča ob ruti in kalkulator zahtevnosti** — Forumi: "I need to know where to stop and how hard the route is" (REVER, Calimoto). MotoTrack zdaj ponuja iskanje počivališč (kavarnice, restavracije, razgledišča) vzdolž načrtovane rute z dodajanjem kot waypoint. Samodejni kalkulator zahtevnosti iz 5 faktorjev (vzpon, nagib, razdalja, vijugavost, najvišja točka) oceni ruto kot LAHKA/SREDNJA/TEŽKA/STROKOVNA.
+
+21. **GPS zanesljivost (Enhanced)** — Največji problem GPS aplikacij: izguba signala v ozadju. MotoTrack zdaj ponuja: 🟢🟡🟠🔴 indikator kakovosti signala (natančnost ≤10/25/50/50+m), WakeLock samodejno ponovno pridobi ob vrnitvi iz ozadja, Heartbeat sistem (vsakih 30s preveri GPS), exponential backoff za TIMEOUT napake, obravnava PERMISSION_DENIED/UNAVAILABLE, validacija točk (>200m skok pri >120km/h = zavrnjeno), štetje ponovnih povezav, diagnostika po vožnji (ocena zanesljivosti 0-100).
+
+22. **Načrtovanje na PC → Telefon (Route Sync)** — Forumi: "I want to plan on my computer and ride on my phone" (REVER, Calimoto, Kurviger imajo web planner). MotoTrack zdaj ponuja sinhronizacijo rut med napravami: načrtuj na PC, naloži v oblak s 6-mestno kodo (MT3K7P), QR koda za hitri prenos na telefon! Rute izginejo po 24h. Izboljšan načrtovalnik: povleci za prerazporeditev waypointov, klik na zemljevid za dodajanje, nastavitve rute, shranjevanje v knjižnico, GPX izvoz.
 
 ---
 
