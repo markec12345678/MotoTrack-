@@ -72,6 +72,9 @@ MotoTrack je **odziv na te pritožbe**:
 | **GPS ponovna vzpostavitev** | ✅ | ❌ | ❌ | ❌ | ❌ |
 | **GPS zanesljivost (WakeLock + Heartbeat)** | ✅ | ❌ | ❌ | ❌ | ❌ |
 | **Načrtovanje na PC → Telefon sinhronizacija** | ✅ | ❌ | ❌ | ❌ | ❌ |
+| **Krožna tura v2 (anti-backtrack)** | ✅ | ❌ | ❌ | ❌ | ❌ |
+| **Klepet skupine (realno-časovni)** | ✅ | ❌ | ❌ | ❌ | ❌ |
+| **Koledar voženj** | ✅ | ❌ | ❌ | ❌ | ❌ |
 | **Vreme med vožnjo (dež/sneg opozorila)** | ✅ | ❌ | ❌ | ❌ | ❌ |
 | **Kompas + ETA + hitrostni trend** | ✅ | ❌ | ❌ | ❌ | ❌ |
 | **Ocene in mnenja o rutah** | ✅ | ⚠️ | ❌ | ❌ | ❌ |
@@ -109,6 +112,7 @@ MotoTrack je **odziv na te pritožbe**:
 - **📱 Pošlji na telefon** — gumb za neposreden prenos rute iz Načrtuj na telefon (PC → telefon sinhronizacija)
 - **☁️ Route Sync (PC → Telefon)** — načrtuj ruto na PC, naloži v oblak s 6-mestno kodo (MT3K7P), QR koda za hitri prenos na telefon! Rute izginejo po 24h. Predogled rute pred prenosom, varno nadomeščanje obstoječe rute
 - **Izboljšan načrtovalnik rut** — povleci za prerazporeditev waypointov, klik na zemljevid za dodajanje, nastavitve rute (izogibaj avtoceste, raje vijugaste, izogibaj cestnino), shranjevanje rut v knjižnico, GPX izvoz iz načrta
+- **Krožna tura v2 (Anti-backtrack)** — nov algoritem ki ZAGOTOVI da se ne vračaš po isti cesti! Generira 3-6 intermediate točk v krožnem vzorcu, ločena izhodna in povratna pot, samodejni preverjanje križanja, SVG mini-map predogled
 - **Prednalaganje ploščic za ruto** — prednaloži zemljevidne ploščice vzdolž načrtovane rute za OFFLINE uporabo! Ključno za Balkan kjer je signal šibek. Prenesi pred vožnjo z WiFi, uporabljaj brez signala
 - 53 kuriranih balkanskih cest
 - Vreme ob poti — vremenski pogoji vzdolž celotne rute
@@ -136,6 +140,7 @@ MotoTrack je **odziv na te pritožbe**:
 - **Napredna statistika** — vizualni dashboard: tedenski pregled (stolpični diagram), mesečna aktivnost (površinski graf), distribucija hitrosti (krožni diagram), top rute, rekordi (najdaljša vožnja, najvišja hitrost, najdaljša serija)
 - **Prijavljanje nevarnosti na cesti** — Waze za motoriste! Prijavi plaz, gradbišče, hitrostno kamero, poledico, poplavljeno cesto, živali, razlito olje, luknjo — hitro in enostavno med vožnjo. Prikaz bližnjih nevarnosti z razdaljo
 - **Vreme med vožnjo (Weather Overlay)** — plavajoči vremenski pano med sledenjem! Temperatura, občutek, veter (smer + hitrost), vidljivost, vlažnost. **Sistem opozoril za dež/sneg**: samodejno zazna približujoč dež/sneg iz WMO kod, rumeno/rdeče opozorilo, zvočni alarm ob prvem zaznanju dežja (Web Audio API). Samodejna osvežitev vsakih 10 minut. Kompaktni način za Driving Mode
+- **Klepet skupine** — realno-časovni klepet za grupne vožnje! Socket.io na portu 3003, sobe za vsako vožnjo, pošiljanje lokacije/nevarnosti/statusa, zvočna obvestila, seznam povezanih motoristov
 
 ### 🧭 Raziskuj
 - Vodilni položaji (Leaderboard)
@@ -174,6 +179,7 @@ MotoTrack je **odziv na te pritožbe**:
 - Dosežki (Achievements) — gamifikacija
 - Točke in ravni (Points & Levels)
 - Ocenjevanje cest (Road Ratings)
+- **Koledar voženj** — mesečni pogled z intenzivnostjo voženj, dnevni detalj s seznamom voženj, mesečna statistika (skupna razdalja, čas, vzpon, povprečja, rekordi)
 
 ### 🧠 AI pomočnik (MotoChat)
 - AI klepet v slovenščini za načrtovanje poti
@@ -351,7 +357,7 @@ src/
 │   ├── page.tsx          # Glavna stran
 │   ├── layout.tsx        # Root layout (theme, PWA, error boundary)
 │   ├── globals.css       # Globalni stili
-│   └── api/              # 115 API končnih točk
+│   └── api/              # 117 API končnih točk
 │       ├── achievements/    # Dosežki in gamifikacija
 │       ├── balkan-roads/    # Kurirane balkanske ceste
 │       ├── bluetooth/       # Bluetooth čelada
@@ -372,6 +378,7 @@ src/
 │       ├── fuel/            # Gorivo in poraba
 │       ├── fuel-prices/     # Cene goriva
 │       ├── gpx/             # GPX uvoz/izvoz/PDF
+│       ├── group-chat/      # Klepet skupine (REST rezerva)
 │       ├── group-rides/     # Grupne vožnje
 │       ├── hazards/         # Nevarnosti na cesti
 │       ├── leaderboard/     # Vodilni položaji
@@ -390,12 +397,14 @@ src/
 │       ├── pois/            # Zanimive točke
 │       ├── privacy-zones/   # Zasebne cone
 │       ├── ride-animation/  # Animacija voženj
+│       ├── ride-calendar/   # Koledar voženj
 │       ├── ride-card/       # Generiranje deljnih kartic
 │       ├── ride-score/      # Ocena voženj
 │       ├── rides/           # CRUD za vožnje
 │       ├── road-conditions/ # Cestne razmere
 │       ├── road-ratings/    # Ocene cest
 │       ├── round-trip/      # Krožna tura
+│       ├── round-trip-v2/   # Krožna tura v2 (anti-backtrack)
 │       ├── route-recommendations/ # Priporočila rut
 │       ├── route-roi/       # ROI analiza rut
 │       ├── routes/          # CRUD za rute
@@ -609,6 +618,12 @@ Glede na raziskavo forumov (Reddit r/motorcycles, ADVrider, SpyderLovers, itd.) 
 21. **GPS zanesljivost (Enhanced)** — Največji problem GPS aplikacij: izguba signala v ozadju. MotoTrack zdaj ponuja: 🟢🟡🟠🔴 indikator kakovosti signala (natančnost ≤10/25/50/50+m), WakeLock samodejno ponovno pridobi ob vrnitvi iz ozadja, Heartbeat sistem (vsakih 30s preveri GPS), exponential backoff za TIMEOUT napake, obravnava PERMISSION_DENIED/UNAVAILABLE, validacija točk (>200m skok pri >120km/h = zavrnjeno), štetje ponovnih povezav, diagnostika po vožnji (ocena zanesljivosti 0-100).
 
 22. **Načrtovanje na PC → Telefon (Route Sync)** — Forumi: "I want to plan on my computer and ride on my phone" (REVER, Calimoto, Kurviger imajo web planner). MotoTrack zdaj ponuja sinhronizacijo rut med napravami: načrtuj na PC, naloži v oblak s 6-mestno kodo (MT3K7P), QR koda za hitri prenos na telefon! Rute izginejo po 24h. Izboljšan načrtovalnik: povleci za prerazporeditev waypointov, klik na zemljevid za dodajanje, nastavitve rute, shranjevanje v knjižnico, GPX izvoz.
+
+23. **Krožna tura v2 (Anti-backtrack)** — Forumi: "Round trip always sends me back the same way" (REVER, Calimoto). MotoTrack zdaj ponuja nov algoritem ki ZAGOTOVI različno izhodno in povratno pot! Generira 3-6 točk v krožnem vzorcu, preverjanje križanja, SVG mini-map predogled z zeleno/modro obarvanima potema. Nastavljiva razdalja, vijugavost, smer, tip podlage.
+
+24. **Klepet skupine v realnem času** — Forumi: "I want to chat with my riding group" (REVER Pro). MotoTrack zdaj ponuja realno-časovni klepet s Socket.io! Pridruži se sobi vožnje, pošiljaj sporočila, delite lokacijo in nevarnosti, sporočaj status (Pripravljen/Na poti/Odmor/Konec). Zvočna obvestila, seznam povezanih motoristov, REST API rezerva.
+
+25. **Koledar voženj** — Forumi: "I want to see my riding history in a calendar" (Strava, REVER). MotoTrack zdaj ponuja mesečni koledar z intenzivnostjo voženj (obarvani dnevi), dnevni detalj s seznamom voženj, mesečno statistiko (skupna razdalja, čas, vzpon, povprečja, rekordi). Klik na vožnjo odpre detalje.
 
 ---
 
