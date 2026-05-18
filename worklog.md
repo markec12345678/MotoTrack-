@@ -169,3 +169,61 @@ Stage Summary:
 - Pre-Ride Checklist now includes real-time weather check
 - Dangerous weather conditions block ride start for safety
 - All files compile, server running on port 3000
+
+---
+Task ID: 7
+Agent: Main
+Task: Enhanced Service Worker v2 with offline caching + Route sharing with short codes
+
+Work Log:
+- Rewritten /public/sw.js with proper caching strategies:
+  - Cache-first for static assets (JS, CSS, images, fonts, _next/static)
+  - Network-first for API requests (24 cacheable paths, fallback to cache on offline)
+  - Stale-while-revalidate for map tiles (OSM, CartoDB, Mapbox, etc.)
+  - Precache essential routes on install (/, /manifest.json, icons)
+  - Cache versioning system (mototrack-v2) for easy updates
+  - Cache size limits (50 API entries, 300 tile entries)
+  - Clean up old caches on activate
+  - XTransformPort logic preserved for sandbox
+  - Message handler for GET_CACHE_STATUS, CLEAR_TILE_CACHE, CLEAR_ALL_CACHES
+  - Proper offline fallback for HTML navigation (cached /)
+  - 503 response with Slovenian error for API failures when offline
+- Created /src/app/api/routes/share/route.ts:
+  - POST generates 6-char alphanumeric share code (MT prefix, e.g. MT3K7X)
+  - GET looks up route by share code (case-insensitive)
+  - Returns route data: title, waypoints, distance, category, difficulty, user info
+  - If route already has share code, returns existing one
+- Created /src/components/route-share-dialog.tsx:
+  - Dialog showing share code prominently (large, copyable)
+  - Share URL display with copy button
+  - Web Share API support (navigator.share) with clipboard fallback
+  - Instructions in Slovenian for how to use shared routes
+  - Auto-generates share code when dialog opens
+- Updated /src/components/tabs/detail-dialog.tsx:
+  - Added Hash icon + "Koda" button for routes (next to Deli button)
+  - RouteShareDialog rendered when showing route details
+  - Imported RouteShareDialog and added state for showRouteShare
+- Updated /src/components/home.tsx:
+  - Added support for ?route=CODE URL parameter
+  - Fetches shared route from /api/routes/share
+  - Auto-loads waypoints into plan tab
+  - Shows toast with route title
+  - Cleans URL after loading
+- Updated /src/components/pwa-register.tsx:
+  - Added cache status monitoring via MessageChannel
+  - Shows cache count in offline bar ("X v predpomnilniku")
+  - Better offline messaging ("podatki iz predpomnilnika")
+  - Fixed TypeScript error for reg.sync
+- Updated README.md:
+  - Added "Deljenje rut s kodo" feature
+  - Added "Izboljšan Service Worker v2" feature
+  - Added "Deljenje rut s kodo" and "Offline predpomniljenje (SW v2)" to comparison table
+  - Added routes/share to project structure
+- Pushed to GitHub (commit bf2b28b)
+
+Stage Summary:
+- Service Worker v2 with smart caching strategies for offline-first experience (critical for Balkan mountains)
+- Route sharing via short codes (MT3K7X) with URL parameter loading
+- Cache status displayed in offline indicator
+- All new files pass TypeScript checks
+- Code pushed to GitHub
