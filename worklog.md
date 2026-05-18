@@ -826,3 +826,24 @@ Stage Summary:
 - Integration into Plan tab with "Krožna tura v2" button in roundtrip mode
 - Anti-backtrack guarantee: routes go OUT and come back via DIFFERENT paths (verified by separation check)
 - All text in Slovenian, no lint/TypeScript errors introduced
+
+---
+Task ID: 8
+Agent: Main Developer
+Task: Group Ride Chat (Socket.io), Ride Calendar, Round Trip V2 integration
+
+Work Log:
+- Created mini-services/chat-service with Socket.io server on port 3003
+- Created group-ride-chat.tsx component with real-time messaging, location sharing, hazard/status messages
+- Created ChatBubble floating component integrated into home.tsx during active tracking
+- Created group-chat REST API fallback endpoint
+- Created ride-calendar.tsx component with monthly grid, intensity dots, day detail, monthly stats
+- Created ride-calendar API endpoint with grouped rides and statistics
+- Integrated RideCalendar into profile-tab.tsx
+- Fixed lint errors (0 errors, 12 warnings only)
+- Committed and pushed to GitHub
+
+Stage Summary:
+- Group Ride Chat: Socket.io mini-service + React component with real-time messaging
+- Ride Calendar: Monthly view with ride intensity, day detail, monthly stats
+- All changes pushed to GitHub (commit fabd858)
