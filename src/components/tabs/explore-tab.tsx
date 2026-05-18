@@ -32,6 +32,7 @@ import BalkanCampsPanel from '@/components/balkan-camps-panel'
 import RideComparisonPanel from '@/components/ride-comparison-panel'
 import BalkanRoadsPanel from '@/components/balkan-roads-panel'
 import BalkanTours from '@/components/balkan-tours-panel'
+import CommunityRoutesPanel from '@/components/community-routes-panel'
 import NearbyRoadsPanel from '@/components/nearby-roads-panel'
 import WeatherSuitability from '@/components/weather-suitability'
 import RoadConditionsPanel from '@/components/road-conditions-panel'
@@ -86,7 +87,7 @@ const ExploreTabInner = React.memo(function ExploreTabInner({ rides, routes, lea
   const [exploreCategory, setExploreCategory] = useState<string>('all')
   const [searchQuery, setSearchQuery] = useState('')
   const debouncedSearchQuery = useDebounce(searchQuery, 200)
-  const [exploreSection, setExploreSection] = useState<'discover' | 'feed' | 'favorites' | 'communities' | 'friends' | 'grouprides' | 'challenges' | 'services' | 'fuel' | 'consumption' | 'comparison' | 'events' | 'camps' | 'balkanroads' | 'balkantours' | 'nearbyroads' | 'weather' | 'roadconditions' | 'cinema' | 'garage' | 'touring'>('discover')
+  const [exploreSection, setExploreSection] = useState<'discover' | 'feed' | 'favorites' | 'communities' | 'friends' | 'grouprides' | 'challenges' | 'services' | 'fuel' | 'consumption' | 'comparison' | 'events' | 'camps' | 'balkanroads' | 'balkantours' | 'nearbyroads' | 'weather' | 'roadconditions' | 'cinema' | 'garage' | 'touring' | 'communityroutes'>('discover')
 
   // Cinema state
   const [cinemaRideId, setCinemaRideId] = useState<string | null>(null)
@@ -574,6 +575,12 @@ const ExploreTabInner = React.memo(function ExploreTabInner({ rides, routes, lea
               onClick={() => setExploreSection('balkantours')}
               icon={<span className="text-sm">🏔️</span>}
               label="Ture"
+            />
+            <TabPill
+              active={exploreSection === 'communityroutes'}
+              onClick={() => setExploreSection('communityroutes')}
+              icon={<Globe className="size-3.5" />}
+              label="Skupnost"
             />
             <TabPill
               active={exploreSection === 'cinema'}
@@ -1509,6 +1516,14 @@ const ExploreTabInner = React.memo(function ExploreTabInner({ rides, routes, lea
             </div>
             <BikeGarage userId={userId} />
           </div>
+        ) : exploreSection === 'communityroutes' ? (
+          /* ====== COMMUNITY ROUTES SECTION ====== */
+          <CommunityRoutesPanel
+            userId={userId}
+            onLoadToPlan={onLoadToPlan}
+            userLat={userLat}
+            userLng={userLng}
+          />
         ) : (
           /* ====== DISCOVER SECTION ====== */
           <>
