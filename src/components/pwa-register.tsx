@@ -30,7 +30,7 @@ export function PwaRegister() {
   const triggerSync = useCallback(() => {
     const reg = registrationRef.current
     if (reg && 'sync' in reg) {
-      reg.sync.register('mototrack-sync').catch(() => {
+      (reg as any).sync.register('mototrack-sync').catch(() => {
         navigator.serviceWorker.controller?.postMessage({ type: 'TRIGGER_SYNC' })
       })
     } else if (navigator.serviceWorker.controller) {
@@ -161,13 +161,41 @@ export function PwaRegister() {
     return () => clearInterval(interval)
   }, [isOnline])
 
+  // Request cache status from SW for offline indicator
+  const [cacheStatus, setCacheStatus] = useState<{static: number; api: number; tiles: number; total: number} | null>(null)
+  useEffect(() => {
+    if (!('serviceWorker' in navigator) || !navigator.serviceWorker.controller) return
+    const channel = new MessageChannel()
+    channel.port1.onmessage = (event) => {
+      if (event.data?.type === 'CACHE_STATUS') {
+        setCacheStatus(event.data)
+      }
+    }
+    navigator.serviceWorker.controller.postMessage({ type: 'GET_CACHE_STATUS' }, [channel.port2])
+    // Refresh cache status periodically
+    const interval = setInterval(() => {
+      if (!navigator.serviceWorker.controller) return
+      const ch = new MessageChannel()
+      ch.port1.onmessage = (e) => {
+        if (e.data?.type === 'CACHE_STATUS') setCacheStatus(e.data)
+      }
+      navigator.serviceWorker.controller.postMessage({ type: 'GET_CACHE_STATUS' }, [ch.port2])
+    }, 30000)
+    return () => clearInterval(interval)
+  }, [])
+
   return (
     <>
       {/* Offline indicator bar */}
       {showOfflineBar && (
         <div className="fixed top-12 left-0 right-0 z-[1501] bg-orange-600/90 backdrop-blur-sm text-white px-4 py-1.5 flex items-center justify-center gap-2 text-xs font-medium">
           <WifiOff className="size-3" />
-          <span>Brez povezave — delate v načinu brez povezave</span>
+          <span>Brez povezave — podatki iz predpomnilnika</span>
+          {cacheStatus && cacheStatus.total > 0 && (
+            <span className="ml-1 bg-white/20 rounded-full px-2 py-0.5 text-[10px]">
+              {cacheStatus.total} v predpomnilniku
+            </span>
+          )}
           {swQueueLength > 0 && (
             <span className="ml-1 bg-white/20 rounded-full px-2 py-0.5 text-[10px]">
               {swQueueLength} v čakalni vrsti

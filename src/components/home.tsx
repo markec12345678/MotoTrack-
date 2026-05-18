@@ -211,6 +211,33 @@ export default function Home() {
     if (tab === 'plan' || tab === 'track' || tab === 'explore' || tab === 'profile') {
       setActiveTab(tab)
     }
+    // Handle shared route code (?route=MT3K7X)
+    const routeCode = params.get('route')
+    if (routeCode) {
+      fetch(`/api/routes/share?code=${encodeURIComponent(routeCode)}`)
+        .then(r => r.json())
+        .then(j => {
+          if (j.data?.waypoints) {
+            try {
+              const waypoints = typeof j.data.waypoints === 'string'
+                ? JSON.parse(j.data.waypoints)
+                : j.data.waypoints
+              if (Array.isArray(waypoints) && waypoints.length >= 2) {
+                setPlanWaypoints(waypoints.map((w: any) => ({ lat: w.lat, lng: w.lng })))
+                setPlanTitle(j.data.title || `Deljena ruta: ${routeCode}`)
+                setPlanCategory(j.data.category || 'scenic')
+                setActiveTab('plan')
+                toast.success(`🗺️ Ruta "${j.data.title || routeCode}" naložena!`)
+                // Clean URL
+                window.history.replaceState({}, '', '/')
+              }
+            } catch { /* ignore parse errors */ }
+          }
+        })
+        .catch(() => {
+          toast.error('Napaka pri nalaganju deljene rute')
+        })
+    }
   }, [])
 
   // Exit fullscreen when switching away from explore tab

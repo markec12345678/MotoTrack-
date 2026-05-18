@@ -121,6 +121,7 @@ model Route {
   difficulty  String   @default("medium") // easy, medium, hard
   isPublic    Boolean  @default(true)
   likes       Int      @default(0)
+  shareCode   String?                // 6-char alphanumeric share code (e.g. "MT3K7X")
   userId      String
   user        User     @relation(fields: [userId], references: [id])
   createdAt   DateTime @default(now())
@@ -130,6 +131,8 @@ model Route {
   photos      Photo[]
   favorites   Favorite[]
   routeRoiScores RouteRoiScore[]
+
+  @@index([shareCode])
 }
 
 model Comment {

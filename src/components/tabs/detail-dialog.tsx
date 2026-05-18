@@ -7,7 +7,7 @@ import {
   Cloud, Sun, CloudRain, CloudSnow, CloudFog, CloudLightning,
   Send, Calendar, Download, Camera, ImageIcon, Trash2,
   GitCompare, TrendingUp, TrendingDown, Minus, ChevronDown, ChevronUp,
-  Star, Share2,
+  Star, Share2, Hash,
 } from 'lucide-react'
 import { Dialog, DialogContent, DialogTitle } from '@/components/ui/dialog'
 import { Badge } from '@/components/ui/badge'
@@ -21,6 +21,7 @@ import type { RideData, RouteData, CommentData, WeatherData, UserData, PhotoData
 import { formatDuration, formatDate, categoryLabel, categoryColor, difficultyLabel } from '@/components/tabs/types'
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell } from 'recharts'
 import ElevationProfile from '@/components/tabs/elevation-profile'
+import RouteShareDialog from '@/components/route-share-dialog'
 import RideReplay3D from '@/components/ride-replay-3d'
 import GradientAnalysis from '@/components/gradient-analysis'
 import { toast } from 'sonner'
@@ -347,6 +348,7 @@ export default function DetailDialog({
   // Favorite state
   const [isFavorite, setIsFavorite] = useState(false)
   const [favoriteLoading, setFavoriteLoading] = useState(false)
+  const [showRouteShare, setShowRouteShare] = useState(false)
 
   // Check if item is favorited
   useEffect(() => {
@@ -590,6 +592,18 @@ export default function DetailDialog({
               <Share2 className="size-3" />
               Deli
             </Button>
+            {/* Route share code button - only for routes */}
+            {!isRide && (
+              <Button
+                variant="ghost"
+                size="sm"
+                className="h-7 gap-1 text-xs text-primary hover:text-primary/80"
+                onClick={() => setShowRouteShare(true)}
+              >
+                <Hash className="size-3" />
+                Koda
+              </Button>
+            )}
           </div>
 
           {/* Like button for routes */}
@@ -999,6 +1013,16 @@ export default function DetailDialog({
             </div>
           </DialogContent>
         </Dialog>
+      )}
+
+      {/* Route Share Dialog */}
+      {!isRide && (
+        <RouteShareDialog
+          open={showRouteShare}
+          onClose={() => setShowRouteShare(false)}
+          routeId={item.id}
+          routeTitle={item.title}
+        />
       )}
     </Dialog>
   )

@@ -62,6 +62,8 @@ MotoTrack je **odziv na te pritožbe**:
 | **Večdnevne ture** | ✅ | ❌ | ❌ | ❌ | ❌ |
 | **Nagibni kot (Lean Angle)** | ✅ | ❌ | ❌ | ❌ | ❌ |
 | **Balkanske ceste + ture** | ✅ (53+10) | ❌ | ❌ | ❌ | ❌ |
+| **Deljenje rut s kodo** | ✅ | ❌ | ❌ | ❌ | ❌ |
+| **Offline predpomniljenje (SW v2)** | ✅ | ❌ | ❌ | ❌ | ⚠️ |
 | **Brez oglasov** | ✅ | ⚠️ Brezplačna verzija ima | ⚠️ | ✅ | ✅ |
 
 > 💡 *Podatki o konkurenci pridobljeni iz forumov: Reddit r/motorcycles, r/NewRiders, r/MotoUK, ADVrider.com, SpyderLovers.com, App Store/Google Play reviews, 2024-2025*
@@ -85,6 +87,7 @@ MotoTrack je **odziv na te pritožbe**:
 - **Round Trip Generator** — prava krožna tura! Multi-waypoint algoritem z nastavljivo vijugavostjo: več intermediate točk za bolj zanimive rute (ne gre po isti cesti nazaj)
 - GPX uvoz iz drugih aplikacij
 - GPX izvoz in PDF izvoz poti
+- **Deljenje rut s kodo** — generiraj 6-mestno kodo (npr. MT3K7X) in deli s prijatelji! Odprejo povezavo in ruta se naloži samodejno
 - 53 kuriranih balkanskih cest
 - Vreme ob poti — vremenski pogoji vzdolž celotne rute
 - ROI analiza — ocena vrednosti poti (pokrajina, vijugavost, kvaliteta, vreme, gorivo, čas)
@@ -150,6 +153,7 @@ MotoTrack je **odziv na te pritožbe**:
 - **Video sinhronizacija** — povezava GoPro/Action Cam posnetkov z GPS sledi
 - **Live Tracking** — deljenje lokacije v realnem času z delilnim linkom
 - **Offline sinhronizacija** — PWA podpora za delo brez interneta
+- **Izboljšan Service Worker v2** — pametno predpomniljenje za offline delovanje (cache-first za statiko, network-first za API, stale-while-revalidate za zemljevide), ključno za Balkan kjer je signal šibek! Prikaže status predpomnilnika ob izgubi povezave
 - **Deljne kartice voženj** — AI-generirane slike za socialna omrežja
 - **Iskanje po vsem** (Global Search) — Ctrl+K za hitro iskanje
 - **Obvestila** — zvonec z realno-časovnimi obvestili
@@ -359,6 +363,7 @@ src/
 │       ├── route-recommendations/ # Priporočila rut
 │       ├── route-roi/       # ROI analiza rut
 │       ├── routes/          # CRUD za rute
+│       │   └── share/       # Deljenje rut s kodo (MT3K7X)
 │       ├── seed/            # Seed podatki
 │       ├── service-centers/ # Servisi
 │       ├── services/        # Iskanje servisov
