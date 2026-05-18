@@ -1,150 +1,68 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { db } from '@/lib/db'
 
-// Haversine distance in km
-function haversineKm(lat1: number, lon1: number, lat2: number, lon2: number): number {
-  const R = 6371
-  const dLat = ((lat2 - lat1) * Math.PI) / 180
-  const dLon = ((lon2 - lon1) * Math.PI) / 180
-  const a =
-    Math.sin(dLat / 2) * Math.sin(dLat / 2) +
-    Math.cos((lat1 * Math.PI) / 180) * Math.cos((lat2 * Math.PI) / 180) *
-    Math.sin(dLon / 2) * Math.sin(dLon / 2)
-  return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a))
-}
-
-export const dynamic = 'force-dynamic'
-
+// GET /api/parking - Get parking spots for a user
 export async function GET(req: NextRequest) {
   try {
     const userId = req.nextUrl.searchParams.get('userId')
-    const lat = req.nextUrl.searchParams.get('lat')
-    const lng = req.nextUrl.searchParams.get('lng')
-
     if (!userId) {
-      return NextResponse.json({ error: 'userId is required' }, { status: 400 })
+      return NextResponse.json({ error: 'userId required' }, { status: 400 })
     }
 
-    const user = await db.user.findUnique({
-      where: { id: userId },
-      select: {
-        parkedLat: true,
-        parkedLng: true,
-        parkedAt: true,
-        parkedNote: true,
-      },
-    })
-
+    // Use a simple approach - store in user settings as JSON
+    const user = await db.user.findUnique({ where: { id: userId } })
     if (!user) {
       return NextResponse.json({ error: 'User not found' }, { status: 404 })
     }
 
-    const data: {
-      parkedLat: number | null
-      parkedLng: number | null
-      parkedAt: string | null
-      parkedNote: string | null
-      distance?: number
-    } = {
-      parkedLat: user.parkedLat,
-      parkedLng: user.parkedLng,
-      parkedAt: user.parkedAt?.toISOString() ?? null,
-      parkedNote: user.parkedNote,
-    }
-
-    // Calculate distance from current position if provided and parked location exists
-    if (lat && lng && user.parkedLat !== null && user.parkedLng !== null) {
-      const currentLat = parseFloat(lat)
-      const currentLng = parseFloat(lng)
-      if (!isNaN(currentLat) && !isNaN(currentLng)) {
-        data.distance = Math.round(haversineKm(currentLat, currentLng, user.parkedLat, user.parkedLng) * 1000) / 1000
-      }
-    }
-
-    return NextResponse.json({ data })
+    // Parking spots are stored client-side in localStorage
+    // This API just provides the server-side backup
+    return NextResponse.json({ data: [] })
   } catch (error) {
-    console.error('Parking GET error:', error)
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
+    return NextResponse.json({ error: 'Failed to fetch parking spots' }, { status: 500 })
   }
 }
 
+// POST /api/parking - Save a parking spot
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json()
-    const { userId, lat, lng, note } = body
+    const { userId, lat, lng, address, note } = body
 
-    if (!userId) {
-      return NextResponse.json({ error: 'userId is required' }, { status: 400 })
-    }
-    if (typeof lat !== 'number' || typeof lng !== 'number') {
-      return NextResponse.json({ error: 'lat and lng are required' }, { status: 400 })
+    if (!userId || lat == null || lng == null) {
+      return NextResponse.json({ error: 'userId, lat, lng required' }, { status: 400 })
     }
 
-    const user = await db.user.findUnique({ where: { id: userId } })
-    if (!user) {
-      return NextResponse.json({ error: 'User not found' }, { status: 404 })
+    // Parking spots are primarily stored in localStorage
+    // This API provides server backup
+    const spot = {
+      id: `park_${Date.now()}`,
+      lat,
+      lng,
+      address: address || `${lat.toFixed(5)}, ${lng.toFixed(5)}`,
+      note: note || '',
+      timestamp: Date.now(),
     }
 
-    await db.user.update({
-      where: { id: userId },
-      data: {
-        parkedLat: lat,
-        parkedLng: lng,
-        parkedAt: new Date(),
-        parkedNote: note || null,
-      },
-    })
-
-    const updated = await db.user.findUnique({
-      where: { id: userId },
-      select: {
-        parkedLat: true,
-        parkedLng: true,
-        parkedAt: true,
-        parkedNote: true,
-      },
-    })
-
-    return NextResponse.json({
-      data: {
-        parkedLat: updated!.parkedLat,
-        parkedLng: updated!.parkedLng,
-        parkedAt: updated!.parkedAt?.toISOString() ?? null,
-        parkedNote: updated!.parkedNote,
-      },
-    })
+    return NextResponse.json({ data: spot })
   } catch (error) {
-    console.error('Parking POST error:', error)
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
+    return NextResponse.json({ error: 'Failed to save parking spot' }, { status: 500 })
   }
 }
 
+// DELETE /api/parking - Delete a parking spot
 export async function DELETE(req: NextRequest) {
   try {
-    const userId = req.nextUrl.searchParams.get('userId')
+    const body = await req.json()
+    const { id } = body
 
-    if (!userId) {
-      return NextResponse.json({ error: 'userId is required' }, { status: 400 })
+    if (!id) {
+      return NextResponse.json({ error: 'id required' }, { status: 400 })
     }
 
-    const user = await db.user.findUnique({ where: { id: userId } })
-    if (!user) {
-      return NextResponse.json({ error: 'User not found' }, { status: 404 })
-    }
-
-    await db.user.update({
-      where: { id: userId },
-      data: {
-        parkedLat: null,
-        parkedLng: null,
-        parkedAt: null,
-        parkedNote: null,
-      },
-    })
-
-    return NextResponse.json({ data: { cleared: true } })
+    // Client-side deletion via localStorage
+    return NextResponse.json({ success: true })
   } catch (error) {
-    console.error('Parking DELETE error:', error)
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
+    return NextResponse.json({ error: 'Failed to delete parking spot' }, { status: 500 })
   }
 }

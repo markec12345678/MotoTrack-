@@ -71,6 +71,11 @@ const FeatureHubDialog = dynamic(withRetry(() => import('@/components/feature-hu
 const GlobalSearch = dynamic(withRetry(() => import('@/components/global-search')), { ssr: false, loading: () => null })
 const NightModeToggle = dynamic(withRetry(() => import('@/components/night-mode-toggle')), { ssr: false, loading: () => null })
 const RouteShareDialog = dynamic(withRetry(() => import('@/components/route-share-dialog')), { ssr: false, loading: () => null })
+const CarPlayMode = dynamic(withRetry(() => import('@/components/carplay-mode')), { ssr: false, loading: () => null })
+const ParkingSpotPanel = dynamic(withRetry(() => import('@/components/parking-spot').then(m => ({ default: m.ParkingSpotPanel }))), { ssr: false, loading: () => null })
+const ParkingMapIndicator = dynamic(withRetry(() => import('@/components/parking-spot').then(m => ({ default: m.ParkingMapIndicator }))), { ssr: false, loading: () => null })
+const ParkingSavePrompt = dynamic(withRetry(() => import('@/components/parking-spot').then(m => ({ default: m.ParkingSavePrompt }))), { ssr: false, loading: () => null })
+const BorderGuide = dynamic(withRetry(() => import('@/components/border-guide')), { ssr: false, loading: () => null })
 
 const tabs: { id: TabId; label: string; icon: React.ElementType }[] = [
   { id: 'map', label: 'Zemljevid', icon: MapIcon },
@@ -228,6 +233,16 @@ export default function Home() {
 
   // Night riding mode
   const [nightMode, setNightMode] = useState(false)
+
+  // CarPlay mode
+  const [carplayMode, setCarplayMode] = useState(false)
+
+  // Parking spot
+  const [showParkingPanel, setShowParkingPanel] = useState(false)
+  const [showParkingPrompt, setShowParkingPrompt] = useState(false)
+
+  // Border guide
+  const [showBorderGuide, setShowBorderGuide] = useState(false)
 
   // Plan share dialog (Send to Phone)
   const [showPlanShare, setShowPlanShare] = useState(false)
@@ -812,7 +827,7 @@ export default function Home() {
       const nonGapPoints = filteredPoints.filter(p => p.alt !== -9999)
       const trackData = JSON.stringify(nonGapPoints.map(p => [p.lat, p.lng, p.alt, p.timestamp]))
       const res = await fetch('/api/rides', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ title: `Vožnja ${new Date().toLocaleDateString('sl-SI')}`, distance: trackDistance, duration: trackDuration, avgSpeed: trackDuration > 0 ? Math.round((trackDistance / (trackDuration / 3600)) * 10) / 10 : 0, maxSpeed: trackMaxSpeed, elevation: Math.round(trackElevation), trackData, startLat, startLng, endLat, endLng, isPublic: true }) })
-      if (res.ok) { toast.success('Vožnja shranjena!'); setTrackPoints([]); setTrackDuration(0); setTrackDistance(0); setTrackMaxSpeed(0); setTrackElevation(0); fetchData(); if (user?.id) fetch('/api/achievements', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ userId: user.id }) }).then(r => r.json()).then(j => { if (j.data?.newlyEarned?.length > 0) j.data.newlyEarned.forEach((a: { title: string; icon: string }) => toast.success(`🏆 Nov dosežek: ${a.icon} ${a.title}!`)) }).catch(() => {}) }
+      if (res.ok) { toast.success('Vožnja shranjena!'); setTrackPoints([]); setTrackDuration(0); setTrackDistance(0); setTrackMaxSpeed(0); setTrackElevation(0); fetchData(); setShowParkingPrompt(true); setTimeout(() => setShowParkingPrompt(false), 8000); if (user?.id) fetch('/api/achievements', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ userId: user.id }) }).then(r => r.json()).then(j => { if (j.data?.newlyEarned?.length > 0) j.data.newlyEarned.forEach((a: { title: string; icon: string }) => toast.success(`🏆 Nov dosežek: ${a.icon} ${a.title}!`)) }).catch(() => {}) }
       else toast.error('Napaka pri shranjevanju')
     } catch { toast.error('Napaka pri shranjevanju') }
   }, [trackPoints, trackDistance, trackDuration, trackMaxSpeed, trackElevation, fetchData, settings.hideStartEnd, privacyZones])
@@ -1042,6 +1057,10 @@ export default function Home() {
               autoStartEnabled={autoStartEnabled}
               autoStartCountdown={autoStartCountdown}
               onToggleAutoStart={toggleAutoStart}
+              carplayMode={carplayMode}
+              onToggleCarplay={() => setCarplayMode(!carplayMode)}
+              onOpenParking={() => setShowParkingPanel(true)}
+              onOpenBorderGuide={() => setShowBorderGuide(true)}
             />
           )}
           {activeTab === 'explore' && (
@@ -1181,6 +1200,51 @@ export default function Home() {
           }}
         />
       )}
+
+      {/* CarPlay / Android Auto Mode */}
+      <CarPlayMode
+        isActive={carplayMode}
+        onToggle={() => setCarplayMode(false)}
+        currentSpeed={trackCurrentSpeed}
+        distance={trackDistance}
+        duration={trackDuration}
+        elevation={trackElevation}
+        maxSpeed={trackMaxSpeed}
+        isTracking={isTracking}
+        isPaused={isPaused}
+        onStartStopTrack={isTracking ? stopTracking : startTracking}
+        onPauseResume={isPaused ? resumeTracking : pauseTracking}
+        speedLimit={90}
+        isOverSpeed={isTracking && trackCurrentSpeed > 90}
+        voiceEnabled={true}
+        onToggleVoice={() => {}}
+        currentLat={userLat}
+        currentLng={userLng}
+        fuelRange={undefined}
+        onOpenEmergency={() => {}}
+      />
+
+      {/* Parking Spot Panel */}
+      <ParkingSpotPanel
+        isOpen={showParkingPanel}
+        onClose={() => setShowParkingPanel(false)}
+        currentLat={userLat}
+        currentLng={userLng}
+      />
+
+      {/* Parking Save Prompt (after ride save) */}
+      {showParkingPrompt && (
+        <ParkingSavePrompt
+          onSave={() => { setShowParkingPrompt(false); setShowParkingPanel(true) }}
+          onDismiss={() => setShowParkingPrompt(false)}
+        />
+      )}
+
+      {/* Border Crossing Guide */}
+      <BorderGuide
+        isOpen={showBorderGuide}
+        onClose={() => setShowBorderGuide(false)}
+      />
 
       {/* Bottom Nav - REVER-inspired dark bar with bold orange active */}
       <nav className={`fixed bottom-0 left-0 right-0 z-[1500] bg-black/95 backdrop-blur-xl border-t border-white/5 dark:bg-black/95 transition-all duration-300 ${

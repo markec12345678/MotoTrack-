@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react'
 import dynamic from 'next/dynamic'
-import { Play, Pause, Square, Save, Gauge, AlertTriangle, ChevronDown, ChevronUp, Activity, Bike, Moon, Timer, Share2, Navigation2, Volume2, VolumeX, Eye, Headphones, Zap, Radio, ShieldAlert, Camera } from 'lucide-react'
+import { Play, Pause, Square, Save, Gauge, AlertTriangle, ChevronDown, ChevronUp, Activity, Bike, Moon, Timer, Share2, Navigation2, Volume2, VolumeX, Eye, Headphones, Zap, Radio, ShieldAlert, Camera, Monitor, MapPin, Globe } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import type { TrackPoint, SpeedAlertSettings } from '@/components/tabs/types'
@@ -101,6 +101,11 @@ interface TrackTabProps {
   autoStartEnabled?: boolean
   autoStartCountdown?: number | null
   onToggleAutoStart?: () => void
+  // CarPlay & Parking
+  carplayMode?: boolean
+  onToggleCarplay?: () => void
+  onOpenParking?: () => void
+  onOpenBorderGuide?: () => void
 }
 
 export default function TrackTab({
@@ -115,6 +120,10 @@ export default function TrackTab({
   autoStartEnabled = false,
   autoStartCountdown = null,
   onToggleAutoStart,
+  carplayMode = false,
+  onToggleCarplay,
+  onOpenParking,
+  onOpenBorderGuide,
 }: TrackTabProps) {
   // Speed alert state
   const [speedSettings, setSpeedSettings] = useState<SpeedAlertSettings>({
@@ -507,6 +516,43 @@ export default function TrackTab({
               <Eye className="size-3" />
               <span>DRIVE</span>
             </button>
+            {/* CarPlay Mode toggle */}
+            {onToggleCarplay && (
+              <button
+                onClick={onToggleCarplay}
+                className={`flex items-center gap-1 px-2 py-1 rounded-full text-[10px] font-bold shadow-lg transition-colors ${
+                  carplayMode
+                    ? 'bg-emerald-500 text-white'
+                    : 'bg-white/10 backdrop-blur-sm text-white/60 hover:bg-white/20'
+                }`}
+                title="CarPlay način - velik vmesnik za avto/telefon na volanu"
+              >
+                <Monitor className="size-3" />
+                <span>CAR</span>
+              </button>
+            )}
+            {/* Parking Spot toggle */}
+            {onOpenParking && (
+              <button
+                onClick={onOpenParking}
+                className="flex items-center gap-1 px-2 py-1 rounded-full bg-blue-500/80 text-white text-[10px] font-bold shadow-lg shadow-blue-500/30 hover:bg-blue-500 transition-colors active:scale-95"
+                title="Parkirni spomin - kje sem parkiral?"
+              >
+                <MapPin className="size-3" />
+                <span>🅿️</span>
+              </button>
+            )}
+            {/* Border Guide toggle */}
+            {onOpenBorderGuide && (
+              <button
+                onClick={onOpenBorderGuide}
+                className="flex items-center gap-1 px-2 py-1 rounded-full bg-emerald-500/80 text-white text-[10px] font-bold shadow-lg shadow-emerald-500/30 hover:bg-emerald-500 transition-colors active:scale-95"
+                title="Mejni prehodi - dokumenti, cene, časi"
+              >
+                <Globe className="size-3" />
+                <span>MEJA</span>
+              </button>
+            )}
             {/* SOS Emergency button */}
             <button
               onClick={() => setShowEmergencyPanel(true)}

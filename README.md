@@ -89,6 +89,10 @@ MotoTrack je **odziv na te pritožbe**:
 | **Nujna pomoč (državne številke)** | ✅ | ❌ | ❌ | ❌ | ❌ |
 | **Počivališča ob ruti** | ✅ | ❌ | ❌ | ❌ | ⚠️ |
 | **Kalkulator zahtevnosti** | ✅ | ❌ | ❌ | ❌ | ❌ |
+| **CarPlay/Android Auto način** | ✅ | ❌ | ❌ | ❌ | ❌ |
+| **Parkirni spomin** | ✅ | ❌ | ❌ | ❌ | ❌ |
+| **Vodnik mejnih prehodov (Balkan)** | ✅ | ❌ | ❌ | ❌ | ❌ |
+| **Samodejna tema (dan/noč)** | ✅ | ❌ | ❌ | ❌ | ❌ |
 | **Brez oglasov** | ✅ | ⚠️ Brezplačna verzija ima | ⚠️ | ✅ | ✅ |
 
 > 💡 *Podatki o konkurenci pridobljeni iz forumov: Reddit r/motorcycles, r/NewRiders, r/MotoUK, ADVrider.com, SpyderLovers.com, App Store/Google Play reviews, 2024-2025*
@@ -147,6 +151,10 @@ MotoTrack je **odziv na te pritožbe**:
 - **Klepet skupine** — realno-časovni klepet za grupne vožnje! Socket.io na portu 3003, sobe za vsako vožnjo, pošiljanje lokacije/nevarnosti/statusa, zvočna obvestila, seznam povezanih motoristov
 - **Opozorilo ob zapustitvi rute** — samodejno zazna ko zapustiš načrtovano pot! 4-stopenski sistem: 🟢 na poti (≤50m), 🟡 rahel odmik (50-150m), 🟠 zapustil pot (150-300m), 🔴 preveč oddaljen (>300m). Zvočni alarm, gumb za preračun rute, debounce 10s, cooldown 60s
 - **Hitrostne kamere** — 20 znanih lokacij hitrostnih kamer na Balkanu! Stalna, mobilna, povprečna hitrost, rdeča luč. Zvočno opozorilo 500m pred kamero, lebdeče obvestilo z omejitvijo hitrosti, plošča za brskanje po kamerah
+- **CarPlay/Android Auto način** — PWA velikotekstovni vmesnik za telefon na volanu ali avto zaslon! Ultra-velika hitrost (160-240px!), navigacijske puščice kot pravi GPS, ETA, doseg goriva, SOS. Prilagodljiva pisava (1x/1.5x/2x), potezni gibi, krmiljenje sledenja. Alternativa CarPlay/Android Auto za PWA aplikacije
+- **Parkirni spomin** — Ali ste parkirali? Shrani lokacijo parkiranja! Samodejni predlog po končani vožnji, naslov (Nominatim), razdalja in smer do motorja, čas hoje, deljenje lokacije, opombe (npr. "3. nadstropje, mesto B12"), zadnje lokacije (max 5), samodejno brisanje po 48h
+- **Mejni prehodi Balkan** — Vodnik za prehod meja na Balkanu! 10 ključnih prehodov z dokumenti, stroški, vinjetami, čakalnimi dobami, omejitvami in nasveti. Opozorilo: BiH zahteva potni list! Informacije o vinjetah (HR, HU, BG, MK), zeleni karton, cestnine
+- **Samodejna tema (dan/noč)** — Avtomatski preklop teme glede na sončni vzhod in zahod! Izračun sončnih časov za vašo lokacijo (NOAA algoritem), prikaz časov vzhoda/zahoda, brez ročnega preklapljanja
 
 ### 🧭 Raziskuj
 - Vodilni položaji (Leaderboard)
@@ -365,7 +373,7 @@ src/
 │   ├── page.tsx          # Glavna stran
 │   ├── layout.tsx        # Root layout (theme, PWA, error boundary)
 │   ├── globals.css       # Globalni stili
-│   └── api/              # 119 API končnih točk
+│   └── api/              # 121 API končnih točk
 │       ├── achievements/    # Dosežki in gamifikacija
 │       ├── balkan-roads/    # Kurirane balkanske ceste
 │       ├── bluetooth/       # Bluetooth čelada
@@ -376,6 +384,7 @@ src/
 │       ├── comments/        # Komentarji
 │       ├── communities/     # Skupnosti
 │       ├── compare/         # Primerjava voženj
+│       ├── carplay-settings/ # CarPlay/Android Auto nastavitve
 │       ├── crash-detection/ # Zaznavanje trčenja
 │       ├── emergency-contacts/ # ICE stiki
 │       ├── events/          # Motociklistični dogodki
@@ -577,7 +586,7 @@ Raziskali smo več kot 15 forumov (Reddit, ADVrider, SpyderLovers, itd.) in zbra
 | Zaznavanje izgube rute + preračun | ✅ |
 | GPS sanity check (zavrnitev glitch-ov) | ✅ |
 | Driving Mode (celozaslonski vmesnik za vožnjo) | ✅ |
-| CarPlay / Android Auto | 🔜 Načrtovano |
+| CarPlay / Android Auto | ✅ (PWA način) |
 | PC → Telefon (QR koda) | ✅ |
 
 ### 🔥 Najnovejše izboljšave (forum-driven)
@@ -641,6 +650,14 @@ Glede na raziskavo forumov (Reddit r/motorcycles, ADVrider, SpyderLovers, itd.) 
 28. **Vpogledi v vožnje (Insights)** — Forumi: "I want to see my riding patterns and streaks" (Strava). MotoTrack zdaj ponuja napredno analitiko: tedenska aktivnost (stolpični diagram), priljubljeni dnevi, najboljše vožnje (najdaljša, najhitrejša, najvišja), serija voženj 🔥 (trenutna in najdaljša), hitrost voženj/teden, izboljšani dosežki, izbira obdobja (7d/mesec/leto/vse).
 
 29. **Hitrostne kamere (Balkan)** — Forumi: "Speed camera warnings are essential" (Kurviger, Waze). MotoTrack zdaj ponuja 20 znanih lokacij hitrostnih kamer na Balkanu (Slovenija, Hrvaška, Srbija, BiH, Črna gora, Makedonija, Bolgarija, Romunija, Grčija, Albanija). 4 tipi kamer: stalna, mobilna, povprečna hitrost, rdeča luč. Zvočno opozorilo 500m pred kamero, lebdeče obvestilo z omejitvijo hitrosti.
+
+30. **CarPlay/Android Auto PWA način** — Forumi: "I want to use it on my car display" (REVER, Calimoto nimata CarPlay). MotoTrack zdaj ponuja ultra-velik vmesnik za telefon na volanu: hitrost 160-240px, orjaške navigacijske puščice kot pravi GPS, ETA, doseg goriva, SOS gumb. Prilagodljiva pisava (1x/1.5x/2x), potezni gibi za nadzor, krmiljenje sledenja, klic 112. PWA alternativa CarPlay/Android Auto!
+
+31. **Parkirni spomin** — Forumi: "I always forget where I parked my bike" (Reddit r/motorcycles). MotoTrack zdaj samodejno ponudi shranjevanje lokacije po končani vožnji! Prikazuje naslov (Nominatim), razdaljo in smer do motorja (s puščico), čas hoje, opombe ("3. nadstropje, B12"), deljenje lokacije. Zadnje 5 lokacij, samodejno brisanje po 48h.
+
+32. **Vodnik mejnih prehodov (Balkan)** — Forumi: "I ride across borders and don't know what documents I need" (ADVrider Balkans). MotoTrack zdaj ponuja 10 ključnih mejnih prehodov z vsemi informacijami: potrebni dokumenti, stroški, vinjete (HR, HU, BG, MK), čakalne dobe, omejitve (BiH = potni list OBAVEZEN!), nasveti za hitrejši prehod, povezave za nakup vinjet.
+
+33. **Samodejna tema (dan/noč)** — Forumi: "App should auto-switch to dark mode at night" (Reddit). MotoTrack zdaj samodejno preklaplja med temo in svetlim načinom glede na sončni vzhod in zahod na vaši lokaciji! NOAA algoritem za izračun sončnih časov, prikaz vzhoda/zahoda v nastavitvah.
 
 ---
 
