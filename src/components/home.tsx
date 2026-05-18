@@ -60,6 +60,7 @@ const DetailDialog = dynamic(withRetry(() => import('@/components/tabs/detail-di
 const NotificationBell = dynamic(withRetry(() => import('@/components/notification-bell')), { ssr: false, loading: () => null })
 const SosButton = dynamic(withRetry(() => import('@/components/sos-button')), { ssr: false, loading: () => null })
 const PwaInstallPrompt = dynamic(withRetry(() => import('@/components/pwa-install-prompt').then(m => ({ default: m.PwaInstallPrompt }))), { ssr: false, loading: () => null })
+const ChatBubble = dynamic(withRetry(() => import('@/components/group-ride-chat').then(m => ({ default: m.ChatBubble }))), { ssr: false, loading: () => null })
 const AppShareButton = dynamic(withRetry(() => import('@/components/app-share-button').then(m => ({ default: m.AppShareButton }))), { ssr: false, loading: () => null })
 // Feature Hub - loaded as a single chunk only when user opens it
 const FeatureHubDialog = dynamic(withRetry(() => import('@/components/feature-hub-dialog')), { ssr: false, loading: () => null })
@@ -159,6 +160,7 @@ export default function Home() {
   // Track state
   const [isTracking, setIsTracking] = useState(false)
   const [isPaused, setIsPaused] = useState(false)
+  const [currentRideId, setCurrentRideId] = useState<string | null>(null)
   const [trackPoints, setTrackPoints] = useState<TrackPoint[]>([])
   const [trackDuration, setTrackDuration] = useState(0)
   const [trackDistance, setTrackDistance] = useState(0)
@@ -434,7 +436,7 @@ export default function Home() {
     if (!navigator.geolocation) { toast.error('Geolokacija ni na voljo'); return }
     setIsTracking(true); setIsPaused(false); isPausedRef.current = false; autoPausedRef.current = false; setTrackPoints([]); setTrackDuration(0)
     setTrackDistance(0); setTrackMaxSpeed(0); setTrackCurrentSpeed(0); setTrackElevation(0)
-    setGpsAccuracy(null)
+    setGpsAccuracy(null); setCurrentRideId(`ride_${Date.now()}`)
     startTimeRef.current = Date.now(); pausedDurationRef.current = 0
     lastGpsFixRef.current = Date.now()
     gpsErrorCountRef.current = 0
@@ -621,7 +623,7 @@ export default function Home() {
   const pauseTracking = useCallback(() => { setIsPaused(true); isPausedRef.current = true; pausedDurationRef.current = Date.now() }, [])
   const resumeTracking = useCallback(() => { setIsPaused(false); isPausedRef.current = false; if (pausedDurationRef.current) startTimeRef.current += Date.now() - pausedDurationRef.current }, [])
   const stopTracking = useCallback(() => {
-    setIsTracking(false); setIsPaused(false); isPausedRef.current = false; autoPausedRef.current = false
+    setIsTracking(false); setIsPaused(false); isPausedRef.current = false; autoPausedRef.current = false; setCurrentRideId(null)
     if (watchIdRef.current !== null) { navigator.geolocation.clearWatch(watchIdRef.current); watchIdRef.current = null }
     if (timerRef.current) { clearInterval(timerRef.current); timerRef.current = null }
     if (autoPauseTimerRef.current) { clearTimeout(autoPauseTimerRef.current); autoPauseTimerRef.current = null }
@@ -1089,6 +1091,11 @@ export default function Home() {
 
       {/* PWA Install Prompt */}
       {!exploreFullscreen && <PwaInstallPrompt />}
+
+      {/* Group Ride Chat Bubble - visible when tracking */}
+      {isTracking && !exploreFullscreen && currentRideId && (
+        <ChatBubble rideId={currentRideId} userName={userName || 'Motorist'} />
+      )}
 
       {/* Global Search */}
       <GlobalSearch

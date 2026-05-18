@@ -29,6 +29,7 @@ import AchievementsPanel from '@/components/tabs/achievements-panel'
 import RideStatsDashboard from '@/components/ride-stats-dashboard'
 import EnhancedStatsDashboard from '@/components/enhanced-stats-dashboard'
 import PointsDisplay from '@/components/points-display'
+import RideCalendar from '@/components/ride-calendar'
 import BluetoothPanel from '@/components/bluetooth-panel'
 import OBDPanel from '@/components/obd-panel'
 import RideReplay3D from '@/components/ride-replay-3d'
@@ -471,6 +472,21 @@ export default function ProfileTab({ user, allUsers, rides, routes, loading, onS
               <EnhancedStatsDashboard rides={rides} routes={routes} />
             </CardContent>
           )}
+        </Card>
+
+        {/* ════════════════════════════════════════════════════════════════
+            KOLEDAR VOŽENJ
+        ════════════════════════════════════════════════════════════════ */}
+        <Card className="rounded-xl overflow-hidden">
+          <CardContent className="p-4">
+            <RideCalendar
+              userId={user.id}
+              onRideClick={(rideId) => {
+                const ride = rides.find(r => r.id === rideId)
+                if (ride) onOpenDetail(ride, 'ride')
+              }}
+            />
+          </CardContent>
         </Card>
 
         {/* ════════════════════════════════════════════════════════════════
