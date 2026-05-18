@@ -1,12 +1,68 @@
-# 🏍️ MotoTrack — GPS Sledenje za Motoriste
+# 🏍️ MotoTrack — Odprtokodna GPS Aplikacija za Motoriste
 
-**MotoTrack** je brezplačna aplikacija za GPS sledenje, načrtovanje in raziskovanje motociklističnih poti po Sloveniji in Balkanu. Navdihnjena po aplikaciji REVER, prilagojena za balkanske motoriste.
+<div align="center">
 
-[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
+**Prva odprtokodna aplikacija za motoriste. Brezplačna. Zmeraj. Nikoli oglasov.**
+
+[![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.0-blue)](https://www.typescriptlang.org/)
 [![Next.js](https://img.shields.io/badge/Next.js-16-black)](https://nextjs.org/)
 [![Vercel](https://img.shields.io/badge/Vercel-Deployed-000000)](https://mototrack-gamma.vercel.app)
-[![Balkan Motorists](https://img.shields.io/badge/For-Balkan%20Riders-orange)](https://mototrack-gamma.vercel.app)
+[![Open Source](https://img.shields.io/badge/Open-Source-success)](https://github.com/markec12345678/MotoTrack-)
+[![Balkan Riders](https://img.shields.io/badge/For-Balkan%20Riders-orange)](https://mototrack-gamma.vercel.app)
+
+[🌐 Demo](https://mototrack-gamma.vercel.app) · [🐛 Prijavi napako](https://github.com/markec12345678/MotoTrack-/issues) · [💡 Predlagaj funkcijo](https://github.com/markec12345678/MotoTrack-/issues)
+
+</div>
+
+---
+
+## 🆓 Zakaj odprtokodna?
+
+Motoristi na forumih (Reddit, ADVrider, SpyderLovers...) so jasni:
+
+> *"I don't want any app. And especially your pay app."*
+> *"Filled with ads, or charge you a monthly fee... And show ads."*
+> *"The social part of riding apps is waste of their efforts"*
+> *"$50/year is too much"*
+
+MotoTrack je **odziv na te pritožbe**:
+
+| Problem z obstoječimi aplikacijami | MotoTrack rešitev |
+|---|---|
+| 💰 REVER Pro stane $40/leto, Calimoto $50+/leto | ✅ **Brezplačna. Zmeraj.** |
+| 📡 Ne veš kaj aplikacija počne s tvojimi podatki | ✅ **Odprta koda** — vsak lahko preveri |
+| 📣 Oglasi in obvestila v aplikaciji | ✅ **Nikoli oglasov** — koda je odprta, vsak bi videl |
+| 🔒 Podatki zaklenjeni v ekosistemu | ✅ **GPX izvoz kadarkoli** — tvoji podatki so tvoji |
+| 💀 Aplikacija ugasnjena ker lastnik zapre posel | ✅ **Skupnost vzdržuje** — ne more se ugasniti |
+| 🌍 Slaba podpora za Balkan | ✅ **Narejena za Balkan** — lokalna skupnost dodaja ceste in POI-je |
+| 🤷 Ne moreš prispevati ali vplivati | ✅ **GitHub PR-ji** — vsak lahko izboljša |
+
+---
+
+## ⚡ Primerjava s konkurenco
+
+| Funkcija | MotoTrack | REVER | Calimoto | Kurviger | OsmAnd |
+|---|:---:|:---:|:---:|:---:|:---:|
+| **Brezplačno** | ✅ | ⚠️ Pro=$40/leto | ⚠️ Pro=$50+/leto | ⚠️ Pro=€20/leto | ✅ | 
+| **Odprta koda** | ✅ | ❌ | ❌ | ❌ | ✅ |
+| **Vijugasto rutiranje** | ✅ | ⚠️ | ✅ | ✅ | ❌ |
+| **Crash detection** | ✅ | ❌ | ❌ | ❌ | ❌ |
+| **Sledenje v živo** | ✅ | ⚠️ | ❌ | ❌ | ❌ |
+| **Vreme ob poti** | ✅ | ❌ | ❌ | ❌ | ❌ |
+| **Vzdrževanje motorja** | ✅ | ❌ | ❌ | ❌ | ❌ |
+| **Sledenje stroškom** | ✅ | ❌ | ❌ | ❌ | ❌ |
+| **3D pogled** | ✅ | ❌ | ❌ | ❌ | ❌ |
+| **AI pomočnik** | ✅ | ❌ | ❌ | ❌ | ❌ |
+| **Video sinhronizacija** | ✅ | ❌ | ❌ | ❌ | ❌ |
+| **Offline zemljevidi** | ✅ | ⚠️ Pro | ⚠️ Pro | ⚠️ Pro | ✅ |
+| **GPX uvoz/izvoz** | ✅ | ✅ | ✅ | ✅ | ✅ |
+| **Večdnevne ture** | ✅ | ❌ | ❌ | ❌ | ❌ |
+| **Nagibni kot (Lean Angle)** | ✅ | ❌ | ❌ | ❌ | ❌ |
+| **Balkanske ceste** | ✅ (53) | ❌ | ❌ | ❌ | ❌ |
+| **Brez oglasov** | ✅ | ⚠️ Brezplačna verzija ima | ⚠️ | ✅ | ✅ |
+
+> 💡 *Podatki o konkurenci pridobljeni iz forumov: Reddit r/motorcycles, r/NewRiders, r/MotoUK, ADVrider.com, SpyderLovers.com, App Store/Google Play reviews, 2024-2025*
 
 ---
 
@@ -23,22 +79,24 @@
 ### 🛤️ Načrtuj pot
 - Načrtovanje z waypointi na zemljevidu
 - Tri načini: asfaltirano, vijugasto (Twisty), terensko (Off-road)
-- Twisty Route Generator — samodejna vijugasta pot
-- Round Trip Generator — krožna tura
+- **Twisty Route Generator** — samodejna vijugasta pot (najbolj iskana funkcija na forumih!)
+- **Round Trip Generator** — prava krožna tura! Trikotni algoritem: Start → Točka A → Točka B → Start (ne gre po isti cesti nazaj)
 - GPX uvoz iz drugih aplikacij
 - GPX izvoz in PDF izvoz poti
 - 53 kuriranih balkanskih cest
 - Vreme ob poti — vremenski pogoji vzdolž celotne rute
+- ROI analiza — ocena vrednosti poti (pokrajina, vijugavost, kvaliteta, vreme, gorivo, čas)
 
 ### ▶️ Sledi vožnji
-- GPS sledenje v realnem času z visoko natančnostjo
+- **Zanesljivo GPS sledenje** — WakeLock API preprečuje ugasnjene zaslona, auto-save vsakih 30s v localStorage (crash recovery)
 - Trenutna hitrost, razdalja, trajanje, višina, najvišja hitrost
 - Višinski profil v živo
 - Samodejni premor (auto-pause) pri nizki hitrosti
 - Wake Lock — zaslon ostane vklopljen med vožnjo
-- Glasna navigacija (TTS v slovenščini)
+- **Glasna navigacija (TTS v slovenščini)** — turn-by-turn skozi Bluetooth čelado, integrirana med sledenje vožnje
 - Opozorila o hitrosti (nastavljiva meja, zvočni alarm)
-- Zaznavanje trčenja — samodejno SOS ob trku
+- **Zaznavanje trčenja** — samodejno SOS ob trku + obvestilo ICE stikom
+- **Crash recovery** — če app crashne ali gre v ozadje, podatki se obnovijo iz localStorage
 - Merjenje nagiba klanca (Lean Angle)
 - Replay voženj — predvajanje preteklih voženj na zemljevidu
 - 3D Replay — trodimenzionalni ogled vožnje
@@ -60,11 +118,11 @@
 
 ### 👤 Profil
 - Osebni podatki in statistika
-- Nastavitve goriva (rezervoar, poraba, doseg, trenutno gorivo)
-- Pametna poraba (Smart Consumption) — izračun dosega
-- ICE stiki (v sili) — krvna skupina, alergije
-- Vzdrževanje in opomniki (Maintenance Reminders)
-- Sledenje stroškom (gorivo, servis, zavarovanje, deli...)
+- **Nastavitve goriva** — rezervoar, poraba, doseg, trenutno gorivo
+- **Pametna poraba** (Smart Consumption) — izračun dosega + opomnik za gorivo
+- **ICE stiki** (v sili) — krvna skupina, alergije, telefonske številke
+- **Vzdrževanje in opomniki** — olje, pnevmatike, veriga, zavora, filter...
+- **Sledenje stroškom** — gorivo, servis, zavarovanje, deli, cestnina, parkiranje
 - Zasebne cone — skrivanje lokacije doma/sluzbe
 - Seznam voženj in rut
 - Priljubljene (Favorites) — shranjevanje za kasneje
@@ -85,7 +143,7 @@
 ### 📊 Napredne funkcije
 - **ROI analiza** — ocena vrednosti poti (pokrajina, vijugavost, kvaliteta, vreme, gorivo, čas)
 - **Video sinhronizacija** — povezava GoPro/Action Cam posnetkov z GPS sledi
-- **Live Tracking** — deljenje lokacije v realnem času
+- **Live Tracking** — deljenje lokacije v realnem času z delilnim linkom
 - **Offline sinhronizacija** — PWA podpora za delo brez interneta
 - **Deljne kartice voženj** — AI-generirane slike za socialna omrežja
 - **Iskanje po vsem** (Global Search) — Ctrl+K za hitro iskanje
@@ -94,13 +152,15 @@
 - **OBD povezava** — povezava z diagnostiko motornega kolesa
 - **Bluetooth čelada** — upravljanje povezave s čelado
 - **Prometna obvestila** — realno-časovni prometni podatki
-- **Gorivo v bližini** — iskanje bencinskih servisov
-- **Cene goriva** — prikaz aktualnih cen goriva
+- **Gorivo v bližini** — iskanje bencinskih servisov + cene goriva
 - **Pametna priporočila** — AI-generirani predlogi poti
 - **Gradientna analiza** — podroben višinski profil
-- **Grupne vožnje** — organizacija skupinskih voženj
+- **Grupne vožnje** — organizacija skupinskih voženj s pridruževanjem
 - **Prijatelji** — sistem prijateljev in sledenje
 - **Kino (Cinema)** — predvajanje voženj kot animacijo
+- **Nevarnosti na cesti** — Waze za motoriste (kamere, plazovi, gradbišča)
+- **Cestne razmere** — ocene podlage (asfalt, makadam, pesek)
+- **Servisi** — iskanje servisov in trgovin z deli
 
 ---
 
@@ -156,6 +216,15 @@ TURSO_AUTH_TOKEN=your-auth-token
 OPENROUTER_API_KEY=your-openrouter-key
 ```
 
+### Deploy na Vercel
+
+[![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https://github.com/markec12345678/MotoTrack-)
+
+1. Forknite repozitorij
+2. Povežite z Vercel
+3. Dodajte environment variables
+4. Deploy! 🚀
+
 ---
 
 ## 🛠️ Tehnološki sklad
@@ -181,7 +250,7 @@ OPENROUTER_API_KEY=your-openrouter-key
 
 ## 📱 PWA Namestitev
 
-MotoTrack je **Progressive Web App** — deluje kot domača aplikacija na telefonu.
+MotoTrack je **Progressive Web App** — deluje kot domača aplikacija na telefonu, brez App Store / Google Play.
 
 ### Android (Chrome)
 1. Odprite MotoTrack v Chrome
@@ -191,6 +260,42 @@ MotoTrack je **Progressive Web App** — deluje kot domača aplikacija na telefo
 1. Odprite MotoTrack v Safari
 2. Pritisnite Deli → **Na domači zaslon**
 
+> 💡 PWA = brez 30% provizije App Store, brez cenzure, brez čakanja na odobritev
+
+---
+
+## 🤝 Prispevaj
+
+MotoTrack je odprtokoden — **vsak prispevek je dobrodošel!**
+
+### Kako lahko pomagaš:
+
+- 🐛 **Prijavi napako** — [GitHub Issues](https://github.com/markec12345678/MotoTrack-/issues)
+- 💡 **Predlagaj funkcijo** — Kaj pogrešaš kot motorist?
+- 🗺️ **Dodaj balkansko cesto** — Poznaš dobro cesto? Dodaj jo!
+- 🌍 **Prevajaj** — Dodaj podporo za hrvaščino, srbščino, albanščino...
+- 🎨 **Oblikuj** — Izboljšaj UI/UX
+- 💻 **Kodiraj** — Poišči `good first issue` in pošlji PR
+
+### Razvojni koraki:
+
+```bash
+# 1. Fork + kloniraj
+git clone https://github.com/YOUR_USERNAME/MotoTrack-.git
+
+# 2. Ustvari branch
+git checkout -b feature/moja-nova-funkcija
+
+# 3. Kodiraj + testiraj
+bun run dev
+
+# 4. Commit + push
+git commit -m "✨ Dodaj mojo novo funkcijo"
+git push origin feature/moja-nova-funkcija
+
+# 5. Odpri Pull Request
+```
+
 ---
 
 ## 📂 Struktura projekta
@@ -198,120 +303,89 @@ MotoTrack je **Progressive Web App** — deluje kot domača aplikacija na telefo
 ```
 src/
 ├── app/
-│   ├── page.tsx          # Glavna stran (vse funkcionalnosti)
+│   ├── page.tsx          # Glavna stran
 │   ├── layout.tsx        # Root layout (theme, PWA, error boundary)
 │   ├── globals.css       # Globalni stili
 │   └── api/              # 104 API končnih točk
-│       ├── achievements/ # Dosežki in gamifikacija
-│       ├── balkan-roads/ # Kurirane balkanske ceste
-│       ├── bluetooth/    # Bluetooth čelada
-│       ├── camps/        # Kampi za motoriste
-│       ├── challenges/   # Izzivi
-│       ├── chat/         # AI klepet (LLM)
-│       ├── cinema/       # Predvajanje voženj
-│       ├── comments/     # Komentarji
-│       ├── communities/  # Skupnosti
-│       ├── compare/      # Primerjava voženj
+│       ├── achievements/    # Dosežki in gamifikacija
+│       ├── balkan-roads/    # Kurirane balkanske ceste
+│       ├── bluetooth/       # Bluetooth čelada
+│       ├── camps/           # Kampi za motoriste
+│       ├── challenges/      # Izzivi
+│       ├── chat/            # AI klepet (LLM)
+│       ├── cinema/          # Predvajanje voženj
+│       ├── comments/        # Komentarji
+│       ├── communities/     # Skupnosti
+│       ├── compare/         # Primerjava voženj
 │       ├── crash-detection/ # Zaznavanje trčenja
 │       ├── emergency-contacts/ # ICE stiki
-│       ├── events/       # Motociklistični dogodki
-│       ├── expenses/     # Sledenje stroškom
-│       ├── favorites/    # Priljubljene
-│       ├── feed/         # Socialni Feed
-│       ├── friends/      # Prijatelji
-│       ├── fuel/         # Gorivo in poraba
-│       ├── fuel-prices/  # Cene goriva
-│       ├── gpx/          # GPX uvoz/izvoz/PDF
-│       ├── group-rides/  # Grupne vožnje
-│       ├── hazards/      # Nevarnosti na cesti
-│       ├── leaderboard/  # Vodilni položaji
-│       ├── lean-angle/   # Nagib klanca
-│       ├── live-tracking/ # Live tracking
-│       ├── maintenance/  # Vzdrževanje
-│       ├── map-styles/   # Stili zemljevida
-│       ├── navigation/   # Turn-by-turn navigacija
-│       ├── notifications/ # Obvestila
-│       ├── obd/          # OBD diagnostika
-│       ├── offline-maps/ # Offline zemljevidi
-│       ├── offroad-route/ # Terenske poti
-│       ├── parking/      # Parkirišča
-│       ├── photos/       # Fotografije
-│       ├── points/       # Točke in ravni
-│       ├── pois/         # Zanimive točke
-│       ├── privacy-zones/ # Zasebne cone
-│       ├── ride-animation/ # Animacija voženj
-│       ├── ride-card/    # Generiranje deljnih kartic
-│       ├── rides/        # CRUD za vožnje
+│       ├── events/          # Motociklistični dogodki
+│       ├── expenses/        # Sledenje stroškom
+│       ├── favorites/       # Priljubljene
+│       ├── feed/            # Socialni Feed
+│       ├── friends/         # Prijatelji
+│       ├── fuel/            # Gorivo in poraba
+│       ├── fuel-prices/     # Cene goriva
+│       ├── gpx/             # GPX uvoz/izvoz/PDF
+│       ├── group-rides/     # Grupne vožnje
+│       ├── hazards/         # Nevarnosti na cesti
+│       ├── leaderboard/     # Vodilni položaji
+│       ├── lean-angle/      # Nagib klanca
+│       ├── live-tracking/   # Live tracking
+│       ├── maintenance/     # Vzdrževanje
+│       ├── map-styles/      # Stili zemljevida
+│       ├── navigation/      # Turn-by-turn navigacija
+│       ├── notifications/   # Obvestila
+│       ├── obd/             # OBD diagnostika
+│       ├── offline-maps/    # Offline zemljevidi
+│       ├── offroad-route/   # Terenske poti
+│       ├── parking/         # Parkirišča
+│       ├── photos/          # Fotografije
+│       ├── points/          # Točke in ravni
+│       ├── pois/            # Zanimive točke
+│       ├── privacy-zones/   # Zasebne cone
+│       ├── ride-animation/  # Animacija voženj
+│       ├── ride-card/       # Generiranje deljnih kartic
+│       ├── ride-score/      # Ocena voženj
+│       ├── rides/           # CRUD za vožnje
 │       ├── road-conditions/ # Cestne razmere
-│       ├── road-ratings/ # Ocene cest
-│       ├── round-trip/   # Krožna tura
+│       ├── road-ratings/    # Ocene cest
+│       ├── round-trip/      # Krožna tura
 │       ├── route-recommendations/ # Priporočila rut
-│       ├── route-roi/    # ROI analiza rut
-│       ├── routes/       # CRUD za rute
-│       ├── seed/         # Seed podatki
+│       ├── route-roi/       # ROI analiza rut
+│       ├── routes/          # CRUD za rute
+│       ├── seed/            # Seed podatki
 │       ├── service-centers/ # Servisi
-│       ├── services/     # Iskanje servisov
-│       ├── settings/     # Nastavitve
-│       ├── share/        # Deljenje
+│       ├── services/        # Iskanje servisov
+│       ├── settings/        # Nastavitve
+│       ├── share/           # Deljenje
 │       ├── smart-consumption/ # Pametna poraba
-│       ├── sos/          # SOS klic na pomoč
-│       ├── speed-settings/ # Nastavitve hitrosti
-│       ├── stats/        # Statistika
-│       ├── sync-queue/   # Offline sinhronizacija
-│       ├── touring-score/ # Touring Score
-│       ├── traffic/      # Promet
-│       ├── trips/        # Večdnevna potovanja
-│       ├── tts/          # Besedilo v govor
-│       ├── twisty-route/ # Vijugasta pot
-│       ├── user/         # Trenutni uporabnik
-│       ├── users/        # Uporabniki
-│       ├── videos/       # Video posnetki
-│       ├── weather/      # Vremenski podatki
-│       ├── weather-alerts/ # Vremenska opozorila
+│       ├── sos/             # SOS klic na pomoč
+│       ├── speed-settings/  # Nastavitve hitrosti
+│       ├── stats/           # Statistika
+│       ├── subscription/    # Naročnina (prosti del)
+│       ├── sync-queue/      # Offline sinhronizacija
+│       ├── touring-score/   # Touring Score
+│       ├── traffic/         # Promet
+│       ├── trips/           # Večdnevna potovanja
+│       ├── tts/             # Besedilo v govor
+│       ├── twisty-route/    # Vijugasta pot
+│       ├── user/            # Trenutni uporabnik
+│       ├── users/           # Uporabniki
+│       ├── videos/          # Video posnetki
+│       ├── weather/         # Vremenski podatki
+│       ├── weather-alerts/  # Vremenska opozorila
 │       ├── weather-along-route/ # Vreme ob poti
-│       └── web-search/   # Iskanje po spletu
+│       └── web-search/      # Iskanje po spletu
 ├── components/
-│   ├── tabs/             # Zavihki (Zemljevid, Načrtuj, Sledi, Raziskuj, Profil)
-│   ├── moto-map.tsx      # Interaktivni zemljevid
-│   ├── moto-chat.tsx     # AI klepet komponenta
-│   ├── route-roi-panel.tsx # ROI analiza panel
-│   ├── video-sync-panel.tsx # Video sinhronizacija
-│   ├── live-tracking-panel.tsx # Live tracking
-│   ├── ride-replay-player.tsx # Replay voženj
-│   ├── ride-replay-3d.tsx # 3D Replay
-│   ├── twistiness-score.tsx # Twistiness Score
-│   ├── touring-score.tsx # Touring Score
-│   ├── bike-garage.tsx   # Garaža (upravljanje motociklov)
-│   ├── weather-along-route-ui.tsx # Vreme ob poti
-│   ├── pre-ride-checklist.tsx # Predvožnjeni seznam
-│   ├── weather-suitability.tsx # Vremenska primernost
-│   ├── ride-stats-dashboard.tsx # Statistika voženj
-│   ├── nearby-roads-panel.tsx # Ceste v bližini
-│   ├── road-conditions-panel.tsx # Cestne razmere
-│   ├── crash-detection.tsx # Zaznavanje trčenja
-│   ├── sos-button.tsx    # SOS gumb
-│   ├── obd-connector.tsx # OBD povezava
-│   ├── bluetooth-helmet.tsx # Bluetooth čelada
-│   ├── lean-angle-display.tsx # Nagib klanca
-│   ├── global-search.tsx # Globalno iskanje (Ctrl+K)
-│   ├── notification-bell.tsx # Obvestila
-│   ├── night-mode-toggle.tsx # Nočni način
-│   ├── fuel-finder.tsx   # Iskanje goriva
-│   ├── fuel-price-card.tsx # Cene goriva
-│   ├── smart-consumption-panel.tsx # Pametna poraba
-│   ├── smart-recommendations-panel.tsx # Pametna priporočila
-│   ├── gradient-analysis.tsx # Gradientna analiza
-│   ├── traffic-alerts.tsx # Prometna obvestila
-│   ├── challenges-panel.tsx # Izzivi
-│   ├── achievements-panel.tsx # Dosežki
-│   ├── points-panel.tsx  # Točke in ravni
-│   ├── pwa-install-prompt.tsx # PWA namestitev
-│   ├── app-share-button.tsx # Deljenje aplikacije
-│   ├── error-boundary.tsx # Error boundary
-│   ├── features/         # Funkcijski panoji
-│   └── ui/               # shadcn/ui komponente
-├── hooks/                # React hooks (use-settings, use-debounce, use-mobile)
-├── lib/                  # Utility funkcije (db, utils, offline-protocol, notifications)
+│   ├── tabs/                # Zavihki (Zemljevid, Načrtuj, Sledi, Raziskuj, Profil)
+│   ├── features/           # Funkcijski panoji
+│   ├── moto-map.tsx        # Interaktivni zemljevid
+│   ├── moto-chat.tsx       # AI klepet komponenta
+│   ├── home.tsx            # Glavna komponenta
+│   └── ui/                 # shadcn/ui komponente
+├── hooks/                  # React hooks (use-settings, use-debounce, use-mobile)
+├── lib/                    # Utility funkcije (db, utils, offline-protocol, notifications)
 └── ...
 ```
 
@@ -319,11 +393,11 @@ src/
 
 ## 🗄️ Podatkovna baza
 
-34 Prisma modelov za popolno funkcionalnost:
+42 Prisma modelov za popolno funkcionalnost:
 
 | Model | Namen |
 |-------|-------|
-| User | Uporabniki z nastavitvami, ICE, gorivo |
+| User | Uporabniki z nastavitvami, ICE, gorivo, hitrost |
 | Ride | GPS vožnje s track podatki |
 | Route | Načrtovane poti z waypointi |
 | Comment | Komentarji na vožnje/rute |
@@ -340,19 +414,19 @@ src/
 | RoadRating | Ocene cest |
 | Trip | Večdnevna potovanja |
 | TripDay | Dnevi potovanja |
-| Expense | Stroški |
+| Expense | Stroški (gorivo, servis, zavarovanje...) |
 | MaintenanceReminder | Opomniki vzdrževanja |
 | GroupRide | Grupne vožnje |
 | GroupRideParticipant | Udeleženci |
 | LiveTrackingSession | Live tracking seje |
 | LiveTrackingViewer | Ogledovalci |
-| CrashEvent | Trki |
+| CrashEvent | Trki (g-force, hitrost, lokacija) |
 | LeanAngleSession | Nagib seje |
 | GpxImport | GPX uvozi |
 | Challenge | Izzivi |
 | ChallengeParticipant | Udeleženci izzivov |
 | MapStyleConfig | Nastavitve zemljevida |
-| ServiceCenter | Servisi |
+| ServiceCenter | Servisi in trgovine |
 | UserPoints | Točke uporabnikov |
 | PointsTransaction | Transakcije točk |
 | Favorite | Priljubljene |
@@ -384,12 +458,37 @@ src/
 - 🇷🇴 **Romunija** — Transfăgărășan, Transalpina, Transbucegi
 - 🇬🇷 **Grčija** — Meteora, Pindos
 
+> 🗺️ Poznaš dobro cesto, ki je ni na seznamu? [Dodaj jo!](https://github.com/markec12345678/MotoTrack-/issues)
+
+---
+
+## 🗺️ Kaj motoristi pogrešajo (raziskava forumov)
+
+Raziskali smo več kot 15 forumov (Reddit, ADVrider, SpyderLovers, itd.) in zbrali, kaj motoristi pogrešajo pri obstoječih aplikacijah. MotoTrack že pokriva večino:
+
+| Kaj motoristi želijo | MotoTrack |
+|---|:---:|
+| Vijugasto rutiranje (twisty roads) | ✅ |
+| Zanesljivo GPS sledenje | ✅ |
+| Offline zemljevidi | ✅ |
+| GPX uvoz/izvoz | ✅ |
+| Crash detection + SOS | ✅ |
+| Sledenje v živo | ✅ |
+| Iskanje goriva + opomniki | ✅ |
+| Krožne ture (round trip) | ✅ |
+| Vreme ob poti | ✅ |
+| Evidence vzdrževanja | ✅ |
+| Glasovno vodenje (turn-by-turn) | ✅ |
+| Skupinsko sledenje | ✅ |
+| Izbegovanje nevarnih cest | ✅ |
+| CarPlay / Android Auto | 🔜 Načrtovano |
+
 ---
 
 ## ❓ Pogosta vprašanja
 
 **Ali je MotoTrack brezplačen?**
-Da, vse funkcije so brezplačne. Brez naročnine, brez oglasov, brez plačljivih funkcij.
+Da, vse funkcije so brezplačne. Brez naročnine, brez oglasov, brez plačljivih funkcij. Za vedno — koda je odprta.
 
 **Ali deluje brez interneta?**
 Da, kot PWA aplikacija deluje tudi offline. Spremembe se sinhronizirajo ob ponovni povezavi.
@@ -401,10 +500,16 @@ Da, v zavihku Načrtuj kliknite GPX uvoz. Podprt je tudi izvoz in PDF.
 MotoChat uporablja veliki jezikovni model za odgovarjanje v slovenščini. Lahko išče tudi po spletu za aktualne informacije.
 
 **Kako deluje SOS gumb?**
-SOS gumb pošlje lokacijo in obvestilo ICE stikom. Ob trku se aktivira samodejno.
+SOS gumb pošlje lokacijo in obvestilo ICE stikom. Ob trku se aktivira samodejno (crash detection).
 
 **Ali podpira več motornih koles?**
 Da, v Garaži lahko upravljate več motornih koles z nastavitvami za vsako.
+
+**Zakaj odprtokodna?**
+Ker motoristi zaslužijo aplikacijo, ki je njihova — ne korporacij. Brez skritih sledilnikov, brez nenadnih naročnin, brez tveganja, da bo aplikacija ugasnjena. Odprta koda = transparentnost = zaupanje.
+
+**Ali lahko hostam na svojem strežniku?**
+Da! MotoTrack lahko poganjaš na lastnem strežniku z `bun run dev` ali na Vercelu. Tvoji podatki, tvoj strežnik.
 
 ---
 
@@ -412,17 +517,27 @@ Da, v Garaži lahko upravljate več motornih koles z nastavitvami za vsako.
 
 MotoTrack je brezplačen in odprtokoden. Če ti aplikacija pomaga, lahko podpreš razvoj z:
 
-- [GitHub Sponsors](https://github.com/sponsors/markec12345678)
-- [Buy Me a Coffee](https://www.buymeacoffee.com/markec)
-- Deljenjem aplikacije s prijatelji motoristi 🏍️
+- ⭐ **Zvezdica na GitHubu** — najlažji način za podporo!
+- 🍴 **Fork + PR** — prispevaj kodo
+- 🗺️ **Dodaj cesto/POI** — izboljšaj podatke za Balkan
+- 🌍 **Prevajaj** — dodaj jezik
+- 💰 [GitHub Sponsors](https://github.com/sponsors/markec12345678)
+- ☕ [Buy Me a Coffee](https://www.buymeacoffee.com/markec)
+- 📢 Deli aplikacijo s prijatelji motoristi 🏍️
 
 ---
 
 ## 📄 Licenca
 
-MIT License
+MIT License — uporabljaj, spreminjaj, delaj kar hočeš. Samo ne pozabi na zasluge.
 
 ---
 
-*MotoTrack — Zgrajen z ❤️ za balkanske motoriste* 🏍️  
-*Made by Markec*
+<div align="center">
+
+**MotoTrack — Odprtokodna aplikacija za motoriste.**
+*Brezplačna. Transparentna. Za vedno.*
+
+🏍️ Zgrajen z ❤️ za balkanske motoriste · Made by [Markec](https://github.com/markec12345678)
+
+</div>

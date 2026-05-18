@@ -275,6 +275,33 @@ export default function Home() {
 
   useEffect(() => { fetchData() }, [fetchData])
 
+  // Recover unsaved track data from localStorage (crash recovery)
+  useEffect(() => {
+    if (!mounted) return
+    try {
+      const saved = localStorage.getItem('mototrack_autosave')
+      if (saved) {
+        const points: TrackPoint[] = JSON.parse(saved)
+        if (points.length >= 2) {
+          // Show recovery toast
+          const recoverData = () => {
+            setTrackPoints(points)
+            let dist = 0
+            for (let i = 1; i < points.length; i++) {
+              dist += haversine(points[i - 1].lat, points[i - 1].lng, points[i].lat, points[i].lng)
+            }
+            setTrackDistance(Math.round(dist * 100) / 100)
+            toast.success(`♻️ Obnovljeno ${points.length} točk (${(dist).toFixed(1)} km)`)
+            localStorage.removeItem('mototrack_autosave')
+          }
+          // Auto-recover after a brief delay
+          const timer = setTimeout(recoverData, 1500)
+          return () => clearTimeout(timer)
+        }
+      }
+    } catch {}
+  }, [mounted])
+
   // Calculate plan distance
   useEffect(() => {
     let dist = 0
@@ -284,19 +311,37 @@ export default function Home() {
     setPlanDistance(Math.round(dist * 10) / 10)
   }, [planWaypoints])
 
-  // GPS Tracking with auto-pause support
+  // GPS Tracking with auto-pause support + background reliability
+  // Periodic auto-save to prevent data loss on crash/background
+  const autoSaveIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null)
+  const lastAutoSaveRef = useRef<number>(0)
+
   const startTracking = useCallback(() => {
     if (!navigator.geolocation) { toast.error('Geolokacija ni na voljo'); return }
     setIsTracking(true); setIsPaused(false); isPausedRef.current = false; autoPausedRef.current = false; setTrackPoints([]); setTrackDuration(0)
     setTrackDistance(0); setTrackMaxSpeed(0); setTrackCurrentSpeed(0); setTrackElevation(0)
     startTimeRef.current = Date.now(); pausedDurationRef.current = 0
+
+    // Acquire WakeLock to prevent screen from turning off (key for reliable tracking)
+    if (settings.wakelockEnabled && 'wakeLock' in navigator) {
+      navigator.wakeLock.request('screen').catch(() => {})
+    }
+
     timerRef.current = setInterval(() => { if (!isPausedRef.current) setTrackDuration(p => p + 1) }, 1000)
     watchIdRef.current = navigator.geolocation.watchPosition(
       (pos) => {
         const point: TrackPoint = { lat: pos.coords.latitude, lng: pos.coords.longitude, alt: pos.coords.altitude, timestamp: Date.now() }
         setTrackPoints(prev => {
+          const newPoints = [...prev, point]
+          // Auto-save to localStorage every 30 seconds to prevent data loss
+          if (newPoints.length > 0 && Date.now() - lastAutoSaveRef.current > 30000) {
+            lastAutoSaveRef.current = Date.now()
+            try {
+              localStorage.setItem('mototrack_autosave', JSON.stringify(newPoints))
+            } catch {}
+          }
           if (prev.length > 0 && !isPausedRef.current) { const lp = prev[prev.length - 1]; const d = haversine(lp.lat, lp.lng, point.lat, point.lng); setTrackDistance(dd => Math.round((dd + d) * 100) / 100) }
-          return [...prev, point]
+          return newPoints
         })
         if (pos.coords.speed !== null && pos.coords.speed >= 0) {
           const kph = Math.round(pos.coords.speed * 3.6 * 10) / 10
@@ -326,9 +371,9 @@ export default function Home() {
         }
       },
       () => toast.error('Napaka pri pridobivanju lokacije'),
-      { enableHighAccuracy: true, maximumAge: 5000, timeout: 10000 }
+      { enableHighAccuracy: true, maximumAge: 5000, timeout: 15000 }
     )
-  }, [settings.autoPauseEnabled, settings.autoPauseSpeedThreshold])
+  }, [settings.autoPauseEnabled, settings.autoPauseSpeedThreshold, settings.wakelockEnabled])
 
   const pauseTracking = useCallback(() => { setIsPaused(true); isPausedRef.current = true; pausedDurationRef.current = Date.now() }, [])
   const resumeTracking = useCallback(() => { setIsPaused(false); isPausedRef.current = false; if (pausedDurationRef.current) startTimeRef.current += Date.now() - pausedDurationRef.current }, [])
@@ -337,6 +382,13 @@ export default function Home() {
     if (watchIdRef.current !== null) { navigator.geolocation.clearWatch(watchIdRef.current); watchIdRef.current = null }
     if (timerRef.current) { clearInterval(timerRef.current); timerRef.current = null }
     if (autoPauseTimerRef.current) { clearTimeout(autoPauseTimerRef.current); autoPauseTimerRef.current = null }
+    if (autoSaveIntervalRef.current) { clearInterval(autoSaveIntervalRef.current); autoSaveIntervalRef.current = null }
+    // Clean up auto-save from localStorage
+    try { localStorage.removeItem('mototrack_autosave') } catch {}
+    // Release WakeLock
+    if ('wakeLock' in navigator) {
+      try { navigator.wakeLock.release?.() } catch {}
+    }
     setTrackCurrentSpeed(0)
   }, [])
 

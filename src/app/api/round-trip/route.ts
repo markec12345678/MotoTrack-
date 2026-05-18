@@ -31,44 +31,77 @@ async function generateRoundTrip(
   direction: string | number | undefined,
   curviness: number = 3
 ) {
-  // Calculate destination point (~60% of distance in chosen direction)
+  // Calculate two intermediate points for a triangular route (more interesting than out-and-back)
+  // This creates a proper loop instead of going the same way back
   const R = 6371
   const dirDeg = resolveDirection(direction)
   const dirRad = (dirDeg * Math.PI) / 180
-  const destDist = (distance * 0.6) / R
   const lat1 = (startLat * Math.PI) / 180
   const lng1 = (startLng * Math.PI) / 180
 
-  const destLat = Math.asin(Math.sin(lat1) * Math.cos(destDist) + Math.cos(lat1) * Math.sin(destDist) * Math.cos(dirRad))
-  const destLng = lng1 + Math.atan2(
-    Math.sin(dirRad) * Math.sin(destDist) * Math.cos(lat1),
-    Math.cos(destDist) - Math.sin(lat1) * Math.sin(destLat)
+  // Point A: ~45% of distance in chosen direction
+  const distA = (distance * 0.45) / R
+  const latA = Math.asin(Math.sin(lat1) * Math.cos(distA) + Math.cos(lat1) * Math.sin(distA) * Math.cos(dirRad))
+  const lngA = lng1 + Math.atan2(
+    Math.sin(dirRad) * Math.sin(distA) * Math.cos(lat1),
+    Math.cos(distA) - Math.sin(lat1) * Math.sin(latA)
   )
+  const pointALat = (latA * 180) / Math.PI
+  const pointALng = (lngA * 180) / Math.PI
 
-  const endLat = (destLat * 180) / Math.PI
-  const endLng = (destLng * 180) / Math.PI
+  // Point B: ~45% of distance in direction + ~90° offset (creates a triangular loop)
+  const offsetAngle = curviness >= 4 ? 100 : curviness >= 3 ? 80 : 60 // More offset = wider loop
+  const dirBRad = ((dirDeg + offsetAngle) * Math.PI) / 180
+  const distB = (distance * 0.45) / R
+  const latB = Math.asin(Math.sin(lat1) * Math.cos(distB) + Math.cos(lat1) * Math.sin(distB) * Math.cos(dirBRad))
+  const lngB = lng1 + Math.atan2(
+    Math.sin(dirBRad) * Math.sin(distB) * Math.cos(lat1),
+    Math.cos(distB) - Math.sin(lat1) * Math.sin(latB)
+  )
+  const pointBLat = (latB * 180) / Math.PI
+  const pointBLng = (lngB * 180) / Math.PI
 
-  // Get outbound route via OSRM
-  const outCoords = `${startLng},${startLat};${endLng},${endLat}`
-  const outUrl = `https://router.project-osrm.org/route/v1/driving/${outCoords}?overview=full&geometries=geojson`
-  const outRes = await fetch(outUrl, { signal: AbortSignal.timeout(10000) })
-  if (!outRes.ok) return { error: 'Routing failed', status: 502 }
-  const outData = await outRes.json()
-  if (!outData.routes?.length) return { error: 'No route found', status: 404 }
+  // Route: Start → Point A → Point B → Start (triangular loop)
+  const loopCoords = `${startLng},${startLat};${pointALng},${pointALat};${pointBLng},${pointBLat};${startLng},${startLat}`
+  const loopUrl = `https://router.project-osrm.org/route/v1/driving/${loopCoords}?overview=full&geometries=geojson`
+  const loopRes = await fetch(loopUrl, { signal: AbortSignal.timeout(15000) })
 
-  // Get return route (direct back)
-  const retCoords = `${endLng},${endLat};${startLng},${startLat}`
-  const retUrl = `https://router.project-osrm.org/route/v1/driving/${retCoords}?overview=full&geometries=geojson`
-  const retRes = await fetch(retUrl, { signal: AbortSignal.timeout(10000) })
-  const retData = await retRes.json()
+  if (!loopRes.ok) {
+    // Fallback: try simpler out-and-back route
+    const outCoords = `${startLng},${startLat};${pointALng},${pointALat};${startLng},${startLat}`
+    const outRes = await fetch(`https://router.project-osrm.org/route/v1/driving/${outCoords}?overview=full&geometries=geojson`, { signal: AbortSignal.timeout(10000) })
+    if (!outRes.ok) return { error: 'Routing failed', status: 502 }
+    const outData = await outRes.json()
+    if (!outData.routes?.length) return { error: 'No route found', status: 404 }
+    const route = outData.routes[0]
+    const allCoords = route.geometry.coordinates
+    const totalDistance = Math.round(route.distance)
+    const totalDuration = Math.round(route.duration)
+    let totalAngle = 0
+    for (let i = 2; i < allCoords.length; i++) {
+      const b1 = Math.atan2(allCoords[i - 1][0] - allCoords[i - 2][0], allCoords[i - 1][1] - allCoords[i - 2][1])
+      const b2 = Math.atan2(allCoords[i][0] - allCoords[i - 1][0], allCoords[i][1] - allCoords[i - 1][1])
+      let diff = Math.abs(b2 - b1)
+      if (diff > Math.PI) diff = 2 * Math.PI - diff
+      totalAngle += diff
+    }
+    const avgAngle = allCoords.length > 2 ? (totalAngle / (allCoords.length - 2)) * (180 / Math.PI) : 0
+    const twistyScore = Math.min(10, Math.max(1, Math.round(avgAngle * 20 * (curviness / 3))))
+    const waypoints = allCoords
+      .filter((_: number[], i: number) => i % Math.max(1, Math.floor(allCoords.length / 30)) === 0 || i === allCoords.length - 1)
+      .map((c: number[]) => ({ lat: c[1], lng: c[0] }))
+    return {
+      data: { waypoints, totalDistance, estimatedDuration: totalDuration, geometry: allCoords.map((c: number[]) => [c[1], c[0]] as [number, number]), twistyScore, isLoop: false }
+    }
+  }
 
-  const outRoute = outData.routes[0]
-  const retRoute = retData.routes?.[0]
+  const loopData = await loopRes.json()
+  if (!loopData.routes?.length) return { error: 'No route found', status: 404 }
 
-  const allCoords = [
-    ...outRoute.geometry.coordinates,
-    ...(retRoute ? retRoute.geometry.coordinates : []),
-  ]
+  const route = loopData.routes[0]
+  const allCoords = route.geometry.coordinates
+  const totalDistance = Math.round(route.distance)
+  const totalDuration = Math.round(route.duration)
 
   // Calculate twisty score
   let totalAngle = 0
@@ -82,9 +115,7 @@ async function generateRoundTrip(
   const avgAngle = allCoords.length > 2 ? (totalAngle / (allCoords.length - 2)) * (180 / Math.PI) : 0
   const twistyScore = Math.min(10, Math.max(1, Math.round(avgAngle * 20 * (curviness / 3))))
 
-  const totalDistance = Math.round(outRoute.distance + (retRoute?.distance || 0))
-  const totalDuration = Math.round(outRoute.duration + (retRoute?.duration || 0))
-
+  // Sample waypoints for display (max ~30)
   const waypoints = allCoords
     .filter((_: number[], i: number) => i % Math.max(1, Math.floor(allCoords.length / 30)) === 0 || i === allCoords.length - 1)
     .map((c: number[]) => ({ lat: c[1], lng: c[0] }))
@@ -96,6 +127,8 @@ async function generateRoundTrip(
       estimatedDuration: totalDuration,
       geometry: allCoords.map((c: number[]) => [c[1], c[0]] as [number, number]),
       twistyScore,
+      isLoop: true,
+      loopPoints: { a: { lat: pointALat, lng: pointALng }, b: { lat: pointBLat, lng: pointBLng } },
     }
   }
 }
