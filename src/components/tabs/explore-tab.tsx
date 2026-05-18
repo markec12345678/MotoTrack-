@@ -8,6 +8,7 @@ import {
   UserCheck, UserMinus, UserX, Send, MapPin, Calendar,
   ChevronRight, Trash2, Wrench, Fuel, GitCompare, ArrowLeft, Tent,
   Gauge, Film, Play, Maximize2, Minimize2, Navigation, Cloud, AlertTriangle,
+  Globe,
 } from 'lucide-react'
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
