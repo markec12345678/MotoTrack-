@@ -43,3 +43,27 @@ Stage Summary:
 - Detail dialog has dedicated "QR" button for quick QR code access
 - All Slovenian language UI maintained throughout
 - No TypeScript errors introduced in modified files
+---
+Task ID: 8
+Agent: Main (QR Code + Stats + Tile Preloader)
+Task: Implement QR code sharing, route tile pre-download, enhanced stats dashboard
+
+Work Log:
+- Installed qrcode.react@4.2.0 for QR code generation
+- Enhanced route-share-dialog.tsx with QR code tab (QRCodeSVG, 220x220px)
+- Added "📱 Pošlji na telefon" button in plan-tab.tsx
+- Added QR button in detail-dialog.tsx for routes
+- Created route-tile-preloader.tsx for pre-downloading tiles along route
+- Added RouteTilePreloader to plan-tab.tsx (shows when 2+ waypoints)
+- Created enhanced-stats-dashboard.tsx with 6 visual sections (summary, weekly, monthly, speed, top routes, records)
+- Added EnhancedStatsDashboard to profile-tab.tsx
+- Fixed TypeScript errors (Recharts formatter type mismatch)
+- Updated README with new features and comparison table
+- Pushed to GitHub (commit 5154005)
+
+Stage Summary:
+- QR code sharing for PC→Phone route transfer (key forum request)
+- Route tile pre-download for offline use in mountains
+- Enhanced statistics dashboard with charts
+- All TypeScript errors in new files resolved
+- README updated with 3 new comparison table rows and 4 new forum-driven improvements

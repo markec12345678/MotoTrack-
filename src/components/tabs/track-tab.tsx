@@ -21,6 +21,8 @@ const PreRideChecklist = dynamic(() => import('@/components/pre-ride-checklist')
 const MotoMap = dynamic(() => import('@/components/moto-map'), { ssr: false })
 const DrivingMode = dynamic(() => import('@/components/driving-mode'), { ssr: false })
 const FuelRangeIndicator = dynamic(() => import('@/components/fuel-range-indicator'), { ssr: false })
+const RoadHazardReporter = dynamic(() => import('@/components/road-hazard-reporter'), { ssr: false })
+const MiniElevationProfile = dynamic(() => import('@/components/mini-elevation-profile'), { ssr: false })
 
 // Inline voice navigation for track tab (lightweight, no separate component needed)
 interface NavStep {
@@ -470,6 +472,14 @@ export default function TrackTab({
         {isOverSpeed && flashOn && (
           <div className="absolute inset-0 z-[999] pointer-events-none bg-red-500/10" />
         )}
+
+        {/* Road Hazard Reporter - floating button during tracking */}
+        <RoadHazardReporter
+          currentLat={trackPoints.length > 0 ? trackPoints[trackPoints.length - 1].lat : null}
+          currentLng={trackPoints.length > 0 ? trackPoints[trackPoints.length - 1].lng : null}
+          userId={userId}
+          isTracking={isTracking}
+        />
       </div>
 
       {/* REVER-style Dark Dashboard Overlay */}
@@ -560,6 +570,13 @@ export default function TrackTab({
               <div className="text-center mb-2">
                 <span className="text-3xl font-mono font-bold text-white tracking-wider">{formatDuration(duration)}</span>
               </div>
+
+              {/* Mini Elevation Profile */}
+              {isTracking && trackPoints.length >= 5 && (
+                <div className="mb-2">
+                  <MiniElevationProfile trackPoints={trackPoints} />
+                </div>
+              )}
 
               {/* Stats grid - REVER style */}
               <div className="grid grid-cols-3 gap-3 mb-3">

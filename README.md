@@ -57,6 +57,7 @@ MotoTrack je **odziv na te pritožbe**:
 | **3D pogled** | ✅ | ❌ | ❌ | ❌ | ❌ |
 | **AI pomočnik** | ✅ | ❌ | ❌ | ❌ | ❌ |
 | **Video sinhronizacija** | ✅ | ❌ | ❌ | ❌ | ❌ |
+| **Prijave nevarnosti (Waze-style)** | ✅ | ❌ | ❌ | ❌ | ⚠️ |
 | **Offline zemljevidi** | ✅ | ⚠️ Pro | ⚠️ Pro | ⚠️ Pro | ✅ |
 | **GPX uvoz/izvoz** | ✅ | ✅ | ✅ | ✅ | ✅ |
 | **Večdnevne ture** | ✅ | ❌ | ❌ | ❌ | ❌ |
@@ -100,7 +101,7 @@ MotoTrack je **odziv na te pritožbe**:
 ### ▶️ Sledi vožnji
 - **Zanesljivo GPS sledenje** — WakeLock API + visibility change handler (ponovna vzpostavitev GPS ob vrnitvi iz ozadja), auto-save vsakih 15s v localStorage (crash recovery), GPS sanity check (zavrnitev skokov >500m, nizka natančnost), odporna obravnava napak (ne ustavi snemanja ob izgubi signala)
 - Trenutna hitrost, razdalja, trajanje, višina, najvišja hitrost
-- Višinski profil v živo
+- **Mini višinski profil v živo** — SVG vizualizacija sprememb nadmorske višine med vožnjo z gradient fill, trenutna višina, skupni vzpon/spust
 - Samodejni premor (auto-pause) pri nizki hitrosti
 - Wake Lock — zaslon ostane vklopljen med vožnjo
 - **Glasna navigacija (TTS v slovenščini)** — PROAKTIVNA obvestila PRED zavoji ("Čez 200 metrov zavijte desno"), prilagojena razdalja obvestila glede na hitrost, navigacija po načrtovani ruti ali nazaj na začetek, predogled naslednjih korakov, zaznavanje izgube rute z gumbom za preračun, AI TTS ali brskalnikov TTS
@@ -116,6 +117,7 @@ MotoTrack je **odziv na te pritožbe**:
 - Touring Score — ocena primernosti za turizem
 - Statistika voženj (Ride Stats Dashboard) — grafi in povzetki
 - **Napredna statistika** — vizualni dashboard: tedenski pregled (stolpični diagram), mesečna aktivnost (površinski graf), distribucija hitrosti (krožni diagram), top rute, rekordi (najdaljša vožnja, najvišja hitrost, najdaljša serija)
+- **Prijavljanje nevarnosti na cesti** — Waze za motoriste! Prijavi plaz, gradbišče, hitrostno kamero, poledico, poplavljeno cesto, živali, razlito olje, luknjo — hitro in enostavno med vožnjo. Prikaz bližnjih nevarnosti z razdaljo
 
 ### 🧭 Raziskuj
 - Vodilni položaji (Leaderboard)
