@@ -16,6 +16,8 @@ import TwistyRoutePlanner from '@/components/twisty-route-planner'
 import GpxManager from '@/components/gpx-manager'
 import OfflineMapsManager from '@/components/offline-maps-manager'
 import RouteTilePreloader from '@/components/route-tile-preloader'
+import RestStopFinder from '@/components/rest-stop-finder'
+import RideDifficultyCalculator from '@/components/ride-difficulty-calculator'
 import { categoryLabel, haversine, poiTypeEmoji, poiTypeColor, poiTypeLabel } from '@/components/tabs/types'
 import type { TripData, TripDayData, PoiData } from '@/components/tabs/types'
 
@@ -1628,6 +1630,24 @@ export default function PlanTab({
             {/* Route Tile Preloader */}
             {waypoints.length >= 2 && (
               <RouteTilePreloader waypoints={waypoints} />
+            )}
+
+            {/* Rest Stop Finder */}
+            {waypoints.length >= 2 && (
+              <RestStopFinder
+                waypoints={waypoints}
+                onAddWaypoint={(point) => {
+                  setWaypoints(prev => [...prev, { lat: point.lat, lng: point.lng }])
+                  toast.success(`Waypoint dodan: ${point.label}`)
+                }}
+              />
+            )}
+
+            {/* Ride Difficulty Calculator */}
+            {waypoints.length >= 2 && (
+              <RideDifficultyCalculator
+                distance={distance}
+              />
             )}
 
             <Button className="w-full" onClick={onSave} disabled={waypoints.length < 2}>

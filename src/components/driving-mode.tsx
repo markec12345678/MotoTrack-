@@ -29,10 +29,13 @@ import {
   TrendingDown,
   Minus,
   Clock,
+  ShieldAlert,
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 
 const RideWeatherOverlay = dynamic(() => import('@/components/ride-weather-overlay'), { ssr: false })
+const WindWarningPanel = dynamic(() => import('@/components/wind-warning-panel'), { ssr: false })
+const EmergencyPanel = dynamic(() => import('@/components/emergency-panel'), { ssr: false })
 
 // ===== DRIVING MODE =====
 // Minimal, safe UI for riding — large text, essential info only
@@ -147,6 +150,8 @@ interface DrivingModeProps {
   userId?: string
   // Heading (for fuel station direction)
   heading?: number
+  // Emergency panel
+  onOpenEmergency?: () => void
 }
 
 function formatDriveDuration(seconds: number): string {
@@ -206,6 +211,7 @@ export default function DrivingMode({
   currentLng,
   userId,
   heading = 0,
+  onOpenEmergency,
 }: DrivingModeProps) {
   // ─── State ──────────────────────────────────────────────────────────────
   const [flashOn, setFlashOn] = useState(false)
@@ -241,6 +247,13 @@ export default function DrivingMode({
   // Speed trend tracking (last 3 readings)
   const speedHistoryRef = useRef<number[]>([])
   const [speedTrend, setSpeedTrend] = useState<'accelerating' | 'decelerating' | 'steady'>('steady')
+
+  // Emergency panel state
+  const [showEmergencyPanel, setShowEmergencyPanel] = useState(false)
+
+  // Long-press handler for hazard button to open emergency panel
+  const hazardLongPressTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const [hazardLongPressed, setHazardLongPressed] = useState(false)
 
   // ─── Computed ───────────────────────────────────────────────────────────
   const isCompact = displayMode === 'compact'
@@ -456,6 +469,30 @@ export default function DrivingMode({
     gestureHintTimerRef.current = setTimeout(() => setGestureHint(null), 1200)
   }, [])
 
+  // Long-press start on hazard button
+  const handleHazardPointerDown = useCallback(() => {
+    hazardLongPressTimer.current = setTimeout(() => {
+      setHazardLongPressed(true)
+      setShowEmergencyPanel(true)
+      // Reset after a moment
+      setTimeout(() => setHazardLongPressed(false), 500)
+    }, 800) // 800ms long press triggers emergency panel
+  }, [])
+
+  const handleHazardPointerUp = useCallback(() => {
+    if (hazardLongPressTimer.current) {
+      clearTimeout(hazardLongPressTimer.current)
+      hazardLongPressTimer.current = null
+    }
+  }, [])
+
+  const handleHazardPointerLeave = useCallback(() => {
+    if (hazardLongPressTimer.current) {
+      clearTimeout(hazardLongPressTimer.current)
+      hazardLongPressTimer.current = null
+    }
+  }, [])
+
   // Quick hazard report
   const handleQuickHazard = useCallback(async () => {
     if (hazardSending) return
@@ -597,6 +634,15 @@ export default function DrivingMode({
             {batteryLevel}%
           </div>
         )}
+        {/* SOS indicator */}
+        <button
+          onClick={() => { setShowEmergencyPanel(true); if (onOpenEmergency) onOpenEmergency() }}
+          className="flex items-center gap-0.5 px-2 py-1 rounded-full bg-red-500/30 text-red-400 text-[10px] font-black hover:bg-red-500/50 transition-colors active:scale-90"
+          title="Nujna pomoč - dolg pritisk na nevarnost"
+        >
+          <ShieldAlert className="size-3" />
+          <span>SOS</span>
+        </button>
         <button
           onClick={onToggle}
           className="p-2 rounded-full bg-white/10 hover:bg-white/20 transition-colors"
@@ -873,6 +919,17 @@ export default function DrivingMode({
           />
         </div>
 
+        {/* Wind Warning Panel - compact mode (only shows when crosswind > 20 km/h) */}
+        <div className="mt-2">
+          <WindWarningPanel
+            lat={currentLat ?? null}
+            lng={currentLng ?? null}
+            isTracking={isTracking}
+            heading={effectiveHeading ?? heading}
+            compact={true}
+          />
+        </div>
+
         {/* Auto-pause indicator */}
         {isPaused && isTracking && (
           <div className="mt-4 flex items-center gap-2 px-4 py-2 rounded-full bg-amber-500/20 border border-amber-500/30">
@@ -977,15 +1034,21 @@ export default function DrivingMode({
           </button>
 
           {/* ─── Quick hazard reporting button — bigger, easy to tap ────── */}
+          {/* Long press (800ms) opens emergency panel */}
           <button
-            onClick={handleQuickHazard}
+            onClick={hazardLongPressed ? undefined : handleQuickHazard}
+            onPointerDown={handleHazardPointerDown}
+            onPointerUp={handleHazardPointerUp}
+            onPointerLeave={handleHazardPointerLeave}
             disabled={hazardSending}
             className={`relative size-[72px] rounded-full flex items-center justify-center active:scale-90 transition-all ${
               hazardFlash
                 ? 'bg-red-500 scale-110'
-                : 'bg-red-500/80 hover:bg-red-500'
+                : hazardLongPressed
+                  ? 'bg-red-700 scale-110 ring-4 ring-red-400/50'
+                  : 'bg-red-500/80 hover:bg-red-500'
             } shadow-lg shadow-red-500/40`}
-            title={`Prijavi: ${QUICK_HAZARD_TYPES[hazardIdx].label}`}
+            title={`Prijavi: ${QUICK_HAZARD_TYPES[hazardIdx].label} · Dolg pritisk = Nujna pomoč`}
           >
             <span className="text-3xl">{QUICK_HAZARD_TYPES[hazardIdx].emoji}</span>
             {/* Next hazard type indicator */}
@@ -1022,9 +1085,18 @@ export default function DrivingMode({
 
         {/* Swipe hint (subtle, bottom center) */}
         <div className={`text-center pb-2 text-[9px] ${textTertiary}`}>
-          ↑ preklop · ← ponovi · → nevarnost
+          ↑ preklop · ← ponovi · → nevarnost · dolg pritisk ⚠️ = SOS
         </div>
       </div>
+
+      {/* Emergency Panel */}
+      <EmergencyPanel
+        userId={userId}
+        currentLat={currentLat}
+        currentLng={currentLng}
+        isOpen={showEmergencyPanel}
+        onClose={() => setShowEmergencyPanel(false)}
+      />
     </div>
   )
 }

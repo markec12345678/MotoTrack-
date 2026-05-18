@@ -470,3 +470,204 @@ Stage Summary:
 - README now has 17 forum-driven improvements documented
 - 110 API endpoints total
 - All changes pushed to https://github.com/markec12345678/MotoTrack-
+
+---
+Task ID: 12
+Agent: Emergency Quick Access Panel Engineer
+Task: Create Emergency Quick Access Panel for MotoTrack
+
+Work Log:
+- Read worklog.md to understand prior work (QR sharing, hazard reporting, GPX, GPS reliability, BT helmet, iconic routes, ride weather, driving mode, route reviews, maintenance, community routes)
+- Read track-tab.tsx, driving-mode.tsx, sos-button.tsx, emergency-contacts API route, and types.ts to understand existing structure
+- Created `src/components/emergency-panel.tsx` with:
+  a. EmergencyPanelProps: userId, currentLat, currentLng, isOpen, onClose
+  b. CountryEmergency interface with code, name, nameSl, flag, police/ambulance/fire/general numbers, roadsideAssistance array
+  c. BALKAN_EMERGENCY hardcoded array: 10 Balkan countries (Slovenia, Croatia, Bosnia, Montenegro, Serbia, N. Macedonia, Albania, Bulgaria, Romania, Greece) with all emergency numbers and roadside assistance services
+  d. Country detection from GPS: reverse geocoding via Nominatim (primary) + bounding box fallback (offline)
+  e. Country picker dropdown: grid of 10 countries with flags, manual selection overrides auto-detection
+  f. Emergency call buttons: 2x2 grid with 🚔 Policija, 🚑 Reševalci, 🚒 Gasilci, 🆘 Splošna številka — each with tel: link, large touch targets (min 56px), "Pokliči" label
+  g. EU 112 badge: prominent display of pan-European emergency number
+  h. ICE Contacts section: fetched from /api/emergency-contacts, displays blood type/allergies badges, call + share buttons per contact
+  i. Location sharing: "Deli lokacijo" button with coordinates copy + native share/SMS fallback
+  j. Roadside assistance: country-specific services (HAK, AMZS, AMS, BIHAMK, etc.) with tel: links
+  k. Collapsible sections: "Pomoč v drugih državah" (other countries' roadside) + "Vse klicne številke za Balkan" (full table)
+  l. Dialog-based UI using shadcn/ui Dialog component
+  m. Red/white emergency color scheme, all text in Slovenian
+  n. Works offline (all numbers hardcoded, bounding box fallback when no internet)
+- Updated `src/components/tabs/track-tab.tsx`:
+  a. Added dynamic import for EmergencyPanel
+  b. Added ShieldAlert icon import from lucide-react
+  c. Added showEmergencyPanel state
+  d. Added red "SOS" button in tracking UI top-left bar (next to DRIVE button) with ShieldAlert icon
+  e. Passed onOpenEmergency prop to DrivingMode
+  f. Added EmergencyPanel component with userId, currentLat, currentLng, isOpen, onClose props
+- Updated `src/components/driving-mode.tsx`:
+  a. Added dynamic import for EmergencyPanel
+  b. Added ShieldAlert icon import
+  c. Added onOpenEmergency optional prop to DrivingModeProps interface
+  d. Added showEmergencyPanel state + hazardLongPressTimer ref + hazardLongPressed state
+  e. Added handleHazardPointerDown/Up/Leave callbacks for 800ms long-press detection
+  f. Long press on hazard button opens emergency panel (instead of hazard report)
+  g. Added SOS indicator badge in top-right bar (ShieldAlert + "SOS" text, red bg)
+  h. Updated swipe hint text: "dolg pritisk ⚠️ = SOS"
+  i. Added EmergencyPanel component render at bottom
+- Lint check passes — no new errors in emergency-panel.tsx, track-tab.tsx, or driving-mode.tsx
+- All UI text in Slovenian as required
+
+Stage Summary:
+- Emergency Quick Access Panel with country-aware emergency numbers for 10 Balkan countries
+- Auto-detection of current country from GPS (Nominatim + offline bounding box fallback)
+- Quick call buttons for police/ambulance/fire/general with tel: links
+- ICE contacts from user profile with blood type, allergies, call, and location sharing
+- Location sharing via clipboard + native share + SMS
+- Country-specific roadside assistance (HAK, AMS, BIHAMK, etc.)
+- Full Balkan emergency numbers reference table (collapsible)
+- Integrated into Track Tab (SOS button) and Driving Mode (SOS badge + long-press hazard)
+- Red/white emergency color scheme, works offline, all Slovenian text
+- No lint errors introduced
+Agent: Wind Warning System Engineer
+Task: Create Wind Warning System for motorcyclists in MotoTrack
+
+Work Log:
+- Read worklog.md to understand prior work (QR sharing, hazard reporting, GPX, GPS reliability, BT helmet, iconic routes, ride weather, driving mode, route reviews, maintenance, community routes, ride comparison)
+- Read /api/weather/route.ts to understand weather API response (Open-Meteo: current_weather.windspeed, current_weather.winddirection, forecast with windspeed_10m_max)
+- Read ride-weather-overlay.tsx to understand existing weather overlay pattern (fetch, parse, display, auto-refresh 10min, Web Audio API beep)
+- Read track-tab.tsx to understand tracking UI and map overlay integration (floating panels, dynamic imports)
+- Read driving-mode.tsx to understand Driving Mode component (compact overlays, effectiveHeading, props)
+- Created `src/components/wind-warning-panel.tsx`:
+  a. WindWarningPanelProps interface: lat, lng, isTracking, heading (rider direction in degrees), compact, className
+  b. WindData interface: windSpeed, windDir, gustSpeed, weatherCode
+  c. WindForecast interface: date, windMax, precipitation
+  d. calculateCrosswind function: crosswind = wind_speed × |sin(windDir - heading)|, headwind = wind_speed × cos(windDir - heading), windType detection
+  e. Warning levels with Slovenian labels:
+     - 🟢 LOW: crosswind < 20 km/h — "Nizka"
+     - 🟡 MODERATE: crosswind 20-40 km/h — "Zmeren bočni veter — previdno!"
+     - 🟠 STRONG: crosswind 40-60 km/h — "Močan bočni veter — ZMANJŠAJ HITROST!"
+     - 🔴 DANGEROUS: crosswind > 60 km/h — "NEVAREN BOČNI VETER — USTAVI SE!"
+  f. Audio beep warning: single 880Hz tone via Web Audio API when crosswind exceeds 40 km/h
+  g. Visual flash overlay in compact (Driving Mode) when crosswind > 60 km/h (dangerous level)
+  h. Bridge/Overpass Warning: "MOST — povečan veter!" when wind > 30 km/h and altitude changes detected rapidly
+  i. Wind direction arrow that rotates based on wind direction vs rider heading (Navigation2 icon)
+  j. Wind type relative to rider: "Sprednji" (Headwind), "Zadnji" (Tailwind), "Bočni" (Crosswind)
+  k. Wind forecast from API (upcoming 3 days with max wind speeds)
+  l. Auto-refresh every 10 minutes during tracking
+  m. Full mode: rotating wind arrow + speed + crosswind warning + bridge warning + details grid + forecast
+  n. Compact mode: small card with arrow + crosswind speed + warning badge + bridge warning (only when crosswind > 20)
+  o. Graceful handling: "Čakam na GPS..." when lat/lng null, loading spinner, error state
+  p. Semi-transparent dark background with blur (bg-black/70 backdrop-blur-md)
+  q. All text in Slovenian
+- Updated `src/components/tabs/track-tab.tsx`:
+  a. Added dynamic import: WindWarningPanel = dynamic(() => import('@/components/wind-warning-panel'), { ssr: false })
+  b. Added floating overlay in map area, bottom-left position (absolute bottom-4 left-3, w-52)
+  c. Passes lat/lng from last track point, isTracking
+  d. Calculates heading from last two track points (bearing calculation using atan2)
+  e. Only rendered when isTracking
+- Updated `src/components/driving-mode.tsx`:
+  a. Added dynamic import: WindWarningPanel = dynamic(() => import('@/components/wind-warning-panel'), { ssr: false })
+  b. Added compact wind warning panel below RideWeatherOverlay
+  c. Passes heading from effectiveHeading (compass heading > GPS heading fallback)
+  d. Compact mode: only visible when crosswind > 20 km/h
+  e. Flash red overlay when crosswind > 60 km/h (dangerous level)
+- Lint check passes — no new errors introduced in any modified files (0 errors in wind-warning-panel.tsx, track-tab.tsx, driving-mode.tsx)
+- All UI text in Slovenian as required
+
+Stage Summary:
+- Wind Warning System for motorcyclists: comprehensive crosswind monitoring and alerting
+- Crosswind calculation from wind direction vs rider heading (sin/cos decomposition)
+- 4-level warning system with Slovenian labels (Nizka/Zmeren/Močan/Nevaren)
+- Audio 880Hz beep when crosswind > 40 km/h, red flash overlay when > 60 km/h
+- Bridge/overpass wind warning ("MOST — povečan veter!")
+- Rotating wind arrow showing direction relative to rider heading
+- Wind forecast integration (3-day max wind from Open-Meteo)
+- Full mode on track-tab map (floating bottom-left panel)
+- Compact mode in driving mode (below weather overlay, only when crosswind > 20 km/h)
+- All text in Slovenian, no lint errors introduced
+
+---
+Task ID: 13-14
+Agent: Rest Stop Finder + Ride Difficulty Calculator
+Task: Create Rest Stop Finder along Route + Ride Difficulty Calculator for MotoTrack
+
+Work Log:
+- Read worklog.md to understand prior work (QR sharing, hazard reporting, GPX, GPS reliability, BT helmet, iconic routes, ride weather, driving mode, route reviews, maintenance, community routes, ride comparison, emergency panel, wind warning)
+- Read /api/pois/near-route/route.ts to understand existing POI near-route API (POST with waypoints, radiusKm, types; returns POIs with distanceFromRoute)
+- Read plan-tab.tsx to understand PlanTab component structure and existing SearchAlongRoute mini-component
+- Read track-tab.tsx to understand TrackTab component structure and where difficulty calculator should integrate (after ride stop/save)
+- Read detail-dialog.tsx to understand detail dialog structure and where difficulty calculator should integrate (ride stats section, route elevation section)
+- Read types.ts to understand TrackPoint, PoiData interfaces
+- Read prisma/schema.prisma to understand Poi model (id, name, type, lat, lng, description, rating, userId)
+
+- Created `src/components/rest-stop-finder.tsx`:
+  a. RestStopFinderProps: waypoints, onAddWaypoint, className
+  b. 5 rest categories: Kavarnice (☕), Restavracije (🍽️), Razgledišča (📸), Bencinske črp. (⛽), Počivališča (🅿️)
+  c. Category filter toggle buttons (all selected by default, cannot deselect all)
+  d. Uses /api/pois/near-route POST endpoint with 3km radius
+  e. Maps POI types to rest categories (gas_station, restaurant, viewpoint, parking, hotel, camping, biker_spot)
+  f. Calculates distanceAlongRoute: finds closest waypoint to each POI, sums distances from route start
+  g. Results sorted by distance along route (order of encounter)
+  h. Each rest stop card shows: name, type emoji, category badge, distance from route, distance along route, coordinates
+  i. "Dodaj" button (appears on hover) to add rest stop as waypoint to planned route
+  j. Color-coded distance badges: green ≤0.5km, amber ≤1.5km, red >1.5km
+  k. Rating display with ★ when available
+  l. Max-height scrollable results list (max-h-80)
+  m. All text in Slovenian
+
+- Created `src/components/ride-difficulty-calculator.tsx`:
+  a. RideDifficultyCalculatorProps: distance, elevation, maxAltitude, trackPoints, className
+  b. 5 difficulty factors with weighted scoring:
+     - Vzpon (Elevation gain): 25% weight — 0-500m=1, 500-1500m=2, 1500-3000m=3, >3000m=5
+     - Največji nagib (Max gradient): 20% weight — <5%=1, 5-10%=2, 10-15%=3, >15%=5
+     - Razdalja (Distance): 15% weight — <50km=1, 50-150km=2, 150-300km=3, >300km=5
+     - Vijugavost (Twistiness): 25% weight — <2 turns/km=1, 2-5=2, 5-8=3, >8=5
+     - Najvišja točka (Max altitude): 15% weight — <500m=1, 500-1500m=2, 1500-2500m=3, >2500m=5
+  c. Overall difficulty rating: weighted average → 🟢 LAHKA (≤1.5), 🟡 SREDNJA (≤2.5), 🟠 TEŽKA (≤3.5), 🔴 STROKOVNA (>3.5)
+  d. Large colored badge with emoji + label + score (1.0-5.0) + progress bar
+  e. Factor breakdown: each factor with icon, label, raw value, unit, progress bar, description badge
+  f. Max gradient calculated from track points (sliding window) or estimated from elevation/distance
+  g. Twistiness calculated from track points (turns per km with >20° angle threshold)
+  h. Max altitude calculated from track points or passed as prop
+  i. Edge case handling: returns null when distance < 0.1km and no track points
+  j. Color-coded progress bars (green/amber/orange/red) based on factor score
+  k. Weight info footer showing all factor weights
+  l. All text in Slovenian
+
+- Integrated RestStopFinder into plan-tab.tsx:
+  a. Added imports for RestStopFinder and RideDifficultyCalculator
+  b. Added RestStopFinder below RouteTilePreloader (visible when 2+ waypoints)
+  c. onAddWaypoint callback adds waypoint to plan with toast notification
+  d. Added RideDifficultyCalculator below RestStopFinder (visible when 2+ waypoints)
+
+- Integrated RideDifficultyCalculator into track-tab.tsx:
+  a. Added dynamic import for RideDifficultyCalculator
+  b. Added RideDifficultyCalculator in stopped-with-data section (after Gradient Analysis, before save buttons)
+  c. Passes distance, elevation, and trackPoints
+
+- Integrated RideDifficultyCalculator into detail-dialog.tsx:
+  a. Added import for RideDifficultyCalculator
+  b. Added RideDifficultyCalculator in ride-specific stats section (after 3D Ride Replay)
+  c. Parses trackData to extract TrackPoints for accurate twistiness/gradient calculation
+  d. Added RideDifficultyCalculator in route elevation profile section (after ElevationProfile)
+  e. Parses routeData for route difficulty calculation
+
+- Fixed pre-existing build error in route-review-panel.tsx:
+  a. Replaced non-existent `Road` icon from lucide-react with `Waypoints` icon
+  b. Updated all usages (CategoryRating icon, review badge)
+
+- Build passes successfully (next build completes without errors)
+- Lint check passes for all modified files (zero new errors in rest-stop-finder.tsx, ride-difficulty-calculator.tsx, plan-tab.tsx, track-tab.tsx, detail-dialog.tsx)
+
+Stage Summary:
+- Rest Stop Finder: finds cafes, restaurants, viewpoints, gas stations, rest areas along planned route
+  - Category filters with real-time toggle
+  - Distance from route + distance along route display
+  - "Dodaj kot waypoint" button to add stops to route plan
+  - Sorted by order of encounter along route
+- Ride Difficulty Calculator: weighted 5-factor difficulty scoring
+  - 🟢 LAHKA / 🟡 SREDNJA / 🟠 TEŽKA / 🔴 STROKOVNA difficulty levels
+  - Factors: Vzpon (25%), Največji nagib (20%), Razdalja (15%), Vijugavost (25%), Najvišja točka (15%)
+  - Progress bar breakdown per factor with Slovenian labels
+  - Calculates max gradient and twistiness from actual track points
+  - Falls back to elevation/distance estimates when no track points available
+- Integration: Plan tab (both components), Track tab (difficulty after stop), Detail dialog (difficulty for rides & routes)
+- Fixed pre-existing route-review-panel.tsx build error (Road → Waypoints icon)
+- All text in Slovenian, no lint errors introduced

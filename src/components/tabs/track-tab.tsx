@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react'
 import dynamic from 'next/dynamic'
-import { Play, Pause, Square, Save, Gauge, AlertTriangle, ChevronDown, ChevronUp, Activity, Bike, Moon, Timer, Share2, Navigation2, Volume2, VolumeX, Eye, Headphones, Zap, Radio } from 'lucide-react'
+import { Play, Pause, Square, Save, Gauge, AlertTriangle, ChevronDown, ChevronUp, Activity, Bike, Moon, Timer, Share2, Navigation2, Volume2, VolumeX, Eye, Headphones, Zap, Radio, ShieldAlert } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import type { TrackPoint, SpeedAlertSettings } from '@/components/tabs/types'
@@ -25,6 +25,9 @@ const FuelRangeIndicator = dynamic(() => import('@/components/fuel-range-indicat
 const RoadHazardReporter = dynamic(() => import('@/components/road-hazard-reporter'), { ssr: false })
 const MiniElevationProfile = dynamic(() => import('@/components/mini-elevation-profile'), { ssr: false })
 const RideWeatherOverlay = dynamic(() => import('@/components/ride-weather-overlay'), { ssr: false })
+const RideDifficultyCalculator = dynamic(() => import('@/components/ride-difficulty-calculator'), { ssr: false })
+const WindWarningPanel = dynamic(() => import('@/components/wind-warning-panel'), { ssr: false })
+const EmergencyPanel = dynamic(() => import('@/components/emergency-panel'), { ssr: false })
 
 // Inline voice navigation for track tab (lightweight, no separate component needed)
 interface NavStep {
@@ -121,6 +124,7 @@ export default function TrackTab({
   const [showFeatures, setShowFeatures] = useState(false)
   const [showShareCard, setShowShareCard] = useState(false)
   const [drivingMode, setDrivingMode] = useState(false)
+  const [showEmergencyPanel, setShowEmergencyPanel] = useState(false)
 
   // Voice navigation state
   const [navActive, setNavActive] = useState(false)
@@ -488,6 +492,15 @@ export default function TrackTab({
               <Eye className="size-3" />
               <span>DRIVE</span>
             </button>
+            {/* SOS Emergency button */}
+            <button
+              onClick={() => setShowEmergencyPanel(true)}
+              className="flex items-center gap-1 px-2 py-1 rounded-full bg-red-500 text-white text-[10px] font-black shadow-lg shadow-red-500/30 hover:bg-red-600 transition-colors active:scale-95"
+              title="Nujna pomoč - klicne številke"
+            >
+              <ShieldAlert className="size-3" />
+              <span>SOS</span>
+            </button>
           </div>
         )}
 
@@ -503,6 +516,30 @@ export default function TrackTab({
           userId={userId}
           isTracking={isTracking}
         />
+
+        {/* Wind Warning Panel - floating, bottom-left on map */}
+        {isTracking && (
+          <div className="absolute bottom-4 left-3 z-[1001] w-52">
+            <WindWarningPanel
+              lat={trackPoints.length > 0 ? trackPoints[trackPoints.length - 1].lat : null}
+              lng={trackPoints.length > 0 ? trackPoints[trackPoints.length - 1].lng : null}
+              isTracking={isTracking}
+              heading={trackPoints.length >= 2
+                ? (() => {
+                    const p1 = trackPoints[trackPoints.length - 2]
+                    const p2 = trackPoints[trackPoints.length - 1]
+                    const dLng = ((p2.lng - p1.lng) * Math.PI) / 180
+                    const la1 = (p1.lat * Math.PI) / 180
+                    const la2 = (p2.lat * Math.PI) / 180
+                    const y = Math.sin(dLng) * Math.cos(la2)
+                    const x = Math.cos(la1) * Math.sin(la2) - Math.sin(la1) * Math.cos(la2) * Math.cos(dLng)
+                    return ((Math.atan2(y, x) * 180) / Math.PI + 360) % 360
+                  })()
+                : undefined
+              }
+            />
+          </div>
+        )}
       </div>
 
       {/* REVER-style Dark Dashboard Overlay */}
@@ -748,6 +785,14 @@ export default function TrackTab({
               <div className="w-full max-h-48 overflow-y-auto custom-scrollbar">
                 <GradientAnalysis points={trackPoints} />
               </div>
+              {/* Ride Difficulty Calculator */}
+              <div className="w-full">
+                <RideDifficultyCalculator
+                  distance={distance}
+                  elevation={elevation}
+                  trackPoints={trackPoints}
+                />
+              </div>
               <div className="flex gap-2 w-full">
                 <Button className="flex-1 gap-2 rounded-full bg-primary hover:bg-primary/90" onClick={onSave}>
                   <Save className="size-4" />Shrani vožnjo
@@ -803,6 +848,16 @@ export default function TrackTab({
         currentLat={trackPoints.length > 0 ? trackPoints[trackPoints.length - 1].lat : null}
         currentLng={trackPoints.length > 0 ? trackPoints[trackPoints.length - 1].lng : null}
         userId={userId}
+        onOpenEmergency={() => setShowEmergencyPanel(true)}
+      />
+
+      {/* Emergency Panel - quick access to emergency numbers */}
+      <EmergencyPanel
+        userId={userId}
+        currentLat={trackPoints.length > 0 ? trackPoints[trackPoints.length - 1].lat : null}
+        currentLng={trackPoints.length > 0 ? trackPoints[trackPoints.length - 1].lng : null}
+        isOpen={showEmergencyPanel}
+        onClose={() => setShowEmergencyPanel(false)}
       />
     </div>
   )

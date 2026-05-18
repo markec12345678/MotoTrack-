@@ -25,6 +25,7 @@ import RouteShareDialog from '@/components/route-share-dialog'
 import RideReplay3D from '@/components/ride-replay-3d'
 import GradientAnalysis from '@/components/gradient-analysis'
 import RouteReviewPanel from '@/components/route-review-panel'
+import RideDifficultyCalculator from '@/components/ride-difficulty-calculator'
 import { toast } from 'sonner'
 
 interface DetailDialogProps {
@@ -828,6 +829,26 @@ export default function DetailDialog({
                 return trackPoints.length >= 2 ? <RideReplay3D trackData={trackPoints} title="Rewind - Predvajaj vožnjo" /> : null
               } catch { return null }
             })()}
+
+            {/* Ride Difficulty Calculator */}
+            {(() => {
+              let rideTrackPoints: import('@/components/tabs/types').TrackPoint[] = []
+              try {
+                const parsed = typeof (item as RideData).trackData === 'string'
+                  ? JSON.parse((item as RideData).trackData)
+                  : (item as RideData).trackData
+                rideTrackPoints = (parsed || []).map((p: number[]) => ({
+                  lat: p[0], lng: p[1], alt: p[2] ?? null, timestamp: p[3] ?? Date.now()
+                }))
+              } catch { /* no track data */ }
+              return (
+                <RideDifficultyCalculator
+                  distance={item.distance}
+                  elevation={(item as RideData).elevation}
+                  trackPoints={rideTrackPoints}
+                />
+              )
+            })()}
           </div>
         )}
 
@@ -835,6 +856,26 @@ export default function DetailDialog({
         {!isRide && (item as RouteData).routeData && (
           <div className="px-4 py-3 border-b border-border/30">
             <ElevationProfile trackData={(item as RouteData).routeData!} />
+            {/* Route Difficulty Calculator */}
+            {(() => {
+              let routeTrackPoints: import('@/components/tabs/types').TrackPoint[] = []
+              try {
+                const parsed = typeof (item as RouteData).routeData === 'string'
+                  ? JSON.parse((item as RouteData).routeData!)
+                  : (item as RouteData).routeData
+                routeTrackPoints = (parsed || []).map((p: number[]) => ({
+                  lat: p[0], lng: p[1], alt: p[2] ?? null, timestamp: p[3] ?? Date.now()
+                }))
+              } catch { /* no route data */ }
+              return (
+                <div className="mt-3">
+                  <RideDifficultyCalculator
+                    distance={item.distance}
+                    trackPoints={routeTrackPoints}
+                  />
+                </div>
+              )
+            })()}
           </div>
         )}
 

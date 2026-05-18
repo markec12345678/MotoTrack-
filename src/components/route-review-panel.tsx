@@ -1,7 +1,7 @@
 'use client'
 
 import React, { useState, useEffect, useCallback } from 'react'
-import { Star, MessageSquare, Road, TreePine, Spline, ShieldAlert, Send, Loader2 } from 'lucide-react'
+import { Star, MessageSquare, Waypoints, TreePine, Spline, ShieldAlert, Send, Loader2 } from 'lucide-react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Textarea } from '@/components/ui/textarea'
@@ -321,7 +321,7 @@ export default function RouteReviewPanel({ routeId, userId }: RouteReviewPanelPr
             {/* Category ratings */}
             <div className="space-y-2">
               <CategoryRating
-                icon={<Road className="size-3.5 text-muted-foreground" />}
+                icon={<Waypoints className="size-3.5 text-muted-foreground" />}
                 label="Kakovost ceste"
                 value={roadQuality}
                 onChange={setRoadQuality}
@@ -431,7 +431,7 @@ export default function RouteReviewPanel({ routeId, userId }: RouteReviewPanelPr
                         <div className="flex items-center gap-1.5 mt-1.5 flex-wrap">
                           {review.roadQuality && (
                             <Badge variant="outline" className="text-[9px] gap-0.5 px-1.5 py-0">
-                              <Road className="size-2.5" /> {review.roadQuality}/5
+                              <Waypoints className="size-2.5" /> {review.roadQuality}/5
                             </Badge>
                           )}
                           {review.scenery && (
