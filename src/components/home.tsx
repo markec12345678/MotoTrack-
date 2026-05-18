@@ -315,12 +315,52 @@ export default function Home() {
   // Periodic auto-save to prevent data loss on crash/background
   const autoSaveIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null)
   const lastAutoSaveRef = useRef<number>(0)
+  const lastGpsFixRef = useRef<number>(0) // timestamp of last GPS fix
+  const gpsErrorCountRef = useRef<number>(0) // consecutive GPS errors
+  const lastValidPointRef = useRef<TrackPoint | null>(null) // for GPS sanity checks
+
+  // Handle visibility change (app going to background/foreground)
+  // Key fix: re-acquire WakeLock and GPS when app comes back to foreground
+  useEffect(() => {
+    if (!isTracking) return
+
+    const handleVisibilityChange = async () => {
+      if (document.visibilityState === 'visible') {
+        // App came back to foreground — re-acquire WakeLock
+        if (settings.wakelockEnabled && 'wakeLock' in navigator) {
+          try { await navigator.wakeLock.request('screen') } catch {}
+        }
+        // Check if GPS was lost during background
+        const timeSinceLastFix = Date.now() - lastGpsFixRef.current
+        if (timeSinceLastFix > 60000 && lastGpsFixRef.current > 0) {
+          toast.info('📡 Ponovna vzpostavitev GPS signala...')
+        }
+      } else {
+        // Going to background — save current state immediately
+        try {
+          const currentPoints = JSON.parse(localStorage.getItem('mototrack_autosave') || '[]')
+          setTrackPoints(prev => {
+            if (prev.length > 0) {
+              try { localStorage.setItem('mototrack_autosave', JSON.stringify(prev)) } catch {}
+            }
+            return prev
+          })
+        } catch {}
+      }
+    }
+
+    document.addEventListener('visibilitychange', handleVisibilityChange)
+    return () => document.removeEventListener('visibilitychange', handleVisibilityChange)
+  }, [isTracking, settings.wakelockEnabled])
 
   const startTracking = useCallback(() => {
     if (!navigator.geolocation) { toast.error('Geolokacija ni na voljo'); return }
     setIsTracking(true); setIsPaused(false); isPausedRef.current = false; autoPausedRef.current = false; setTrackPoints([]); setTrackDuration(0)
     setTrackDistance(0); setTrackMaxSpeed(0); setTrackCurrentSpeed(0); setTrackElevation(0)
     startTimeRef.current = Date.now(); pausedDurationRef.current = 0
+    lastGpsFixRef.current = Date.now()
+    gpsErrorCountRef.current = 0
+    lastValidPointRef.current = null
 
     // Acquire WakeLock to prevent screen from turning off (key for reliable tracking)
     if (settings.wakelockEnabled && 'wakeLock' in navigator) {
@@ -331,10 +371,31 @@ export default function Home() {
     watchIdRef.current = navigator.geolocation.watchPosition(
       (pos) => {
         const point: TrackPoint = { lat: pos.coords.latitude, lng: pos.coords.longitude, alt: pos.coords.altitude, timestamp: Date.now() }
+        
+        // GPS sanity check: reject jumps > 500m in < 2 seconds (GPS glitch)
+        if (lastValidPointRef.current) {
+          const last = lastValidPointRef.current
+          const dist = haversine(last.lat, last.lng, point.lat, point.lng)
+          const timeDiff = (point.timestamp - last.timestamp) / 1000
+          if (dist > 500 && timeDiff < 2) {
+            console.warn('[Tracking] GPS glitch: jump', dist, 'm in', timeDiff, 's — rejecting')
+            return // Reject this GPS fix
+          }
+          // Reject if accuracy is worse than 200m
+          if (pos.coords.accuracy > 200) {
+            console.warn('[Tracking] Low GPS accuracy:', pos.coords.accuracy, 'm — skipping')
+            return
+          }
+        }
+        
+        lastGpsFixRef.current = Date.now()
+        gpsErrorCountRef.current = 0 // Reset error counter on success
+        lastValidPointRef.current = point
+        
         setTrackPoints(prev => {
           const newPoints = [...prev, point]
-          // Auto-save to localStorage every 30 seconds to prevent data loss
-          if (newPoints.length > 0 && Date.now() - lastAutoSaveRef.current > 30000) {
+          // Auto-save to localStorage every 15 seconds (was 30s — more frequent for reliability)
+          if (newPoints.length > 0 && Date.now() - lastAutoSaveRef.current > 15000) {
             lastAutoSaveRef.current = Date.now()
             try {
               localStorage.setItem('mototrack_autosave', JSON.stringify(newPoints))
@@ -370,8 +431,22 @@ export default function Home() {
           }
         }
       },
-      () => toast.error('Napaka pri pridobivanju lokacije'),
-      { enableHighAccuracy: true, maximumAge: 5000, timeout: 15000 }
+      (error) => {
+        // Enhanced GPS error handling with retry logic
+        gpsErrorCountRef.current++
+        const errMsg = error.code === 1 ? 'Dostop do lokacije zavrnjen'
+          : error.code === 2 ? 'Lokacija ni na voljo'
+          : error.code === 3 ? 'Časovna omejitev GPS'
+          : 'Napaka GPS'
+        
+        if (gpsErrorCountRef.current <= 3) {
+          toast.error(`📡 ${errMsg} — poskušam znova...`)
+        } else if (gpsErrorCountRef.current === 10) {
+          toast.error('📡 GPS signal izgubljen. Preverite lokacijske nastavitve.')
+        }
+        // Don't stop tracking on GPS errors — keep timer running, just skip the point
+      },
+      { enableHighAccuracy: true, maximumAge: 3000, timeout: 10000 }
     )
   }, [settings.autoPauseEnabled, settings.autoPauseSpeedThreshold, settings.wakelockEnabled])
 

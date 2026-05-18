@@ -44,6 +44,29 @@ const MOD_SLO: Record<string, string> = {
   'straight': 'naravnost', 'uturn': 'polkrožni obrat',
 }
 
+// Haversine distance in meters
+function haversineMeters(lat1: number, lng1: number, lat2: number, lng2: number): number {
+  const R = 6371000
+  const dLat = ((lat2 - lat1) * Math.PI) / 180
+  const dLng = ((lng2 - lng1) * Math.PI) / 180
+  const a = Math.sin(dLat / 2) ** 2 + Math.cos((lat1 * Math.PI) / 180) * Math.cos((lat2 * Math.PI) / 180) * Math.sin(dLng / 2) ** 2
+  return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a))
+}
+
+// Proactive announcement thresholds based on speed
+function getAnnounceDistance(speedKmh: number): number {
+  if (speedKmh > 100) return 500
+  if (speedKmh > 60) return 300
+  return 150
+}
+
+// Format distance in Slovenian
+function formatDistSlo(meters: number): string {
+  if (meters >= 1000) return `${(meters / 1000).toFixed(1).replace('.0', '')} kilometrov`
+  if (meters >= 100) return `${Math.round(meters / 10) * 10} metrov`
+  return `${Math.round(meters / 10) * 10} metrov`
+}
+
 interface TrackTabProps {
   isTracking: boolean
   isPaused: boolean
@@ -92,8 +115,11 @@ export default function TrackTab({
   const [navStepIdx, setNavStepIdx] = useState(0)
   const [navVoiceOn, setNavVoiceOn] = useState(true)
   const [navLoading, setNavLoading] = useState(false)
+  const [navDistToStep, setNavDistToStep] = useState<number | null>(null)
+  const [navDestination, setNavDestination] = useState<{lat: number; lng: number; name: string} | null>(null)
   const synthRef = useRef<SpeechSynthesis | null>(null)
   const spokenStepsRef = useRef<Set<number>>(new Set())
+  const spokenProactiveRef = useRef<Map<number, Set<string>>>(new Map()) // step -> Set of distance thresholds spoken
 
   // Init speech synthesis for voice navigation
   useEffect(() => {
@@ -102,91 +128,182 @@ export default function TrackTab({
     }
   }, [])
 
-  // Speak a navigation instruction
+  // Speak a navigation instruction (supports both browser TTS and AI TTS)
   const speakNav = useCallback((text: string) => {
-    if (!synthRef.current || !navVoiceOn) return
+    if (!navVoiceOn) return
+    // Use browser TTS for nav (fast, low latency - critical for turn-by-turn)
+    if (!synthRef.current) return
     synthRef.current.cancel()
     const utter = new SpeechSynthesisUtterance(text)
     utter.lang = 'sl-SI'
     utter.rate = 0.95
+    utter.volume = 1.0
     const voices = synthRef.current.getVoices()
     const slVoice = voices.find(v => v.lang.startsWith('sl'))
     if (slVoice) utter.voice = slVoice
     synthRef.current.speak(utter)
   }, [navVoiceOn])
 
-  // Auto-advance nav step based on GPS proximity during tracking
+  // Calculate distance to current nav step + auto-advance
   useEffect(() => {
     if (!navActive || navSteps.length === 0 || trackPoints.length === 0) return
     const lastPt = trackPoints[trackPoints.length - 1]
-    let closestIdx = -1
-    let closestDist = Infinity
-    for (let i = navStepIdx; i < navSteps.length; i++) {
-      const d = Math.sqrt((lastPt.lat - navSteps[i].lat) ** 2 + (lastPt.lng - navSteps[i].lng) ** 2)
-      if (d < closestDist) { closestDist = d; closestIdx = i }
-    }
-    // If within ~50m of a step, advance to it
-    if (closestDist < 0.0005 && closestIdx > navStepIdx) {
-      setNavStepIdx(closestIdx)
+    
+    // Calculate distance to current step
+    if (navStepIdx < navSteps.length) {
+      const step = navSteps[navStepIdx]
+      const dist = haversineMeters(lastPt.lat, lastPt.lng, step.lat, step.lng)
+      setNavDistToStep(Math.round(dist))
+      
+      // Step completion: within 30m of step = advance
+      if (dist < 30 && navStepIdx < navSteps.length - 1) {
+        // Look ahead for the next closest step
+        let nextIdx = navStepIdx + 1
+        for (let i = navStepIdx + 1; i < navSteps.length; i++) {
+          const d2 = haversineMeters(lastPt.lat, lastPt.lng, navSteps[i].lat, navSteps[i].lng)
+          if (d2 < 50) { nextIdx = i; break }
+        }
+        if (nextIdx > navStepIdx) setNavStepIdx(nextIdx)
+      }
     }
   }, [navActive, navSteps, navStepIdx, trackPoints])
 
-  // Speak when nav step advances
+  // Proactive distance-based announcements (KEY: speak BEFORE reaching the turn)
+  useEffect(() => {
+    if (!navActive || navSteps.length === 0 || !navVoiceOn || navDistToStep === null) return
+    const step = navSteps[navStepIdx]
+    if (!step) return
+
+    const thresholds = [
+      { dist: getAnnounceDistance(currentSpeed), key: 'far', prefix: 'Čez' },
+      { dist: currentSpeed > 60 ? 100 : 50, key: 'close', prefix: 'Čez' },
+      { dist: 25, key: 'now', prefix: 'Zdaj' },
+    ]
+
+    for (const threshold of thresholds) {
+      if (navDistToStep <= threshold.dist) {
+        const stepSpoken = spokenProactiveRef.current.get(navStepIdx) || new Set<string>()
+        if (!stepSpoken.has(threshold.key)) {
+          const announcement = threshold.key === 'now'
+            ? `${threshold.prefix}, ${step.instruction}`
+            : `${threshold.prefix} ${formatDistSlo(navDistToStep)}, ${step.instruction}`
+          speakNav(announcement)
+          stepSpoken.add(threshold.key)
+          spokenProactiveRef.current.set(navStepIdx, stepSpoken)
+          break // Only one announcement per tick
+        }
+      }
+    }
+  }, [navActive, navSteps, navStepIdx, navVoiceOn, navDistToStep, currentSpeed, speakNav])
+
+  // Speak confirmation when step is reached
   useEffect(() => {
     if (!navActive || navSteps.length === 0 || !navVoiceOn) return
     const step = navSteps[navStepIdx]
     if (step && !spokenStepsRef.current.has(navStepIdx)) {
-      speakNav(step.instruction)
+      // Only speak if we haven't already spoken 'now' for this step
+      const stepSpoken = spokenProactiveRef.current.get(navStepIdx)
+      if (!stepSpoken || !stepSpoken.has('now')) {
+        speakNav(step.instruction)
+      }
       spokenStepsRef.current.add(navStepIdx)
     }
   }, [navActive, navSteps, navStepIdx, navVoiceOn, speakNav])
 
-  // Start voice navigation (fetch route from OSRM)
-  const startNav = useCallback(async () => {
-    if (trackPoints.length < 2) { return }
+  // Start voice navigation to a destination
+  const startNav = useCallback(async (destination?: {lat: number; lng: number; name?: string}) => {
+    if (trackPoints.length < 1) { return }
     setNavLoading(true)
     try {
-      // Use last 2 points or current position to estimate destination
       const last = trackPoints[trackPoints.length - 1]
       const wpParam = `${last.lng},${last.lat}`
-      // Get nearby POIs or just navigate back to start
-      const start = trackPoints[0]
-      const startParam = `${start.lng},${start.lat}`
-      const osrmUrl = `https://router.project-osrm.org/route/v1/driving/${wpParam};${startParam}?overview=full&steps=true&geometries=geojson`
-      const res = await fetch(osrmUrl, { signal: AbortSignal.timeout(8000) })
-      if (!res.ok) throw new Error('Routing failed')
-      const data = await res.json()
-      if (!data.routes?.length) throw new Error('No route')
-      const route = data.routes[0]
-      const steps: NavStep[] = route.legs.flatMap((leg: any) =>
-        leg.steps.map((s: any) => {
-          const type = s.maneuver.type
-          const mod = s.maneuver.modifier || ''
-          const name = s.name || ''
-          const turnWord = NAV_SLO[type] || 'Nadaljuj'
-          const modSlo = MOD_SLO[mod] || mod
-          const instruction = modSlo ? `${turnWord} ${modSlo}${name ? ` na ${name}` : ''}` : `${turnWord}${name ? ` na ${name}` : ''}`
-          return {
-            instruction: type === 'arrive' ? '📍 Prispeli ste na cilj' : instruction,
-            distance: Math.round(s.distance),
-            duration: Math.round(s.duration),
-            type,
-            name,
-            lat: s.maneuver.location[1],
-            lng: s.maneuver.location[0],
+      
+      // If destination is provided, navigate there; otherwise navigate back to start
+      let destLat: number, destLng: number, destName: string
+      if (destination) {
+        destLat = destination.lat
+        destLng = destination.lng
+        destName = destination.name || 'cilj'
+      } else {
+        // Default: navigate back to ride start
+        const start = trackPoints[0]
+        destLat = start.lat
+        destLng = start.lng
+        destName = 'začetek vožnje'
+      }
+      setNavDestination({ lat: destLat, lng: destLng, name: destName })
+      const destParam = `${destLng},${destLat}`
+      
+      // Use our own navigation API for better Slovenian instructions
+      const navApiUrl = `/api/navigation?waypoints=${encodeURIComponent(JSON.stringify([{lat: last.lat, lng: last.lng}, {lat: destLat, lng: destLng}]))}`
+      let steps: NavStep[] = []
+      
+      try {
+        const navRes = await fetch(navApiUrl, { signal: AbortSignal.timeout(10000) })
+        if (navRes.ok) {
+          const navData = await navRes.json()
+          if (navData.data?.steps) {
+            steps = navData.data.steps.map((s: any) => ({
+              instruction: s.instruction || 'Nadaljuj',
+              distance: s.distance || 0,
+              duration: s.duration || 0,
+              type: s.type || 'continue',
+              name: s.name || '',
+              lat: s.lat,
+              lng: s.lng,
+            }))
           }
-        })
-      )
+        }
+      } catch {
+        // Fallback to direct OSRM
+      }
+      
+      // If our API failed, fall back to direct OSRM
+      if (steps.length === 0) {
+        const osrmUrl = `https://router.project-osrm.org/route/v1/driving/${wpParam};${destParam}?overview=full&steps=true&geometries=geojson`
+        const res = await fetch(osrmUrl, { signal: AbortSignal.timeout(8000) })
+        if (!res.ok) throw new Error('Routing failed')
+        const data = await res.json()
+        if (!data.routes?.length) throw new Error('No route')
+        const route = data.routes[0]
+        steps = route.legs.flatMap((leg: any) =>
+          leg.steps.map((s: any) => {
+            const type = s.maneuver.type
+            const mod = s.maneuver.modifier || ''
+            const name = s.name || ''
+            const turnWord = NAV_SLO[type] || 'Nadaljuj'
+            const modSlo = MOD_SLO[mod] || mod
+            const instruction = modSlo ? `${turnWord} ${modSlo}${name ? ` na ${name}` : ''}` : `${turnWord}${name ? ` na ${name}` : ''}`
+            return {
+              instruction: type === 'arrive' ? '📍 Prispeli ste na cilj' : instruction,
+              distance: Math.round(s.distance),
+              duration: Math.round(s.duration),
+              type,
+              name,
+              lat: s.maneuver.location[1],
+              lng: s.maneuver.location[0],
+            }
+          })
+        )
+      }
+      
       setNavSteps(steps)
       setNavStepIdx(0)
       setNavActive(true)
       spokenStepsRef.current = new Set()
+      spokenProactiveRef.current = new Map()
+      setNavDistToStep(null)
+      
+      // Announce navigation start
+      if (navVoiceOn) {
+        speakNav(`Navigacija začeta. Pot do ${destName}, ${steps.length} korakov.`)
+      }
     } catch {
       // Navigation not available - just track without nav
     } finally {
       setNavLoading(false)
     }
-  }, [trackPoints])
+  }, [trackPoints, navVoiceOn, speakNav])
 
   // Fetch speed alert settings
   useEffect(() => {
@@ -374,28 +491,47 @@ export default function TrackTab({
             <div className="px-4 pt-3 pb-2">
               {/* Voice Navigation Banner - shows when nav is active */}
               {navActive && navSteps.length > 0 && (
-                <div className="mb-2 bg-primary/15 border border-primary/25 rounded-lg p-2 flex items-center gap-2">
-                  <Navigation2 className="size-4 text-primary animate-pulse flex-shrink-0" />
-                  <div className="flex-1 min-w-0">
-                    <p className="text-xs font-medium text-white truncate">{navSteps[navStepIdx]?.instruction || 'Nadaljuj naravnost'}</p>
-                    <p className="text-[10px] text-white/40">{navSteps[navStepIdx]?.distance > 1000 ? `${(navSteps[navStepIdx].distance / 1000).toFixed(1)} km` : `${navSteps[navStepIdx]?.distance || 0} m`} · Korak {navStepIdx + 1}/{navSteps.length}</p>
+                <div className="mb-2 bg-primary/15 border border-primary/25 rounded-lg p-2 space-y-1">
+                  <div className="flex items-center gap-2">
+                    <Navigation2 className="size-4 text-primary animate-pulse flex-shrink-0" />
+                    <div className="flex-1 min-w-0">
+                      <p className="text-xs font-medium text-white truncate">{navSteps[navStepIdx]?.instruction || 'Nadaljuj naravnost'}</p>
+                    </div>
+                    <button onClick={() => setNavVoiceOn(!navVoiceOn)} className="p-1 rounded hover:bg-white/10 flex-shrink-0">
+                      {navVoiceOn ? <Volume2 className="size-3.5 text-primary" /> : <VolumeX className="size-3.5 text-white/30" />}
+                    </button>
+                    <button onClick={() => setNavActive(false)} className="p-1 rounded hover:bg-red-500/20 text-red-400 flex-shrink-0">
+                      <Square className="size-3" />
+                    </button>
                   </div>
-                  <button onClick={() => setNavVoiceOn(!navVoiceOn)} className="p-1 rounded hover:bg-white/10 flex-shrink-0">
-                    {navVoiceOn ? <Volume2 className="size-3.5 text-primary" /> : <VolumeX className="size-3.5 text-white/30" />}
-                  </button>
-                  <button onClick={() => setNavActive(false)} className="p-1 rounded hover:bg-red-500/20 text-red-400 flex-shrink-0">
-                    <Square className="size-3" />
-                  </button>
+                  <div className="flex items-center gap-3 text-[10px] text-white/50">
+                    {navDistToStep !== null && (
+                      <span className="font-bold text-primary">{navDistToStep > 1000 ? `${(navDistToStep / 1000).toFixed(1)} km` : `${navDistToStep} m`}</span>
+                    )}
+                    <span>Korak {navStepIdx + 1}/{navSteps.length}</span>
+                    {navDestination && <span>\u2192 {navDestination.name}</span>}
+                  </div>
+                  {/* Upcoming steps preview */}
+                  {navSteps.length > navStepIdx + 1 && (
+                    <div className="bg-white/5 rounded p-1.5 space-y-0.5">
+                      {navSteps.slice(navStepIdx + 1, navStepIdx + 3).map((s, i) => (
+                        <div key={i} className="flex items-center gap-2 text-[9px] text-white/40">
+                          <span className="bg-white/10 px-1 rounded font-mono">{s.distance > 1000 ? `${(s.distance / 1000).toFixed(1)}km` : `${s.distance}m`}</span>
+                          <span className="truncate">{s.instruction}</span>
+                        </div>
+                      ))}
+                    </div>
+                  )}
                 </div>
               )}
               {/* Start Nav button - when tracking but no nav */}
-              {isTracking && !navActive && trackPoints.length > 5 && !navLoading && (
+              {isTracking && !navActive && trackPoints.length > 3 && !navLoading && (
                 <button
-                  onClick={startNav}
+                  onClick={() => startNav()}
                   className="mb-2 w-full flex items-center justify-center gap-2 py-1.5 rounded-lg bg-primary/10 border border-primary/20 text-primary text-xs font-medium hover:bg-primary/20 transition-colors"
                 >
                   <Navigation2 className="size-3.5" />
-                  Zaženi navigacijo do začetka
+                  Zaženi navigacijo (do začetka)
                 </button>
               )}
               {navLoading && (

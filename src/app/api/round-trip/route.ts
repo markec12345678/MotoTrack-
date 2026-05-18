@@ -24,6 +24,53 @@ function resolveDirection(direction: string | number | undefined): number {
   return Math.random() * 360
 }
 
+// Calculate a point given start, bearing, and distance
+function destinationPoint(lat: number, lng: number, bearingDeg: number, distanceKm: number): { lat: number; lng: number } {
+  const R = 6371
+  const lat1 = (lat * Math.PI) / 180
+  const lng1 = (lng * Math.PI) / 180
+  const brng = (bearingDeg * Math.PI) / 180
+  const d = distanceKm / R
+
+  const lat2 = Math.asin(Math.sin(lat1) * Math.cos(d) + Math.cos(lat1) * Math.sin(d) * Math.cos(brng))
+  const lng2 = lng1 + Math.atan2(
+    Math.sin(brng) * Math.sin(d) * Math.cos(lat1),
+    Math.cos(d) - Math.sin(lat1) * Math.sin(lat2)
+  )
+
+  return { lat: (lat2 * 180) / Math.PI, lng: (lng2 * 180) / Math.PI }
+}
+
+// Calculate bearing between two points
+function bearing(lat1: number, lng1: number, lat2: number, lng2: number): number {
+  const dLng = ((lng2 - lng1) * Math.PI) / 180
+  const lat1Rad = (lat1 * Math.PI) / 180
+  const lat2Rad = (lat2 * Math.PI) / 180
+  const y = Math.sin(dLng) * Math.cos(lat2Rad)
+  const x = Math.cos(lat1Rad) * Math.sin(lat2Rad) - Math.sin(lat1Rad) * Math.cos(lat2Rad) * Math.cos(dLng)
+  return ((Math.atan2(y, x) * 180) / Math.PI + 360) % 360
+}
+
+// Calculate twisty score from route geometry
+function calculateTwistyScore(coords: number[][]): number {
+  if (coords.length < 3) return 1
+
+  let totalAngle = 0
+  let angleCount = 0
+
+  for (let i = 2; i < coords.length; i++) {
+    const b1 = Math.atan2(coords[i - 1][0] - coords[i - 2][0], coords[i - 1][1] - coords[i - 2][1])
+    const b2 = Math.atan2(coords[i][0] - coords[i - 1][0], coords[i][1] - coords[i - 1][1])
+    let diff = Math.abs(b2 - b1)
+    if (diff > Math.PI) diff = 2 * Math.PI - diff
+    totalAngle += diff
+    angleCount++
+  }
+
+  const avgAngle = angleCount > 0 ? (totalAngle / angleCount) * (180 / Math.PI) : 0
+  return Math.min(10, Math.max(1, Math.round(avgAngle * 15)))
+}
+
 async function generateRoundTrip(
   startLat: number,
   startLng: number,
@@ -31,10 +78,92 @@ async function generateRoundTrip(
   direction: string | number | undefined,
   curviness: number = 3
 ) {
-  // Calculate two intermediate points for a triangular route (more interesting than out-and-back)
-  // This creates a proper loop instead of going the same way back
-  const R = 6371
   const dirDeg = resolveDirection(direction)
+  
+  // === IMPROVED ALGORITHM: Multiple waypoints for more interesting routes ===
+  // Higher curviness = more waypoints + wider spread from direct route
+  // This creates truly twisty routes, not just triangle loops
+  
+  const numIntermediatePoints = curviness >= 4 ? 4 : curviness >= 3 ? 3 : 2
+  const spreadAngle = curviness >= 4 ? 40 : curviness >= 3 ? 30 : 20 // degrees spread per side
+  
+  // Calculate the distance per segment (total route = start → intermediates → start)
+  const segmentDist = distance / (numIntermediatePoints + 1)
+  
+  // Generate intermediate points in a loop pattern
+  const waypoints: { lat: number; lng: number }[] = [{ lat: startLat, lng: startLng }]
+  
+  for (let i = 0; i < numIntermediatePoints; i++) {
+    const fraction = (i + 1) / (numIntermediatePoints + 1)
+    // Angle progresses around a loop: direction + spreadAngle * sin(progress * 2π)
+    const loopAngle = dirDeg + spreadAngle * Math.sin(fraction * 2 * Math.PI * (curviness >= 4 ? 1.5 : 1))
+    const pointDist = segmentDist * (0.8 + Math.random() * 0.4) // Vary distance ±20%
+    
+    const prevPoint = waypoints[waypoints.length - 1]
+    const nextPoint = destinationPoint(prevPoint.lat, prevPoint.lng, loopAngle, pointDist)
+    waypoints.push(nextPoint)
+  }
+  
+  // Close the loop back to start
+  waypoints.push({ lat: startLat, lng: startLng })
+  
+  // Build OSRM URL with all waypoints
+  const coords = waypoints.map(w => `${w.lng},${w.lat}`).join(';')
+  const osrmUrl = `https://router.project-osrm.org/route/v1/driving/${coords}?overview=full&geometries=geojson`
+  
+  try {
+    const loopRes = await fetch(osrmUrl, { signal: AbortSignal.timeout(15000) })
+    if (!loopRes.ok) {
+      // Fallback: try simpler triangle route
+      return await generateSimpleTriangleRoute(startLat, startLng, distance, dirDeg, curviness)
+    }
+    
+    const loopData = await loopRes.json()
+    if (!loopData.routes?.length) {
+      return await generateSimpleTriangleRoute(startLat, startLng, distance, dirDeg, curviness)
+    }
+    
+    const route = loopData.routes[0]
+    const allCoords = route.geometry.coordinates
+    const totalDistance = Math.round(route.distance)
+    const totalDuration = Math.round(route.duration)
+    const twistyScore = calculateTwistyScore(allCoords)
+    
+    // Sample waypoints for display (max ~30)
+    const sampledWaypoints = allCoords
+      .filter((_: number[], i: number) => i % Math.max(1, Math.floor(allCoords.length / 30)) === 0 || i === allCoords.length - 1)
+      .map((c: number[]) => ({ lat: c[1], lng: c[0] }))
+    
+    return {
+      data: {
+        waypoints: sampledWaypoints,
+        totalDistance,
+        estimatedDuration: totalDuration,
+        geometry: allCoords.map((c: number[]) => [c[1], c[0]] as [number, number]),
+        twistyScore,
+        isLoop: true,
+        loopPoints: waypoints.slice(1, -1).map((w, i) => ({ 
+          label: `Točka ${String.fromCharCode(65 + i)}`, 
+          lat: w.lat, 
+          lng: w.lng 
+        })),
+        algorithm: `multi-waypoint-loop-${numIntermediatePoints}pts`,
+      }
+    }
+  } catch {
+    return await generateSimpleTriangleRoute(startLat, startLng, distance, dirDeg, curviness)
+  }
+}
+
+// Fallback: Simple triangular route (original algorithm, improved)
+async function generateSimpleTriangleRoute(
+  startLat: number,
+  startLng: number,
+  distance: number,
+  dirDeg: number,
+  curviness: number
+) {
+  const R = 6371
   const dirRad = (dirDeg * Math.PI) / 180
   const lat1 = (startLat * Math.PI) / 180
   const lng1 = (startLng * Math.PI) / 180
@@ -49,8 +178,8 @@ async function generateRoundTrip(
   const pointALat = (latA * 180) / Math.PI
   const pointALng = (lngA * 180) / Math.PI
 
-  // Point B: ~45% of distance in direction + ~90° offset (creates a triangular loop)
-  const offsetAngle = curviness >= 4 ? 100 : curviness >= 3 ? 80 : 60 // More offset = wider loop
+  // Point B: ~45% of distance in direction + offset angle (creates triangular loop)
+  const offsetAngle = curviness >= 4 ? 100 : curviness >= 3 ? 80 : 60
   const dirBRad = ((dirDeg + offsetAngle) * Math.PI) / 180
   const distB = (distance * 0.45) / R
   const latB = Math.asin(Math.sin(lat1) * Math.cos(distB) + Math.cos(lat1) * Math.sin(distB) * Math.cos(dirBRad))
@@ -77,16 +206,7 @@ async function generateRoundTrip(
     const allCoords = route.geometry.coordinates
     const totalDistance = Math.round(route.distance)
     const totalDuration = Math.round(route.duration)
-    let totalAngle = 0
-    for (let i = 2; i < allCoords.length; i++) {
-      const b1 = Math.atan2(allCoords[i - 1][0] - allCoords[i - 2][0], allCoords[i - 1][1] - allCoords[i - 2][1])
-      const b2 = Math.atan2(allCoords[i][0] - allCoords[i - 1][0], allCoords[i][1] - allCoords[i - 1][1])
-      let diff = Math.abs(b2 - b1)
-      if (diff > Math.PI) diff = 2 * Math.PI - diff
-      totalAngle += diff
-    }
-    const avgAngle = allCoords.length > 2 ? (totalAngle / (allCoords.length - 2)) * (180 / Math.PI) : 0
-    const twistyScore = Math.min(10, Math.max(1, Math.round(avgAngle * 20 * (curviness / 3))))
+    const twistyScore = calculateTwistyScore(allCoords)
     const waypoints = allCoords
       .filter((_: number[], i: number) => i % Math.max(1, Math.floor(allCoords.length / 30)) === 0 || i === allCoords.length - 1)
       .map((c: number[]) => ({ lat: c[1], lng: c[0] }))
@@ -102,18 +222,7 @@ async function generateRoundTrip(
   const allCoords = route.geometry.coordinates
   const totalDistance = Math.round(route.distance)
   const totalDuration = Math.round(route.duration)
-
-  // Calculate twisty score
-  let totalAngle = 0
-  for (let i = 2; i < allCoords.length; i++) {
-    const b1 = Math.atan2(allCoords[i - 1][0] - allCoords[i - 2][0], allCoords[i - 1][1] - allCoords[i - 2][1])
-    const b2 = Math.atan2(allCoords[i][0] - allCoords[i - 1][0], allCoords[i][1] - allCoords[i - 1][1])
-    let diff = Math.abs(b2 - b1)
-    if (diff > Math.PI) diff = 2 * Math.PI - diff
-    totalAngle += diff
-  }
-  const avgAngle = allCoords.length > 2 ? (totalAngle / (allCoords.length - 2)) * (180 / Math.PI) : 0
-  const twistyScore = Math.min(10, Math.max(1, Math.round(avgAngle * 20 * (curviness / 3))))
+  const twistyScore = calculateTwistyScore(allCoords)
 
   // Sample waypoints for display (max ~30)
   const waypoints = allCoords
@@ -129,6 +238,7 @@ async function generateRoundTrip(
       twistyScore,
       isLoop: true,
       loopPoints: { a: { lat: pointALat, lng: pointALng }, b: { lat: pointBLat, lng: pointBLng } },
+      algorithm: 'triangle-loop',
     }
   }
 }
@@ -154,7 +264,7 @@ export async function GET(req: NextRequest) {
     }
     return NextResponse.json(result)
   } catch (err: unknown) {
-    return NextResponse.json({ error: err.message || 'Round trip failed' }, { status: 500 })
+    return NextResponse.json({ error: err instanceof Error ? err.message : 'Round trip failed' }, { status: 500 })
   }
 }
 
@@ -171,6 +281,6 @@ export async function POST(req: NextRequest) {
     }
     return NextResponse.json(result)
   } catch (err: unknown) {
-    return NextResponse.json({ error: err.message || 'Round trip failed' }, { status: 500 })
+    return NextResponse.json({ error: err instanceof Error ? err.message : 'Round trip failed' }, { status: 500 })
   }
 }

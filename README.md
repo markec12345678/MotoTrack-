@@ -80,7 +80,7 @@ MotoTrack je **odziv na te pritožbe**:
 - Načrtovanje z waypointi na zemljevidu
 - Tri načini: asfaltirano, vijugasto (Twisty), terensko (Off-road)
 - **Twisty Route Generator** — samodejna vijugasta pot (najbolj iskana funkcija na forumih!)
-- **Round Trip Generator** — prava krožna tura! Trikotni algoritem: Start → Točka A → Točka B → Start (ne gre po isti cesti nazaj)
+- **Round Trip Generator** — prava krožna tura! Multi-waypoint algoritem z nastavljivo vijugavostjo: več intermediate točk za bolj zanimive rute (ne gre po isti cesti nazaj)
 - GPX uvoz iz drugih aplikacij
 - GPX izvoz in PDF izvoz poti
 - 53 kuriranih balkanskih cest
@@ -88,12 +88,12 @@ MotoTrack je **odziv na te pritožbe**:
 - ROI analiza — ocena vrednosti poti (pokrajina, vijugavost, kvaliteta, vreme, gorivo, čas)
 
 ### ▶️ Sledi vožnji
-- **Zanesljivo GPS sledenje** — WakeLock API preprečuje ugasnjene zaslona, auto-save vsakih 30s v localStorage (crash recovery)
+- **Zanesljivo GPS sledenje** — WakeLock API + visibility change handler (ponovna vzpostavitev GPS ob vrnitvi iz ozadja), auto-save vsakih 15s v localStorage (crash recovery), GPS sanity check (zavrnitev skokov >500m, nizka natančnost), odporna obravnava napak (ne ustavi snemanja ob izgubi signala)
 - Trenutna hitrost, razdalja, trajanje, višina, najvišja hitrost
 - Višinski profil v živo
 - Samodejni premor (auto-pause) pri nizki hitrosti
 - Wake Lock — zaslon ostane vklopljen med vožnjo
-- **Glasna navigacija (TTS v slovenščini)** — turn-by-turn skozi Bluetooth čelado, integrirana med sledenje vožnje
+- **Glasna navigacija (TTS v slovenščini)** — PROAKTIVNA obvestila PRED zavoji ("Čez 200 metrov zavijte desno"), prilagojena razdalja obvestila glede na hitrost, navigacija po načrtovani ruti ali nazaj na začetek, predogled naslednjih korakov, zaznavanje izgube rute z gumbom za preračun, AI TTS ali brskalnikov TTS
 - Opozorila o hitrosti (nastavljiva meja, zvočni alarm)
 - **Zaznavanje trčenja** — samodejno SOS ob trku + obvestilo ICE stikom
 - **Crash recovery** — če app crashne ali gre v ozadje, podatki se obnovijo iz localStorage
@@ -109,6 +109,7 @@ MotoTrack je **odziv na te pritožbe**:
 - Izzivi (Challenges) s točkami in dosežki
 - Skupnosti (5 motociklističnih skupnosti)
 - 53 balkanskih cest z ocenami (10 držav)
+- **10 vgrajenih balkanskih tur** — pripravljenih navigabilnih rut z waypointi (Vršič, Kotor serpentine, Transfăgărășan, Transalpina, SH8 obala, itd.)
 - 17 motociklističnih dogodkov
 - 15 moto-prijaznih kampingov
 - Iskanje servisov in trgovin
@@ -443,9 +444,23 @@ src/
 
 ---
 
-## 🌍 Balkanske ceste
+## 🌍 Balkanske ceste & Ture
 
-53 kuriranih motociklističnih cest po 10 državah:
+53 kuriranih motociklističnih cest po 10 državah + **10 vgrajenih turnih rut**:
+
+### Vgrajene ture (naloži in pelji!)
+- 🇸🇮 **Prelaz Vršič & Soška dolina** — 85 km, 50 serpentín, 9.5/10
+- 🇸🇮 **Jadranska obala** — 95 km, sproščujoča obalna ruta
+- 🇸🇮 **Jezersko & Pokljuka** — 70 km, gorski prelazi in gozdne ceste
+- 🇭🇷 **Gorski Kotar** — 120 km, gozdne ceste in jezera
+- 🇭🇷 **Jadranska magistrala** — 180 km, legendarna obalna cesta
+- 🇲🇪 **Kotor serpentine** — 45 km, 25 ozkih serpentín (10/10!)
+- 🇷🇴 **Transfăgărășan** — 150 km, Top Gearjeva najljubša cesta
+- 🇷🇴 **Transalpina** — 140 km, najvišja cesta v Romuniji (2145m)
+- 🇦🇱 **SH8 Obala** — 130 km, albanska riviera
+- 🇧🇬 **Prelaz Šipka** — 110 km, Dolina vrtnic
+
+### Ceste po državah
 
 - 🇸🇮 **Slovenija** — Vršič, Soška dolina, Obala, Pohorje, Jezersko, Pokljuka
 - 🇭🇷 **Hrvaška** — Jadranska magistrala, Gorski kotar, Lika, Pelješac
@@ -469,19 +484,33 @@ Raziskali smo več kot 15 forumov (Reddit, ADVrider, SpyderLovers, itd.) in zbra
 | Kaj motoristi želijo | MotoTrack |
 |---|:---:|
 | Vijugasto rutiranje (twisty roads) | ✅ |
-| Zanesljivo GPS sledenje | ✅ |
+| Zanesljivo GPS sledenje (z visibility handler) | ✅ |
 | Offline zemljevidi | ✅ |
 | GPX uvoz/izvoz | ✅ |
 | Crash detection + SOS | ✅ |
 | Sledenje v živo | ✅ |
 | Iskanje goriva + opomniki | ✅ |
-| Krožne ture (round trip) | ✅ |
+| Krožne ture (multi-waypoint loop) | ✅ |
 | Vreme ob poti | ✅ |
 | Evidence vzdrževanja | ✅ |
-| Glasovno vodenje (turn-by-turn) | ✅ |
+| Proaktivna glasovna navigacija (PRED zavoji!) | ✅ |
 | Skupinsko sledenje | ✅ |
 | Izbegovanje nevarnih cest | ✅ |
+| Zaznavanje izgube rute + preračun | ✅ |
+| GPS sanity check (zavrnitev glitch-ov) | ✅ |
 | CarPlay / Android Auto | 🔜 Načrtovano |
+
+### 🔥 Najnovejše izboljšave (forum-driven)
+
+Glede na raziskavo forumov (Reddit r/motorcycles, ADVrider, SpyderLovers, itd.) smo izboljšali:
+
+1. **Proaktivna glasovna navigacija** — MOTORISTI NA FORUMIH SO JASNI: "It literally just displays the route line, without providing vocal direction" (REVER). Zato MotoTrack zdaj naznani zavojne PREDEN prideš do njih: "Čez 200 metrov zavijte desno na Ulica X". Razdalja obvestila se prilagaja hitrosti (500m pri >100km/h, 150m pri mestni vožnji).
+
+2. **Odporno GPS sledenje** — Forumi: "Problems with the ride tracking feature. It does run in the background even if you close the app" (REVER). Zato MotoTrack zdaj: visibility change handler (obnovi WakeLock + GPS ob vrnitvi iz ozadja), GPS sanity check (zavrne skoke >500m), zavrača natančnost <200m, auto-save vsakih 15s (ne 30s), ne ustavi snemanja ob napaki GPS.
+
+3. **Izboljšan krožni algoritem** — Kurviger forum: "Specify a round trip and how long and how curvy the roads". Zato MotoTrack zdaj uporablja multi-waypoint loop z 2-4 intermediate točkami, ne več samo trikotnika. Višja vijugavost = več točk + širši odmik od direktne poti.
+
+4. **Zaznavanje izgube rute** — Če zapustiš načrtovano pot, MotoTrack zazna in ponudi gumb "Preračunaj ruto".
 
 ---
 

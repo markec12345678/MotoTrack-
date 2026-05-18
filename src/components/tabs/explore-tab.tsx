@@ -30,6 +30,7 @@ import SmartConsumptionPanel from '@/components/smart-consumption-panel'
 import BalkanEventsPanel from '@/components/balkan-events-panel'
 import BalkanCampsPanel from '@/components/balkan-camps-panel'
 import BalkanRoadsPanel from '@/components/balkan-roads-panel'
+import BalkanTours from '@/components/balkan-tours-panel'
 import NearbyRoadsPanel from '@/components/nearby-roads-panel'
 import WeatherSuitability from '@/components/weather-suitability'
 import RoadConditionsPanel from '@/components/road-conditions-panel'
@@ -83,7 +84,7 @@ const ExploreTabInner = React.memo(function ExploreTabInner({ rides, routes, lea
   const [exploreCategory, setExploreCategory] = useState<string>('all')
   const [searchQuery, setSearchQuery] = useState('')
   const debouncedSearchQuery = useDebounce(searchQuery, 200)
-  const [exploreSection, setExploreSection] = useState<'discover' | 'feed' | 'favorites' | 'communities' | 'friends' | 'grouprides' | 'challenges' | 'services' | 'fuel' | 'consumption' | 'comparison' | 'events' | 'camps' | 'balkanroads' | 'nearbyroads' | 'weather' | 'roadconditions' | 'cinema' | 'garage' | 'touring'>('discover')
+  const [exploreSection, setExploreSection] = useState<'discover' | 'feed' | 'favorites' | 'communities' | 'friends' | 'grouprides' | 'challenges' | 'services' | 'fuel' | 'consumption' | 'comparison' | 'events' | 'camps' | 'balkanroads' | 'balkantours' | 'nearbyroads' | 'weather' | 'roadconditions' | 'cinema' | 'garage' | 'touring'>('discover')
 
   // Cinema state
   const [cinemaRideId, setCinemaRideId] = useState<string | null>(null)
@@ -568,6 +569,12 @@ const ExploreTabInner = React.memo(function ExploreTabInner({ rides, routes, lea
               onClick={() => setExploreSection('balkanroads')}
               icon={<span className="text-sm">🗺️</span>}
               label="Ceste"
+            />
+            <TabPill
+              active={exploreSection === 'balkantours'}
+              onClick={() => setExploreSection('balkantours')}
+              icon={<span className="text-sm">🏔️</span>}
+              label="Ture"
             />
             <TabPill
               active={exploreSection === 'cinema'}
@@ -1569,6 +1576,9 @@ const ExploreTabInner = React.memo(function ExploreTabInner({ rides, routes, lea
         ) : exploreSection === 'balkanroads' ? (
           /* ====== BALKAN ROADS SECTION ====== */
           <BalkanRoadsPanel />
+        ) : exploreSection === 'balkantours' ? (
+          /* ====== BALKAN TOURS SECTION ====== */
+          <BalkanTours />
         ) : exploreSection === 'nearbyroads' ? (
           /* ====== NEARBY ROADS SECTION ====== */
           <NearbyRoadsPanel
