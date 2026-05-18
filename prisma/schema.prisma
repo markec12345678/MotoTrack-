@@ -82,6 +82,7 @@ model User {
   offlineSyncQueue        OfflineSyncQueue[]
   routeReviews            RouteReview[]
   savedRoutes             SavedRoute[]
+  fuelPrices              FuelPrice[]
 }
 
 model Ride {
@@ -872,5 +873,29 @@ model SavedRoute {
 
   @@index([userId])
   @@map("saved_routes")
+}
+
+// Community Fuel Price Tracker - crowd-sourced fuel prices
+model FuelPrice {
+  id          String   @id @default(cuid())
+  stationName String   // "Petrol Ljubljana"
+  stationBrand String  // "Petrol", "OMV", "MOL", "INA", "Hemus", "Lukoil", "NIS"
+  fuelType    String   // "bencin-95", "bencin-98", "diesel", "e85", "lpg"
+  price       Float    // price per liter in EUR
+  lat         Float
+  lng         Float
+  country     String   // "SI", "HR", "BA", "RS", "ME", "MK", "AL", "BG", "RO", "GR"
+  userId      String   @default("default")
+  confirmedBy Int      @default(0) // how many users confirmed this price
+  active      Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  user        User     @relation(fields: [userId], references: [id])
+
+  @@index([lat, lng])
+  @@index([fuelType])
+  @@index([country])
+  @@map("fuel_prices_community")
 }
 

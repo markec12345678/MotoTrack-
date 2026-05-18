@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect, useCallback, useRef, useMemo, Suspense } from 'react'
 import dynamic from 'next/dynamic'
+import { useRouteDeviation } from '@/components/route-deviation-alert'
 import {
   Map as MapIcon,
   Route,
@@ -61,6 +62,8 @@ const NotificationBell = dynamic(withRetry(() => import('@/components/notificati
 const SosButton = dynamic(withRetry(() => import('@/components/sos-button')), { ssr: false, loading: () => null })
 const PwaInstallPrompt = dynamic(withRetry(() => import('@/components/pwa-install-prompt').then(m => ({ default: m.PwaInstallPrompt }))), { ssr: false, loading: () => null })
 const ChatBubble = dynamic(withRetry(() => import('@/components/group-ride-chat').then(m => ({ default: m.ChatBubble }))), { ssr: false, loading: () => null })
+const RouteDeviationAlert = dynamic(withRetry(() => import('@/components/route-deviation-alert').then(m => ({ default: m.RouteDeviationAlert }))), { ssr: false, loading: () => null })
+const RouteDeviationIndicator = dynamic(withRetry(() => import('@/components/route-deviation-alert').then(m => ({ default: m.RouteDeviationIndicator }))), { ssr: false, loading: () => null })
 const AppShareButton = dynamic(withRetry(() => import('@/components/app-share-button').then(m => ({ default: m.AppShareButton }))), { ssr: false, loading: () => null })
 // Feature Hub - loaded as a single chunk only when user opens it
 const FeatureHubDialog = dynamic(withRetry(() => import('@/components/feature-hub-dialog')), { ssr: false, loading: () => null })
@@ -168,7 +171,15 @@ export default function Home() {
   const [trackCurrentSpeed, setTrackCurrentSpeed] = useState(0)
   const [trackElevation, setTrackElevation] = useState(0)
   const [gpsAccuracy, setGpsAccuracy] = useState<number | null>(null)
+  const [deviationDismissed, setDeviationDismissed] = useState(false)
   const watchIdRef = useRef<number | null>(null)
+
+  // Route deviation detection
+  const { deviation: routeDeviation, level: deviationLevel, isDeviated } = useRouteDeviation({
+    plannedRoute: planWaypoints,
+    currentPosition: currentPos ? { lat: currentPos[0], lng: currentPos[1] } : null,
+    isActive: isTracking && planWaypoints.length >= 2,
+  })
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null)
   const startTimeRef = useRef<number>(0)
   const pausedDurationRef = useRef<number>(0)
@@ -1095,6 +1106,22 @@ export default function Home() {
       {/* Group Ride Chat Bubble - visible when tracking */}
       {isTracking && !exploreFullscreen && currentRideId && (
         <ChatBubble rideId={currentRideId} userName={userName || 'Motorist'} />
+      )}
+
+      {/* Route Deviation Alert - when following a planned route */}
+      {isTracking && isDeviated && !deviationDismissed && !exploreFullscreen && (
+        <RouteDeviationAlert
+          deviation={routeDeviation}
+          level={deviationLevel}
+          onReroute={() => {
+            setDeviationDismissed(true)
+            toast.success('Preračunavanje rute...')
+          }}
+          onDismiss={() => {
+            setDeviationDismissed(true)
+            setTimeout(() => setDeviationDismissed(false), 300000) // 5 min cooldown
+          }}
+        />
       )}
 
       {/* Global Search */}

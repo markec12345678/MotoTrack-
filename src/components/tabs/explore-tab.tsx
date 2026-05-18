@@ -27,6 +27,7 @@ import { formatDuration, categoryLabel, categoryColor, formatDate } from '@/comp
 import ChallengesPanel from '@/components/challenges-panel'
 import ServiceLocator from '@/components/service-locator'
 import FuelPriceCard from '@/components/fuel-price-card'
+import FuelPriceTracker from '@/components/fuel-price-tracker'
 import SmartConsumptionPanel from '@/components/smart-consumption-panel'
 import BalkanEventsPanel from '@/components/balkan-events-panel'
 import BalkanCampsPanel from '@/components/balkan-camps-panel'
@@ -1316,6 +1317,7 @@ const ExploreTabInner = React.memo(function ExploreTabInner({ rides, routes, lea
               <Fuel className="size-5 text-primary" /> Gorivo
             </h2>
             <FuelPriceCard userId={userId} />
+            <FuelPriceTracker userId={userId} />
           </div>
         ) : exploreSection === 'consumption' ? (
           /* ====== SMART CONSUMPTION SECTION ====== */
