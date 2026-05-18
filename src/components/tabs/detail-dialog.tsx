@@ -26,7 +26,10 @@ import RideReplay3D from '@/components/ride-replay-3d'
 import GradientAnalysis from '@/components/gradient-analysis'
 import RouteReviewPanel from '@/components/route-review-panel'
 import RideDifficultyCalculator from '@/components/ride-difficulty-calculator'
+import dynamic from 'next/dynamic'
 import { toast } from 'sonner'
+
+const RidePhotoGallery = dynamic(() => import('@/components/ride-photo-gallery'), { ssr: false })
 
 interface DetailDialogProps {
   item: RideData | RouteData
@@ -849,6 +852,24 @@ export default function DetailDialog({
                 />
               )
             })()}
+
+            {/* Ride Photo Gallery - from ride tracking */}
+            <div className="mt-2">
+              <RidePhotoGallery
+                rideId={item.id}
+                isTracking={false}
+                trackPoints={(() => {
+                  try {
+                    const parsed = typeof (item as RideData).trackData === 'string'
+                      ? JSON.parse((item as RideData).trackData)
+                      : (item as RideData).trackData
+                    return (parsed || []).map((p: number[]) => ({
+                      lat: p[0], lng: p[1], alt: p[2] ?? null, timestamp: p[3] ?? Date.now()
+                    }))
+                  } catch { return [] }
+                })()}
+              />
+            </div>
           </div>
         )}
 

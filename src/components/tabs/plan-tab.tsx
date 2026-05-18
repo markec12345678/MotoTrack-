@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react'
 import dynamic from 'next/dynamic'
-import { Route, Trash2, Save, MapPin, X, Upload, Plus, Calendar, Minus, Hotel, Fuel, ChevronDown, ChevronUp, Eye, Clock, RefreshCw, Navigation, ArrowLeft, ArrowRight, Cloud, Wind, AlertTriangle, Thermometer, Search, Activity, BarChart3, Mountain, TreePine, Sparkles, Smartphone } from 'lucide-react'
+import { Route, Trash2, Save, MapPin, X, Upload, Plus, Calendar, Minus, Hotel, Fuel, ChevronDown, ChevronUp, Eye, Clock, RefreshCw, Navigation, ArrowLeft, ArrowRight, Cloud, Wind, AlertTriangle, Thermometer, Search, Activity, BarChart3, Mountain, TreePine, Sparkles, Smartphone, Camera, Zap } from 'lucide-react'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
 import { Switch } from '@/components/ui/switch'
@@ -21,10 +21,12 @@ import RideDifficultyCalculator from '@/components/ride-difficulty-calculator'
 import { RouteSyncButton, RouteSyncDialog } from '@/components/route-sync-service'
 import type { RouteSyncData } from '@/components/route-sync-service'
 import RoutePlannerEnhanced from '@/components/route-planner-enhanced'
+const RidePhotoGallery = dynamic(() => import('@/components/ride-photo-gallery'), { ssr: false })
 import { categoryLabel, haversine, poiTypeEmoji, poiTypeColor, poiTypeLabel } from '@/components/tabs/types'
 import type { TripData, TripDayData, PoiData } from '@/components/tabs/types'
 
 const MotoMap = dynamic(() => import('@/components/moto-map'), { ssr: false })
+const RoundTripGeneratorV2 = dynamic(() => import('@/components/round-trip-generator-v2'), { ssr: false })
 
 interface DayPlan {
   dayNumber: number
@@ -60,6 +62,7 @@ interface PlanTabProps {
   onSendToPhone?: () => void
   userId: string
   onRefresh: () => void
+  savedRouteId?: string | null
 }
 
 type PlanMode = 'single' | 'roundtrip' | 'multiday'
@@ -1101,11 +1104,15 @@ export default function PlanTab({
   category, setCategory, avoidHighways, setAvoidHighways,
   avoidTolls, setAvoidTolls, routingMode, setRoutingMode,
   distance, onMapClick, onSave, onSendToPhone, userId, onRefresh,
+  savedRouteId,
 }: PlanTabProps) {
   const fileInputRef = useRef<HTMLInputElement>(null)
 
   // Route sync dialog state
   const [showRouteSync, setShowRouteSync] = useState(false)
+
+  // Round trip V2 dialog state
+  const [showRoundTripV2, setShowRoundTripV2] = useState(false)
 
   // Mode: 'single', 'roundtrip', or 'multiday'
   const [mode, setMode] = useState<PlanMode>('single')
@@ -1675,6 +1682,19 @@ export default function PlanTab({
               <Save className="size-4 mr-2" />Shrani pot
             </Button>
 
+            {/* Photo Gallery for saved route */}
+            {savedRouteId && (
+              <div className="space-y-2">
+                <h4 className="text-xs font-semibold flex items-center gap-1.5 text-muted-foreground">
+                  <Camera className="size-3.5" /> Fotografije route
+                </h4>
+                <RidePhotoGallery
+                  rideId={savedRouteId}
+                  isTracking={false}
+                />
+              </div>
+            )}
+
             {/* Send to Phone - QR Share */}
             {onSendToPhone && waypoints.length >= 2 && (
               <Button
@@ -1735,7 +1755,18 @@ export default function PlanTab({
         ) : mode === 'roundtrip' ? (
           /* ===== ROUND TRIP MODE ===== */
           <div className="space-y-4">
-            <h2 className="font-bold text-lg flex items-center gap-2"><RefreshCw className="size-5 text-primary" />Krožna pot</h2>
+            <div className="flex items-center justify-between">
+              <h2 className="font-bold text-lg flex items-center gap-2"><RefreshCw className="size-5 text-primary" />Krožna pot</h2>
+              <Button
+                variant="outline"
+                size="sm"
+                className="h-7 text-[10px] gap-1 border-emerald-500/50 text-emerald-600 hover:bg-emerald-500/10"
+                onClick={() => setShowRoundTripV2(true)}
+              >
+                <Zap className="size-3" />
+                Krožna tura v2
+              </Button>
+            </div>
 
             {/* Starting point */}
             <div className="bg-secondary/30 rounded-lg p-3">
@@ -2181,6 +2212,19 @@ export default function PlanTab({
           toast.success('Pot naložena iz sinhronizacije!')
         }}
         hasExistingRoute={waypoints.length >= 2}
+      />
+
+      {/* Round Trip V2 Dialog */}
+      <RoundTripGeneratorV2
+        isOpen={showRoundTripV2}
+        onClose={() => setShowRoundTripV2(false)}
+        onConfirm={(wps) => {
+          setWaypoints(wps)
+          setMode('single')
+          toast.success(`${wps.length} točk naloženih v Načrtuj`)
+        }}
+        startLat={rtStartLat}
+        startLng={rtStartLng}
       />
     </div>
   )

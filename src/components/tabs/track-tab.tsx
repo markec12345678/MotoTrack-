@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react'
 import dynamic from 'next/dynamic'
-import { Play, Pause, Square, Save, Gauge, AlertTriangle, ChevronDown, ChevronUp, Activity, Bike, Moon, Timer, Share2, Navigation2, Volume2, VolumeX, Eye, Headphones, Zap, Radio, ShieldAlert } from 'lucide-react'
+import { Play, Pause, Square, Save, Gauge, AlertTriangle, ChevronDown, ChevronUp, Activity, Bike, Moon, Timer, Share2, Navigation2, Volume2, VolumeX, Eye, Headphones, Zap, Radio, ShieldAlert, Camera } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import type { TrackPoint, SpeedAlertSettings } from '@/components/tabs/types'
@@ -29,6 +29,8 @@ const RideWeatherOverlay = dynamic(() => import('@/components/ride-weather-overl
 const RideDifficultyCalculator = dynamic(() => import('@/components/ride-difficulty-calculator'), { ssr: false })
 const WindWarningPanel = dynamic(() => import('@/components/wind-warning-panel'), { ssr: false })
 const EmergencyPanel = dynamic(() => import('@/components/emergency-panel'), { ssr: false })
+const RidePhotoGallery = dynamic(() => import('@/components/ride-photo-gallery'), { ssr: false })
+const PhotoButton = dynamic(() => import('@/components/ride-photo-gallery').then(m => ({ default: m.PhotoButton })), { ssr: false })
 
 // Inline voice navigation for track tab (lightweight, no separate component needed)
 interface NavStep {
@@ -128,6 +130,8 @@ export default function TrackTab({
   const [showShareCard, setShowShareCard] = useState(false)
   const [drivingMode, setDrivingMode] = useState(false)
   const [showEmergencyPanel, setShowEmergencyPanel] = useState(false)
+  const [showPhotoGallery, setShowPhotoGallery] = useState(false)
+  const [photoCount, setPhotoCount] = useState(0)
 
   // Voice navigation state
   const [navActive, setNavActive] = useState(false)
@@ -762,6 +766,19 @@ export default function TrackTab({
                 </div>
               )}
 
+              {/* Photo gallery panel (expandable) */}
+              {showPhotoGallery && (
+                <div className="mb-2 max-h-64 overflow-y-auto custom-scrollbar bg-white/5 rounded-lg p-2">
+                  <RidePhotoGallery
+                    isTracking={isTracking}
+                    currentLat={trackPoints.length > 0 ? trackPoints[trackPoints.length - 1].lat : null}
+                    currentLng={trackPoints.length > 0 ? trackPoints[trackPoints.length - 1].lng : null}
+                    trackPoints={trackPoints}
+                    onPhotosChange={(p) => setPhotoCount(p.length)}
+                  />
+                </div>
+              )}
+
               {/* Control buttons */}
               <div className="flex items-center justify-center gap-4 pb-1">
                 {isPaused ? (
@@ -785,6 +802,11 @@ export default function TrackTab({
                 >
                   <Square className="size-4 text-white fill-white" />
                 </button>
+                {/* Compact photo button */}
+                <PhotoButton
+                  photoCount={photoCount}
+                  onClick={() => setShowPhotoGallery(!showPhotoGallery)}
+                />
               </div>
             </div>
           )}
@@ -825,6 +847,31 @@ export default function TrackTab({
               {/* GPS Reliability Stats */}
               <div className="w-full">
                 <GpsReliabilityStats state={gpsReliability.getState()} />
+              </div>
+              {/* Photo Gallery - collapsible after ride stop */}
+              <div className="w-full">
+                <button
+                  className="flex items-center gap-2 w-full px-3 py-2 rounded-lg bg-white/5 hover:bg-white/10 transition-colors text-white/70"
+                  onClick={() => setShowPhotoGallery(!showPhotoGallery)}
+                >
+                  <Camera className="size-4" />
+                  <span className="text-xs font-medium">Fotografije vožnje</span>
+                  {photoCount > 0 && (
+                    <Badge variant="secondary" className="text-[10px] px-1.5 py-0 ml-1">{photoCount}</Badge>
+                  )}
+                  <span className="ml-auto">{showPhotoGallery ? <ChevronUp className="size-3.5" /> : <ChevronDown className="size-3.5" />}</span>
+                </button>
+                {showPhotoGallery && (
+                  <div className="mt-2">
+                    <RidePhotoGallery
+                      isTracking={false}
+                      trackPoints={trackPoints}
+                      currentLat={trackPoints.length > 0 ? trackPoints[trackPoints.length - 1].lat : null}
+                      currentLng={trackPoints.length > 0 ? trackPoints[trackPoints.length - 1].lng : null}
+                      onPhotosChange={(p) => setPhotoCount(p.length)}
+                    />
+                  </div>
+                )}
               </div>
               <div className="flex gap-2 w-full">
                 <Button className="flex-1 gap-2 rounded-full bg-primary hover:bg-primary/90" onClick={() => { gpsReliability.submitDiagnostics(duration); onSave() }}>

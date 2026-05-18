@@ -997,6 +997,7 @@ export default function Home() {
               distance={planDistance} onMapClick={handleMapClick} onSave={saveRoute}
               onSendToPhone={sendToPhone}
               userId={user?.id || ''} onRefresh={fetchData}
+              savedRouteId={planShareRouteId}
             />
           )}
           {activeTab === 'track' && (

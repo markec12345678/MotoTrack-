@@ -730,3 +730,99 @@ Stage Summary:
 - Reconnection counter shown in post-ride statistics
 - Diagnostics API with reliability scoring
 - All Slovenian text, no lint errors introduced
+
+---
+Task ID: 7
+Agent: Photo Gallery Integration Developer
+Task: Integrate RidePhotoGallery into Track Tab and Detail Dialog
+
+Work Log:
+- Read worklog.md to understand prior work (QR sharing, hazard reporting, GPX improvements, GPS reliability, BT helmet, iconic routes, ride weather, driving mode, route reviews, maintenance, community routes, emergency panel, wind warning, rest stop finder, ride difficulty calculator)
+- Read ride-photo-gallery.tsx to understand component exports: RidePhotoGallery (default), PhotoButton, usePhotoMarkers, RidePhoto type
+- Read track-tab.tsx (898 lines), detail-dialog.tsx (1099 lines), plan-tab.tsx (2187 lines) to understand current structure
+- Updated track-tab.tsx:
+  a. Added dynamic imports: RidePhotoGallery and PhotoButton (named export via .then())
+  b. Added Camera icon to lucide-react imports
+  c. Added showPhotoGallery and photoCount state
+  d. During tracking: added expandable photo gallery panel above control buttons (max-h-64 scrollable)
+  e. During tracking: added compact PhotoButton in control buttons area (next to pause/stop)
+  f. After ride stop: added collapsible "Fotografije vožnje" section with header showing photo count and expand/collapse chevrons
+  g. Both sections pass isTracking, currentLat, currentLng, trackPoints, onPhotosChange props
+- Updated detail-dialog.tsx:
+  a. Added dynamic import for RidePhotoGallery with ssr: false
+  b. Added import for next/dynamic
+  c. Added RidePhotoGallery after Ride Difficulty Calculator in ride-specific stats section
+  d. Passes rideId={item.id}, isTracking={false}, trackPoints parsed from ride trackData
+  e. Only shows for rides (already inside isRide conditional block)
+- Updated plan-tab.tsx:
+  a. Added dynamic import for RidePhotoGallery with ssr: false
+  b. Added Camera icon to lucide-react imports
+  c. Added savedRouteId optional prop to PlanTabProps interface
+  d. Added savedRouteId to component destructured props
+  e. Added photo gallery section after "Shrani pot" button, shown when savedRouteId is available
+  f. Passes rideId={savedRouteId} and isTracking={false}
+- Updated home.tsx:
+  a. Passed savedRouteId={planShareRouteId} prop to PlanTab component
+  b. Uses existing planShareRouteId state that gets set when route is saved/shared
+- Lint check passes with 0 errors (only 12 pre-existing warnings from unrelated files)
+
+Stage Summary:
+- RidePhotoGallery integrated into 3 components: track-tab, detail-dialog, plan-tab
+- During tracking: compact PhotoButton toggles expandable gallery panel
+- After ride stop: collapsible gallery with "Fotografije vožnje" header and photo count badge
+- Detail dialog: full gallery with rideId for loading saved photos (rides only)
+- Plan tab: gallery shown for saved routes via savedRouteId prop
+- All text in Slovenian (Fotografije vožnje, Fotografije route)
+- All dynamic imports with ssr: false for client-side only rendering
+- No lint errors introduced
+
+---
+Task ID: 6
+Agent: Round Trip Algorithm Developer
+Task: Improve the Round Trip Algorithm
+
+Work Log:
+- Read worklog.md to understand prior work (QR sharing, hazard reporting, GPX, GPS reliability, BT helmet, iconic routes, ride weather, driving mode, route reviews, maintenance, community routes)
+- Read existing round-trip-generator.tsx, /api/round-trip/route.ts, and plan-tab.tsx to understand current implementation
+- Created `/api/round-trip-v2/route.ts` POST endpoint:
+  a. Receives: startLat, startLng, distance, twistiness (1-5), direction (north/east/south/west/auto), type (asfalt/makadam/mesano), avoidHighways
+  b. Haversine formula for distance calculation between GPS points
+  c. Destination point calculation using bearing + distance for proper GPS circle generation
+  d. Direction angle resolution with "auto" mode that biases toward mountain/twisty directions (NW/NE)
+  e. Circle waypoint generation: 3-6 intermediate points based on twistiness, radius = distance/(2π) * twistinessFactor
+  f. Points placed with angular separation to ensure different outbound and return paths
+  g. Random offsets (±20% radius) for unique routes on regeneration
+  h. Avoid-highways: perpendicular offset to push waypoints off straight paths
+  i. Route type adjustments (asfalt=normal, makadam=shorter radius+more spread, mesano=balanced)
+  j. Self-intersection check using segment intersection algorithm (up to 3 attempts to avoid crossing)
+  k. Outbound/return path separation calculation (minimum distance between halves)
+  l. Twistiness score from bearing changes between consecutive points
+  m. Anti-backtrack guarantee flag when separation > 2km
+  n. Route type-based speed estimation (asfalt=60km/h, makadam=35km/h, mesano=50km/h)
+- Created `/components/round-trip-generator-v2.tsx` Dialog component:
+  a. Full dialog UI with configurable parameters: distance (30-200km), twistiness (1-5), direction (5 options), route type (3 options), avoid highways toggle
+  b. Pre-generation estimate showing radius and waypoint count
+  c. Visual SVG mini-map preview showing outbound path (green) and return path (blue dashed) with numbered waypoints
+  d. Anti-backtrack guarantee badge (green when separation > 2km, amber otherwise)
+  e. Route stats grid: distance, duration, twistiness score, waypoint count
+  f. Direction/type/avoid-highways badges
+  g. Scrollable waypoint list with distance-per-segment
+  h. Segment distances breakdown
+  i. "Naloži v Načrtuj" button to load waypoints into plan tab
+  j. Regenerate button for new random offsets
+  k. All text in Slovenian
+- Integrated into plan-tab.tsx:
+  a. Added dynamic import for RoundTripGeneratorV2
+  b. Added showRoundTripV2 state
+  c. Added "Krožna tura v2" button (emerald-styled) next to "Krožna pot" heading in roundtrip mode
+  d. Added RoundTripGeneratorV2 component render with onConfirm handler that sets waypoints and switches to single mode
+  e. Added Zap icon import from lucide-react
+- Lint check passes: 0 errors, 12 warnings (all pre-existing, none in new files)
+- TypeScript check passes: no errors in round-trip-generator-v2.tsx, round-trip-v2 route, or plan-tab.tsx
+
+Stage Summary:
+- Enhanced round trip API endpoint with anti-backtrack circle algorithm (Haversine, bearing calculations, self-intersection check)
+- New RoundTripGeneratorV2 dialog with SVG mini-map preview, outbound/return path visualization, configurable twistiness/direction/type
+- Integration into Plan tab with "Krožna tura v2" button in roundtrip mode
+- Anti-backtrack guarantee: routes go OUT and come back via DIFFERENT paths (verified by separation check)
+- All text in Slovenian, no lint/TypeScript errors introduced
