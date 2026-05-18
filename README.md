@@ -77,6 +77,8 @@ MotoTrack je **odziv na te pritožbe**:
 | **Koledar voženj** | ✅ | ❌ | ❌ | ❌ | ❌ |
 | **Opozorilo ob zapustitvi rute** | ✅ | ❌ | ❌ | ❌ | ❌ |
 | **Skupnostne cene goriva** | ✅ | ❌ | ❌ | ❌ | ❌ |
+| **Vpogledi v vožnje (Insights)** | ✅ | ❌ | ❌ | ❌ | ❌ |
+| **Hitrostne kamere (Balkan)** | ✅ | ❌ | ❌ | ❌ | ⚠️ |
 | **Vreme med vožnjo (dež/sneg opozorila)** | ✅ | ❌ | ❌ | ❌ | ❌ |
 | **Kompas + ETA + hitrostni trend** | ✅ | ❌ | ❌ | ❌ | ❌ |
 | **Ocene in mnenja o rutah** | ✅ | ⚠️ | ❌ | ❌ | ❌ |
@@ -144,6 +146,7 @@ MotoTrack je **odziv na te pritožbe**:
 - **Vreme med vožnjo (Weather Overlay)** — plavajoči vremenski pano med sledenjem! Temperatura, občutek, veter (smer + hitrost), vidljivost, vlažnost. **Sistem opozoril za dež/sneg**: samodejno zazna približujoč dež/sneg iz WMO kod, rumeno/rdeče opozorilo, zvočni alarm ob prvem zaznanju dežja (Web Audio API). Samodejna osvežitev vsakih 10 minut. Kompaktni način za Driving Mode
 - **Klepet skupine** — realno-časovni klepet za grupne vožnje! Socket.io na portu 3003, sobe za vsako vožnjo, pošiljanje lokacije/nevarnosti/statusa, zvočna obvestila, seznam povezanih motoristov
 - **Opozorilo ob zapustitvi rute** — samodejno zazna ko zapustiš načrtovano pot! 4-stopenski sistem: 🟢 na poti (≤50m), 🟡 rahel odmik (50-150m), 🟠 zapustil pot (150-300m), 🔴 preveč oddaljen (>300m). Zvočni alarm, gumb za preračun rute, debounce 10s, cooldown 60s
+- **Hitrostne kamere** — 20 znanih lokacij hitrostnih kamer na Balkanu! Stalna, mobilna, povprečna hitrost, rdeča luč. Zvočno opozorilo 500m pred kamero, lebdeče obvestilo z omejitvijo hitrosti, plošča za brskanje po kamerah
 
 ### 🧭 Raziskuj
 - Vodilni položaji (Leaderboard)
@@ -184,6 +187,7 @@ MotoTrack je **odziv na te pritožbe**:
 - Točke in ravni (Points & Levels)
 - Ocenjevanje cest (Road Ratings)
 - **Koledar voženj** — mesečni pogled z intenzivnostjo voženj, dnevni detalj s seznamom voženj, mesečna statistika (skupna razdalja, čas, vzpon, povprečja, rekordi)
+- **Vpogledi v vožnje (Insights)** — tedenska aktivnost (stolpični diagram), dnevi priljubljenosti, najboljše vožnje (najdaljša, najhitrejša, najvišja), serija voženj 🔥, hitrost voženj/teden, izboljšani dosežki, izbira obdobja (7d/mesec/leto/vse)
 
 ### 🧠 AI pomočnik (MotoChat)
 - AI klepet v slovenščini za načrtovanje poti
@@ -633,6 +637,10 @@ Glede na raziskavo forumov (Reddit r/motorcycles, ADVrider, SpyderLovers, itd.) 
 26. **Opozorilo ob zapustitvi rute** — Forumi: "I need to know when I'm off the planned route" (Kurviger, REVER). MotoTrack zdaj samodejno zazna ko zapustiš načrtovano pot z 4-stopnjskim sistemom: na poti (🟢≤50m), rahel odmik (🟡50-150m), zapustil pot (🟠150-300m), preveč oddaljen (🔴>300m). Zvočni alarm, gumb za preračun rute, debounce 10s (brez lažnih alarmov), cooldown 60s.
 
 27. **Skupnostne cene goriva** — Forumi: "Gas prices vary wildly between countries" (ADVrider Balkans). MotoTrack zdaj ponuja Waze-za-cene-goriva sistem: prijavi ceno na črpalki, potrdi cene drugih motoristov, primerjaj povprečne cene po balkanskih državah. Podprte blagovne znamke: Petrol, OMV, MOL, INA, Hemus, Lukoil, NIS. Samodejno zaznavanje države iz GPS.
+
+28. **Vpogledi v vožnje (Insights)** — Forumi: "I want to see my riding patterns and streaks" (Strava). MotoTrack zdaj ponuja napredno analitiko: tedenska aktivnost (stolpični diagram), priljubljeni dnevi, najboljše vožnje (najdaljša, najhitrejša, najvišja), serija voženj 🔥 (trenutna in najdaljša), hitrost voženj/teden, izboljšani dosežki, izbira obdobja (7d/mesec/leto/vse).
+
+29. **Hitrostne kamere (Balkan)** — Forumi: "Speed camera warnings are essential" (Kurviger, Waze). MotoTrack zdaj ponuja 20 znanih lokacij hitrostnih kamer na Balkanu (Slovenija, Hrvaška, Srbija, BiH, Črna gora, Makedonija, Bolgarija, Romunija, Grčija, Albanija). 4 tipi kamer: stalna, mobilna, povprečna hitrost, rdeča luč. Zvočno opozorilo 500m pred kamero, lebdeče obvestilo z omejitvijo hitrosti.
 
 ---
 
