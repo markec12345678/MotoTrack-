@@ -165,6 +165,7 @@ export default function Home() {
   const [trackMaxSpeed, setTrackMaxSpeed] = useState(0)
   const [trackCurrentSpeed, setTrackCurrentSpeed] = useState(0)
   const [trackElevation, setTrackElevation] = useState(0)
+  const [gpsAccuracy, setGpsAccuracy] = useState<number | null>(null)
   const watchIdRef = useRef<number | null>(null)
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null)
   const startTimeRef = useRef<number>(0)
@@ -433,6 +434,7 @@ export default function Home() {
     if (!navigator.geolocation) { toast.error('Geolokacija ni na voljo'); return }
     setIsTracking(true); setIsPaused(false); isPausedRef.current = false; autoPausedRef.current = false; setTrackPoints([]); setTrackDuration(0)
     setTrackDistance(0); setTrackMaxSpeed(0); setTrackCurrentSpeed(0); setTrackElevation(0)
+    setGpsAccuracy(null)
     startTimeRef.current = Date.now(); pausedDurationRef.current = 0
     lastGpsFixRef.current = Date.now()
     gpsErrorCountRef.current = 0
@@ -524,6 +526,7 @@ export default function Home() {
         lastGpsFixRef.current = Date.now()
         gpsErrorCountRef.current = 0 // Reset error counter on success
         lastValidPointRef.current = point
+        setGpsAccuracy(pos.coords.accuracy)
 
         // Elevation tracking from GPS altitude
         // Only count positive altitude changes (climbing), not descending
@@ -1002,6 +1005,7 @@ export default function Home() {
               trackPoints={trackPoints} duration={trackDuration}
               distance={trackDistance} maxSpeed={trackMaxSpeed}
               currentSpeed={trackCurrentSpeed} elevation={trackElevation}
+              gpsAccuracy={gpsAccuracy}
               userId={user?.id}
               onStart={startTracking} onPause={pauseTracking}
               onResume={resumeTracking} onStop={stopTracking}

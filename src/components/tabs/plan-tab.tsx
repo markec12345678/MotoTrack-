@@ -18,6 +18,9 @@ import OfflineMapsManager from '@/components/offline-maps-manager'
 import RouteTilePreloader from '@/components/route-tile-preloader'
 import RestStopFinder from '@/components/rest-stop-finder'
 import RideDifficultyCalculator from '@/components/ride-difficulty-calculator'
+import { RouteSyncButton, RouteSyncDialog } from '@/components/route-sync-service'
+import type { RouteSyncData } from '@/components/route-sync-service'
+import RoutePlannerEnhanced from '@/components/route-planner-enhanced'
 import { categoryLabel, haversine, poiTypeEmoji, poiTypeColor, poiTypeLabel } from '@/components/tabs/types'
 import type { TripData, TripDayData, PoiData } from '@/components/tabs/types'
 
@@ -1101,6 +1104,9 @@ export default function PlanTab({
 }: PlanTabProps) {
   const fileInputRef = useRef<HTMLInputElement>(null)
 
+  // Route sync dialog state
+  const [showRouteSync, setShowRouteSync] = useState(false)
+
   // Mode: 'single', 'roundtrip', or 'multiday'
   const [mode, setMode] = useState<PlanMode>('single')
 
@@ -1584,6 +1590,21 @@ export default function PlanTab({
               <OffRoadPlanner waypoints={waypoints} onWaypointsUpdate={setWaypoints} />
             )}
 
+            {/* Enhanced Route Planner - stats, drag reorder, preferences, save/load, GPX export */}
+            <RoutePlannerEnhanced
+              waypoints={waypoints}
+              setWaypoints={setWaypoints}
+              title={title}
+              setTitle={setTitle}
+              avoidHighways={avoidHighways}
+              setAvoidHighways={setAvoidHighways}
+              avoidTolls={avoidTolls}
+              setAvoidTolls={setAvoidTolls}
+              distance={distance}
+              category={category}
+              userId={userId}
+            />
+
             <Separator />
             <div>
               <div className="flex items-center justify-between mb-2">
@@ -1665,6 +1686,12 @@ export default function PlanTab({
                 Pošlji na telefon
               </Button>
             )}
+
+            {/* Route Sync - PC to Phone */}
+            <RouteSyncButton
+              onClick={() => setShowRouteSync(true)}
+              disabled={waypoints.length < 2}
+            />
 
             {/* GPX Import */}
             <Separator />
@@ -2138,6 +2165,23 @@ export default function PlanTab({
           </div>
         )}
       </div>
+
+      {/* Route Sync Dialog */}
+      <RouteSyncDialog
+        open={showRouteSync}
+        onOpenChange={setShowRouteSync}
+        waypoints={waypoints}
+        title={title}
+        avoidHighways={avoidHighways}
+        avoidTolls={avoidTolls}
+        distance={distance}
+        category={category}
+        onRouteLoaded={(wps, _data: RouteSyncData) => {
+          setWaypoints(wps)
+          toast.success('Pot naložena iz sinhronizacije!')
+        }}
+        hasExistingRoute={waypoints.length >= 2}
+      />
     </div>
   )
 }

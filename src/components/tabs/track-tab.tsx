@@ -9,6 +9,7 @@ import type { TrackPoint, SpeedAlertSettings } from '@/components/tabs/types'
 import { formatDuration } from '@/components/tabs/types'
 import { type UnitSystem, convertSpeed, convertDistance, speedUnit, distanceUnit } from '@/hooks/use-settings'
 import { useBtAudio } from '@/hooks/use-bt-audio'
+import { useGpsReliability, GpsSignalIndicator, GpsReliabilityStats, GpsErrorNotification, getSignalQuality } from '@/components/gps-reliability-service'
 
 const CrashDetectionPanel = dynamic(() => import('@/components/crash-detection-panel'), { ssr: false })
 const LiveTrackingPanel = dynamic(() => import('@/components/live-tracking-panel'), { ssr: false })
@@ -85,6 +86,7 @@ interface TrackTabProps {
   maxSpeed: number
   currentSpeed: number
   elevation: number
+  gpsAccuracy?: number | null
   userId?: string
   onStart: () => void
   onPause: () => void
@@ -102,6 +104,7 @@ interface TrackTabProps {
 export default function TrackTab({
   isTracking, isPaused, trackPoints, duration,
   distance, maxSpeed, currentSpeed, elevation,
+  gpsAccuracy = null,
   userId,
   onStart, onPause, onResume, onStop, onSave,
   unitSystem = 'metric',
@@ -139,6 +142,14 @@ export default function TrackTab({
 
   // BT audio hook - routes through helmet when connected
   const { isConnected: btConnected, speak: btSpeak } = useBtAudio()
+
+  // GPS Reliability hook - wake lock, visibility, error recovery, signal quality, heartbeat
+  const gpsReliability = useGpsReliability({
+    isTracking,
+    trackPoints,
+    wakelockEnabled: wakelockEnabled ?? true,
+    onRestartTracking: onStart,
+  })
 
   // Speak a navigation instruction via BT helmet or phone speaker
   const speakNav = useCallback((text: string) => {
@@ -673,12 +684,30 @@ export default function TrackTab({
                 </div>
               )}
 
+              {/* GPS Signal Quality Indicator - next to speed */}
+              {isTracking && (
+                <div className="flex justify-center mb-2">
+                  <GpsSignalIndicator quality={gpsAccuracy !== null ? getSignalQuality(gpsAccuracy) : gpsReliability.signalQuality} accuracy={gpsAccuracy ?? gpsReliability.accuracy} />
+                </div>
+              )}
+
+              {/* GPS Error notification */}
+              {isTracking && gpsReliability.lastError && (
+                <div className="mb-2">
+                  <GpsErrorNotification lastError={gpsReliability.lastError} onRetry={() => {
+                    navigator.geolocation?.getCurrentPosition(() => {}, () => {}, { enableHighAccuracy: true, maximumAge: 2000, timeout: 10000 })
+                  }} />
+                </div>
+              )}
+
               {/* Stats grid - REVER style */}
               <div className="grid grid-cols-3 gap-3 mb-3">
                 <div className="text-center">
-                  <p className={`text-2xl font-bold ${isOverSpeed ? 'text-red-400' : 'text-white'}`}>
-                    {displaySpeed}
-                  </p>
+                  <div className="flex items-center justify-center gap-1">
+                    <p className={`text-2xl font-bold ${isOverSpeed ? 'text-red-400' : 'text-white'}`}>
+                      {displaySpeed}
+                    </p>
+                  </div>
                   <p className="text-[10px] text-white/40 uppercase tracking-wider">{speedUnitLabel}</p>
                 </div>
                 <div className="text-center">
@@ -793,8 +822,12 @@ export default function TrackTab({
                   trackPoints={trackPoints}
                 />
               </div>
+              {/* GPS Reliability Stats */}
+              <div className="w-full">
+                <GpsReliabilityStats state={gpsReliability.getState()} />
+              </div>
               <div className="flex gap-2 w-full">
-                <Button className="flex-1 gap-2 rounded-full bg-primary hover:bg-primary/90" onClick={onSave}>
+                <Button className="flex-1 gap-2 rounded-full bg-primary hover:bg-primary/90" onClick={() => { gpsReliability.submitDiagnostics(duration); onSave() }}>
                   <Save className="size-4" />Shrani vožnjo
                 </Button>
                 <Button

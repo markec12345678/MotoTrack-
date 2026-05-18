@@ -81,6 +81,7 @@ model User {
   routeRoiScores          RouteRoiScore[]
   offlineSyncQueue        OfflineSyncQueue[]
   routeReviews            RouteReview[]
+  savedRoutes             SavedRoute[]
 }
 
 model Ride {
@@ -856,4 +857,20 @@ model OfflineSyncQueue {
   @@map("offline_sync_queue")
 }
 
+// Saved Routes - route library for route planning
+model SavedRoute {
+  id          String   @id @default(cuid())
+  name        String
+  description String?
+  waypoints   String   // JSON array of {lat, lng, name}
+  preferences String   // JSON: {avoidHighways, preferTwisty, avoidTolls}
+  userId      String   @default("default")
+  user        User     @relation(fields: [userId], references: [id])
+  distance    Float    @default(0)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([userId])
+  @@map("saved_routes")
+}
 
