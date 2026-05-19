@@ -465,10 +465,13 @@ const ExploreTabInner = React.memo(function ExploreTabInner({ rides, routes, lea
         </div>
       )}
       <div className={`mx-auto max-w-4xl ${fullscreen ? 'px-4 py-4' : 'px-4 py-6'}`}>
-        {/* Section tabs + fullscreen toggle */}
-        <div className="space-y-1.5 mb-6">
+        {/* Primary navigation - Clean REVER style */}
+        <div className="space-y-4 mb-6">
           <div className="flex items-center justify-between">
-            <div className="flex-1" />
+            <h2 className="text-lg font-extrabold tracking-tight flex items-center gap-2">
+              <Compass className="size-5 text-primary" />
+              Raziskuj
+            </h2>
             {!fullscreen && onToggleFullscreen && (
               <button
                 onClick={() => onToggleFullscreen(true)}
@@ -480,8 +483,8 @@ const ExploreTabInner = React.memo(function ExploreTabInner({ rides, routes, lea
               </button>
             )}
           </div>
-          {/* Primary row */}
-          <div className="flex gap-1 flex-wrap">
+          {/* Primary pills - Only 5 main sections */}
+          <div className="flex gap-1.5 overflow-x-auto scroll-hide pb-1">
             <TabPill
               active={exploreSection === 'discover'}
               onClick={() => setExploreSection('discover')}
@@ -515,112 +518,6 @@ const ExploreTabInner = React.memo(function ExploreTabInner({ rides, routes, lea
               label="Prijatelji"
               badge={acceptedFriends.length > 0 ? <span className="text-[10px] opacity-70">({acceptedFriends.length})</span> : undefined}
               notification={pendingReceived.length}
-            />
-          </div>
-          {/* Secondary row */}
-          <div className="flex gap-1 flex-wrap">
-            <TabPill
-              active={exploreSection === 'grouprides'}
-              onClick={() => { setExploreSection('grouprides'); fetchGroupRides() }}
-              icon={<Bike className="size-3.5" />}
-              label="Vožnje"
-              badge={groupRides.length > 0 ? <span className="text-[10px] opacity-70">({groupRides.length})</span> : undefined}
-            />
-            <TabPill
-              active={exploreSection === 'challenges'}
-              onClick={() => setExploreSection('challenges')}
-              icon={<Trophy className="size-3.5" />}
-              label="Izzivi"
-            />
-            <TabPill
-              active={exploreSection === 'services'}
-              onClick={() => setExploreSection('services')}
-              icon={<Wrench className="size-3.5" />}
-              label="Servisi"
-            />
-            <TabPill
-              active={exploreSection === 'fuel'}
-              onClick={() => setExploreSection('fuel')}
-              icon={<Fuel className="size-3.5" />}
-              label="Gorivo"
-            />
-            <TabPill
-              active={exploreSection === 'consumption'}
-              onClick={() => setExploreSection('consumption')}
-              icon={<Gauge className="size-3.5" />}
-              label="Poraba"
-            />
-            <TabPill
-              active={exploreSection === 'comparison'}
-              onClick={() => { setExploreSection('comparison') }}
-              icon={<GitCompare className="size-3.5" />}
-              label="Primerjava"
-            />
-            <TabPill
-              active={exploreSection === 'events'}
-              onClick={() => setExploreSection('events')}
-              icon={<Calendar className="size-3.5" />}
-              label="Dogodki"
-            />
-            <TabPill
-              active={exploreSection === 'camps'}
-              onClick={() => setExploreSection('camps')}
-              icon={<span className="text-sm">⛺</span>}
-              label="Kampi"
-            />
-            <TabPill
-              active={exploreSection === 'balkanroads'}
-              onClick={() => setExploreSection('balkanroads')}
-              icon={<span className="text-sm">🗺️</span>}
-              label="Ceste"
-            />
-            <TabPill
-              active={exploreSection === 'balkantours'}
-              onClick={() => setExploreSection('balkantours')}
-              icon={<span className="text-sm">🏔️</span>}
-              label="Ture"
-            />
-            <TabPill
-              active={exploreSection === 'communityroutes'}
-              onClick={() => setExploreSection('communityroutes')}
-              icon={<Globe className="size-3.5" />}
-              label="Skupnost"
-            />
-            <TabPill
-              active={exploreSection === 'cinema'}
-              onClick={() => setExploreSection('cinema')}
-              icon={<Film className="size-3.5" />}
-              label="Cinema"
-            />
-            <TabPill
-              active={exploreSection === 'nearbyroads'}
-              onClick={() => setExploreSection('nearbyroads')}
-              icon={<Navigation className="size-3.5" />}
-              label="Bližnje"
-            />
-            <TabPill
-              active={exploreSection === 'weather'}
-              onClick={() => setExploreSection('weather')}
-              icon={<Cloud className="size-3.5" />}
-              label="Vreme"
-            />
-            <TabPill
-              active={exploreSection === 'roadconditions'}
-              onClick={() => setExploreSection('roadconditions')}
-              icon={<AlertTriangle className="size-3.5" />}
-              label="Ceste stanje"
-            />
-            <TabPill
-              active={exploreSection === 'touring'}
-              onClick={() => setExploreSection('touring')}
-              icon={<Trophy className="size-3.5" />}
-              label="Ocena"
-            />
-            <TabPill
-              active={exploreSection === 'garage'}
-              onClick={() => setExploreSection('garage')}
-              icon={<Bike className="size-3.5" />}
-              label="Garaža"
             />
           </div>
         </div>
@@ -1572,6 +1469,63 @@ const ExploreTabInner = React.memo(function ExploreTabInner({ rides, routes, lea
               </div>
               {/* Bottom gradient line */}
               <div className="h-px bg-gradient-to-r from-transparent via-primary/20 to-transparent" />
+            </div>
+
+            {/* Feature Categories - Premium grid cards (replaces the old secondary pill tabs) */}
+            <div className="mb-6">
+              <h3 className="text-sm font-bold flex items-center gap-2 mb-3 uppercase tracking-wider text-muted-foreground">
+                <Sparkles className="size-4 text-primary" /> Kategorije
+              </h3>
+              <div className="grid grid-cols-3 sm:grid-cols-4 gap-2">
+                {[
+                  { key: 'grouprides' as const, icon: <Bike className="size-4" />, label: 'Vožnje', color: 'bg-amber-500/15 text-amber-500 hover:bg-amber-500/25', badge: groupRides.length > 0 ? groupRides.length : undefined },
+                  { key: 'challenges' as const, icon: <Trophy className="size-4" />, label: 'Izzivi', color: 'bg-emerald-500/15 text-emerald-500 hover:bg-emerald-500/25' },
+                  { key: 'services' as const, icon: <Wrench className="size-4" />, label: 'Servisi', color: 'bg-sky-500/15 text-sky-500 hover:bg-sky-500/25' },
+                  { key: 'fuel' as const, icon: <Fuel className="size-4" />, label: 'Gorivo', color: 'bg-orange-500/15 text-orange-500 hover:bg-orange-500/25' },
+                  { key: 'consumption' as const, icon: <Gauge className="size-4" />, label: 'Poraba', color: 'bg-violet-500/15 text-violet-500 hover:bg-violet-500/25' },
+                  { key: 'events' as const, icon: <Calendar className="size-4" />, label: 'Dogodki', color: 'bg-rose-500/15 text-rose-500 hover:bg-rose-500/25' },
+                  { key: 'balkanroads' as const, icon: <span className="text-base">🗺️</span>, label: 'Ceste', color: 'bg-red-500/15 text-red-500 hover:bg-red-500/25' },
+                  { key: 'balkantours' as const, icon: <span className="text-base">🏔️</span>, label: 'Ture', color: 'bg-teal-500/15 text-teal-500 hover:bg-teal-500/25' },
+                  { key: 'camps' as const, icon: <span className="text-base">⛺</span>, label: 'Kampi', color: 'bg-lime-500/15 text-lime-600 hover:bg-lime-500/25' },
+                  { key: 'cinema' as const, icon: <Film className="size-4" />, label: 'Cinema', color: 'bg-pink-500/15 text-pink-500 hover:bg-pink-500/25' },
+                  { key: 'weather' as const, icon: <Cloud className="size-4" />, label: 'Vreme', color: 'bg-cyan-500/15 text-cyan-500 hover:bg-cyan-500/25' },
+                  { key: 'garage' as const, icon: <Bike className="size-4" />, label: 'Garaža', color: 'bg-zinc-500/15 text-zinc-400 hover:bg-zinc-500/25' },
+                ].map(cat => (
+                  <button
+                    key={cat.key}
+                    onClick={() => {
+                      setExploreSection(cat.key)
+                      if (cat.key === 'grouprides') fetchGroupRides()
+                    }}
+                    className={`relative flex flex-col items-center gap-1.5 p-3 rounded-xl border border-border/40 transition-all duration-200 active:scale-95 ${cat.color}`}
+                  >
+                    {cat.badge !== undefined && (
+                      <span className="absolute -top-1.5 -right-1.5 bg-primary text-primary-foreground text-[8px] font-bold rounded-full size-4 flex items-center justify-center">{cat.badge}</span>
+                    )}
+                    {cat.icon}
+                    <span className="text-[10px] font-bold tracking-tight">{cat.label}</span>
+                  </button>
+                ))}
+              </div>
+              {/* Secondary features - horizontal compact row */}
+              <div className="flex gap-1.5 mt-2 flex-wrap">
+                {[
+                  { key: 'comparison' as const, icon: <GitCompare className="size-3" />, label: 'Primerjava' },
+                  { key: 'nearbyroads' as const, icon: <Navigation className="size-3" />, label: 'Bližnje' },
+                  { key: 'roadconditions' as const, icon: <AlertTriangle className="size-3" />, label: 'Stanje cest' },
+                  { key: 'touring' as const, icon: <Trophy className="size-3" />, label: 'Touring' },
+                  { key: 'communityroutes' as const, icon: <Globe className="size-3" />, label: 'Skupnost poti' },
+                ].map(cat => (
+                  <button
+                    key={cat.key}
+                    onClick={() => setExploreSection(cat.key)}
+                    className="flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-semibold text-muted-foreground/70 bg-secondary/50 hover:bg-secondary hover:text-foreground transition-all duration-200"
+                  >
+                    {cat.icon}
+                    {cat.label}
+                  </button>
+                ))}
+              </div>
             </div>
 
             {/* Popular Routes Featured Section - Premium card style */}

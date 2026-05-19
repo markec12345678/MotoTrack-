@@ -62,3 +62,4 @@ db/*.db-journal
 
 # Worklog (dev only)
 worklog.mddb/custom.db
+upload/
