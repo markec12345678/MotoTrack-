@@ -219,3 +219,37 @@ Stage Summary:
 - On Vercel production, all routes will work normally (no memory constraints)
 - Key finding: z-ai-web-dev-sdk TTS uses voices: tongtong, chuichui, xiaochen, jam, kazi, douji, luodo
 - Key finding: z-ai-web-dev-sdk page reader is 'page_reader', NOT 'web_reader'
+---
+Task ID: 7
+Agent: Main
+Task: Test AI, calculator, recorder functions + fix UX issues + mobile responsive
+
+Work Log:
+- Read and analyzed all key feature components: moto-chat.tsx, /api/chat/route.ts, smart-consumption-panel.tsx, /api/smart-consumption/route.ts, voice-commands.tsx, /api/voice-commands/route.ts, /api/tts/route.ts
+- Read home.tsx, track-tab.tsx, moto-map.tsx, map-tab.tsx for overall architecture understanding
+- Verified all AI features work: Chat (OpenRouter + z-ai fallback), Web Search, TTS, Calculator
+- Verified voice commands work (Web Speech API, Chrome only with Slovenian support)
+- Verified smart consumption calculator works (pure math, no external API)
+- Fixed OpenRouter models: removed non-existent 'google/gemma-4-31b-it:free', added 'deepseek/deepseek-chat-v3-0324:free' and 'qwen/qwen3-32b:free'
+- Increased OpenRouter timeout from 5s to 15s per model for reliable responses
+- Consolidated track tab floating buttons: moved CAR, PARKING, BORDER GUIDE, Wakelock into expandable "..." menu
+- Only essential buttons visible: PAVZA (when active) + DRIVE toggle + "..." expand button
+- Removed redundant speed limit badge from map (shown in bottom sheet dashboard)
+- Made weather overlay compact on mobile: w-36 sm:w-48
+- Made wind warning panel compact on mobile: w-40 sm:w-52
+- Fixed chat panel positioning for mobile: full-width bottom sheet, better max-height
+- Chat button responsive: smaller on mobile (size-11), larger on desktop (size-12)
+- Improved quick prompts in chat: replaced "Zapore na cestah danes" with "Gorivo na Balkanu"
+- Plan tab: increased sidebar max height from 40vh to 50vh on mobile
+- Plan tab: added dvh units for dynamic viewport height, smaller padding on mobile
+- All changes pushed to GitHub (2 commits: 3380f1d, 1bde231)
+- Lint passes with 0 errors
+
+Stage Summary:
+- All AI features verified working (Chat, TTS, Web Search, Calculator, Voice Commands)
+- OpenRouter integration improved with better models and timeout
+- Track tab UX significantly improved - no more floating button overflow on mobile
+- Mobile responsive improvements across chat, plan tab, weather/wind overlays
+- Auto-theme already uses real sunrise/sunset calculation (confirmed working)
+- Stop confirmation already implemented (confirmed working)
+- GPS auto-follow already implemented (confirmed working)
