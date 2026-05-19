@@ -162,9 +162,8 @@ export default function MoviePlayer({ rideId, onClose }: MoviePlayerProps) {
       attributionControl: false,
     })
 
-    L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
+    L.tileLayer('/api/tiles?provider=carto-dark&z={z}&x={x}&y={y}&retina=1', {
       maxZoom: 19,
-      subdomains: 'abcd',
     }).addTo(map)
 
     const routeCoords = data.trackPoints.map(p => [p.lat, p.lng] as L.LatLngExpression)

@@ -233,9 +233,9 @@ export default function LiveTrackingViewer({ shareToken: initialToken, onClose }
         // Fix default marker icons
         delete (L.Icon.Default.prototype as any)._getIconUrl
         L.Icon.Default.mergeOptions({
-          iconRetinaUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon-2x.png',
-          iconUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png',
-          shadowUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png',
+          iconRetinaUrl: '/leaflet/marker-icon-2x.png',
+          iconUrl: '/leaflet/marker-icon.png',
+          shadowUrl: '/leaflet/marker-shadow.png',
         })
 
         map = L.map(mapContainerRef.current!, {
@@ -244,7 +244,7 @@ export default function LiveTrackingViewer({ shareToken: initialToken, onClose }
           zoomControl: false,
         })
 
-        L.tileLayer('https://basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}@2x.png', {
+        L.tileLayer('/api/tiles?provider=carto-voyager&z={z}&x={x}&y={y}&retina=1', {
           attribution: '&copy; CartoDB &copy; OSM',
           maxZoom: 20,
         }).addTo(map)

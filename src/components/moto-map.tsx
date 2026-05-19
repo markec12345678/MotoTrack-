@@ -115,22 +115,15 @@ interface MotoMapProps {
 }
 
 const MAP_TILES: Record<string, { url: string; attribution: string; maxZoom: number; subdomains?: string }> = {
-  // OpenTopoMap as primary - most reliable on Vercel/production deployments
-  osm: { url: 'https://tile.opentopomap.org/{z}/{x}/{y}.png', attribution: '© OpenTopoMap contributors', maxZoom: 17 },
-  // CartoDB dark tiles - no subdomain needed, works without {s}
-  dark: { url: 'https://basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', attribution: '© CartoDB', maxZoom: 20 },
-  // Esri satellite - no subdomain, direct server
-  satellite: { url: 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', attribution: '© Esri', maxZoom: 19 },
-  // OpenTopoMap explicit
-  topo: { url: 'https://tile.opentopomap.org/{z}/{x}/{y}.png', attribution: '© OpenTopoMap', maxZoom: 17 },
-  // CartoDB voyager - no subdomain needed
-  voyager: { url: 'https://basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', attribution: '© CartoDB', maxZoom: 20 },
-  // OSM direct tiles (may be rate-limited on cloud providers)
-  osm_direct: { url: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png', attribution: '© OpenStreetMap contributors', maxZoom: 19 },
-  // Streets style = OpenTopoMap (reliable)
-  streets: { url: 'https://tile.opentopomap.org/{z}/{x}/{y}.png', attribution: '© OpenTopoMap', maxZoom: 17 },
-  // Terrain style = OpenTopoMap
-  terrain: { url: 'https://tile.opentopomap.org/{z}/{x}/{y}.png', attribution: '© OpenTopoMap', maxZoom: 17 },
+  // Using /api/tiles proxy to avoid CSP/CORS issues on Vercel
+  osm: { url: '/api/tiles?provider=opentopomap&z={z}&x={x}&y={y}', attribution: '© OpenTopoMap contributors', maxZoom: 17 },
+  dark: { url: '/api/tiles?provider=carto-dark&z={z}&x={x}&y={y}&retina=1', attribution: '© CartoDB', maxZoom: 20 },
+  satellite: { url: '/api/tiles?provider=esri&z={z}&x={x}&y={y}', attribution: '© Esri', maxZoom: 19 },
+  topo: { url: '/api/tiles?provider=opentopomap&z={z}&x={x}&y={y}', attribution: '© OpenTopoMap', maxZoom: 17 },
+  voyager: { url: '/api/tiles?provider=carto-voyager&z={z}&x={x}&y={y}&retina=1', attribution: '© CartoDB', maxZoom: 20 },
+  osm_direct: { url: '/api/tiles?provider=osm&z={z}&x={x}&y={y}', attribution: '© OpenStreetMap contributors', maxZoom: 19 },
+  streets: { url: '/api/tiles?provider=opentopomap&z={z}&x={x}&y={y}', attribution: '© OpenTopoMap', maxZoom: 17 },
+  terrain: { url: '/api/tiles?provider=opentopomap&z={z}&x={x}&y={y}', attribution: '© OpenTopoMap', maxZoom: 17 },
 }
 
 const categoryColors: Record<string, string> = {
@@ -622,7 +615,7 @@ export default function MotoMap({
     if (showTwistyRoads) {
       // Use OpenStreetMap cycle map to highlight curvy roads visually
       // Also add a custom overlay that shows route difficulty by color
-      const twistyLayer = L.tileLayer('https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png', {
+      const twistyLayer = L.tileLayer('/api/tiles?provider=opentopomap&z={z}&x={x}&y={y}', {
         attribution: '© OpenTopoMap',
         maxZoom: 17,
         opacity: 0.6,
@@ -913,7 +906,7 @@ export default function MotoMap({
 
     if (showWeatherRadar) {
       // RainViewer radar overlay (free, no API key needed)
-      const weatherLayer = L.tileLayer('https://tilecache.rainviewer.com/v2/radar/latest/256/{z}/{x}/{y}/6/1_1.png', {
+      const weatherLayer = L.tileLayer('/api/tiles?provider=rainviewer&z={z}&x={x}&y={y}', {
         attribution: '© RainViewer',
         maxZoom: 19,
         opacity: 0.5,

@@ -119,7 +119,8 @@ export default function Map3DViewer({
     const baseSources: Record<string, any> = {
       'terrain-dem': {
         type: 'raster-dem',
-        tiles: ['https://s3.amazonaws.com/elevation-tiles-prod/terrarium/{z}/{x}/{y}.png'],
+        // Using /api/tiles proxy to avoid CSP/CORS issues on Vercel
+        tiles: ['/api/tiles?provider=elevation&z={z}&x={x}&y={y}'],
         tileSize: 256,
         maxzoom: 15,
         encoding: 'terrarium',
@@ -131,9 +132,7 @@ export default function Map3DViewer({
       case 'topo':
         baseSources['osm-tiles'] = {
           type: 'raster',
-          tiles: [
-            'https://basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}@2x.png',
-          ],
+          tiles: ['/api/tiles?provider=carto-voyager&z={z}&x={x}&y={y}&retina=1'],
           tileSize: 256,
           attribution: '&copy; CartoDB &copy; OpenStreetMap',
           maxzoom: 20,
@@ -149,7 +148,7 @@ export default function Map3DViewer({
       case 'satellite':
         baseSources['satellite-tiles'] = {
           type: 'raster',
-          tiles: ['https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}'],
+          tiles: ['/api/tiles?provider=esri&z={z}&x={x}&y={y}'],
           tileSize: 256,
           attribution: '&copy; Esri',
           maxzoom: 19,
@@ -165,9 +164,7 @@ export default function Map3DViewer({
       case 'dark':
         baseSources['dark-tiles'] = {
           type: 'raster',
-          tiles: [
-            'https://basemaps.cartocdn.com/dark_all/{z}/{x}/{y}@2x.png',
-          ],
+          tiles: ['/api/tiles?provider=carto-dark&z={z}&x={x}&y={y}&retina=1'],
           tileSize: 256,
           attribution: '&copy; CartoDB',
           maxzoom: 20,
@@ -604,7 +601,7 @@ export default function Map3DViewer({
             if (!map.getSource('openmaptiles')) {
               map.addSource('openmaptiles', {
                 type: 'vector',
-                tiles: ['https://tiles.openfreemap.org/planet/{z}/{x}/{y}.pbf'],
+                tiles: ['/api/tiles?provider=openfreemap&z={z}&x={x}&y={y}'],
                 maxzoom: 14,
                 attribution: '&copy; OpenFreeMap &copy; OpenMapTiles &copy; OpenStreetMap',
               })
@@ -709,7 +706,7 @@ export default function Map3DViewer({
             if (!map.getSource('openmaptiles')) {
               map.addSource('openmaptiles', {
                 type: 'vector',
-                tiles: ['https://tiles.openfreemap.org/planet/{z}/{x}/{y}.pbf'],
+                tiles: ['/api/tiles?provider=openfreemap&z={z}&x={x}&y={y}'],
                 maxzoom: 14,
                 attribution: '&copy; OpenFreeMap &copy; OpenMapTiles &copy; OpenStreetMap',
               })
@@ -769,7 +766,7 @@ export default function Map3DViewer({
         if (!map.getSource('openmaptiles')) {
           map.addSource('openmaptiles', {
             type: 'vector',
-            tiles: ['https://tiles.openfreemap.org/planet/{z}/{x}/{y}.pbf'],
+            tiles: ['/api/tiles?provider=openfreemap&z={z}&x={x}&y={y}'],
             maxzoom: 14,
             attribution: '&copy; OpenFreeMap &copy; OpenMapTiles &copy; OpenStreetMap',
           })

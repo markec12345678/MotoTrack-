@@ -177,6 +177,59 @@ const server = http.createServer((req, res) => {
         res.end(JSON.stringify({ success: true, message: 'Database seeded successfully (mock)', data: { users: 3, rides: 10, routes: 6 } }));
         return;
       }
+      // /api/tiles - proxy tile requests to external providers
+      if (urlPath === '/api/tiles') {
+        const params = new URL(req.url, `http://${req.headers.host}`).searchParams;
+        const provider = params.get('provider') || 'carto-voyager';
+        const z = params.get('z');
+        const x = params.get('x');
+        const y = params.get('y');
+        const retina = params.get('retina') === '1' ? '@2x' : '';
+        
+        const PROVIDER_URLS = {
+          'carto-voyager': `https://basemaps.cartocdn.com/rastertiles/voyager/${z}/${x}/${y}${retina}.png`,
+          'carto-dark': `https://basemaps.cartocdn.com/dark_all/${z}/${x}/${y}${retina}.png`,
+          'carto-light': `https://basemaps.cartocdn.com/light_all/${z}/${x}/${y}${retina}.png`,
+          'osm': `https://tile.openstreetmap.org/${z}/${x}/${y}.png`,
+          'opentopomap': `https://tile.opentopomap.org/${z}/${x}/${y}.png`,
+          'esri': `https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/${z}/${y}/${x}`,
+          'elevation': `https://s3.amazonaws.com/elevation-tiles-prod/terrarium/${z}/${x}/${y}.png`,
+          'rainviewer': `https://tilecache.rainviewer.com/v2/radar/latest/256/${z}/${x}/${y}/6/1_1.png`,
+          'openfreemap': `https://tiles.openfreemap.org/planet/${z}/${x}/${y}.pbf`,
+        };
+        
+        const tileUrl = PROVIDER_URLS[provider];
+        if (!tileUrl || !z || !x || !y) {
+          res.writeHead(400, { 'Content-Type': 'application/json' });
+          res.end(JSON.stringify({ error: 'Invalid tile request' }));
+          return;
+        }
+        
+        // Fetch tile from external provider and proxy to client
+        try {
+          const tileRes = await fetch(tileUrl, {
+            headers: { 'User-Agent': 'MotoTrack/1.0' },
+            signal: AbortSignal.timeout(8000),
+          });
+          if (tileRes.ok) {
+            const contentType = tileRes.headers.get('content-type') || 'image/png';
+            const data = Buffer.from(await tileRes.arrayBuffer());
+            res.writeHead(200, {
+              'Content-Type': contentType,
+              'Cache-Control': 'public, max-age=86400',
+              'Access-Control-Allow-Origin': '*',
+            });
+            res.end(data);
+          } else {
+            res.writeHead(502, { 'Content-Type': 'application/json' });
+            res.end(JSON.stringify({ error: `Tile fetch failed: ${tileRes.status}` }));
+          }
+        } catch (e) {
+          res.writeHead(502, { 'Content-Type': 'application/json' });
+          res.end(JSON.stringify({ error: 'Tile fetch error' }));
+        }
+        return;
+      }
       const handler = API_GET[urlPath];
       const data = handler ? handler() : null;
       res.writeHead(200, { 'Content-Type': 'application/json' });

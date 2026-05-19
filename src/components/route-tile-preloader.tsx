@@ -105,12 +105,12 @@ function generateTileList(
   return tiles
 }
 
-/** Generate tile URL (CartoDB light as primary, OSM as fallback) */
+/** Generate tile URL via proxy API (avoids CSP/CORS issues on Vercel) */
 function getTileUrl(z: number, x: number, y: number, source: 'cartodb' | 'osm'): string {
   if (source === 'cartodb') {
-    return `https://a.basemaps.cartocdn.com/light_all/${z}/${x}/${y}.png`
+    return `/api/tiles?provider=carto-light&z=${z}&x=${x}&y=${y}`
   }
-  return `https://basemaps.cartocdn.com/rastertiles/voyager/${z}/${x}/${y}@2x.png`
+  return `/api/tiles?provider=carto-voyager&z=${z}&x=${x}&y=${y}&retina=1`
 }
 
 // ─── Constants ────────────────────────────────────────────────────────────────
