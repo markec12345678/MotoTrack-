@@ -105,10 +105,24 @@ export default function RootLayout({
 
           /* ===== MapLibre GL CSS overrides - Tailwind v4 preflight fixes ===== */
           /* Tailwind v4 preflight breaks MapLibre GL canvas and tile rendering */
+          .maplibregl-map {
+            font: 12px/20px Helvetica Neue, Arial, Helvetica, sans-serif !important;
+            overflow: hidden !important;
+            position: relative !important;
+            width: 100% !important;
+            height: 100% !important;
+          }
           .maplibregl-map img,
           .maplibregl-map canvas {
             max-width: none !important;
             max-height: none !important;
+            width: auto !important;
+            height: auto !important;
+          }
+          .maplibregl-canvas {
+            position: absolute !important;
+            left: 0 !important;
+            top: 0 !important;
           }
           .maplibregl-map svg {
             max-width: none !important;
@@ -125,6 +139,10 @@ export default function RootLayout({
           }
           .maplibregl-ctrl button span {
             display: block !important;
+          }
+          /* Fix MapLibre attribution from Tailwind resets */
+          .maplibregl-ctrl-attrib {
+            font-size: 10px !important;
           }
         ` }} />
 

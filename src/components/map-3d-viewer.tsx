@@ -90,6 +90,7 @@ export default function Map3DViewer({
   const [initError, setInitError] = useState<string | null>(null)
   const [isLoading, setIsLoading] = useState(true)
   const [retryCount, setRetryCount] = useState(0)
+  const initializedRef = useRef(false)
 
   // Compute track data with distances and elevation
   const trackData = useCallback(() => {
@@ -114,7 +115,7 @@ export default function Map3DViewer({
   }, [trackPoints])
 
   // Build map style based on selected type
-  const buildStyle = useCallback((style: MapStyle): any => {
+  const buildStyle = useCallback((styleType: MapStyle): any => {
     const baseSources: Record<string, any> = {
       'terrain-dem': {
         type: 'raster-dem',
@@ -126,7 +127,7 @@ export default function Map3DViewer({
     }
     const baseLayers: any[] = []
 
-    switch (style) {
+    switch (styleType) {
       case 'topo':
         baseSources['osm-tiles'] = {
           type: 'raster',
@@ -186,7 +187,7 @@ export default function Map3DViewer({
     }
 
     // Add hillshade for topo and satellite
-    if (style === 'topo' || style === 'satellite') {
+    if (styleType === 'topo' || styleType === 'satellite') {
       baseLayers.push({
         id: 'terrain-hillshade',
         type: 'hillshade',
@@ -195,7 +196,7 @@ export default function Map3DViewer({
           'hillshade-shadow-color': '#1a0000',
           'hillshade-highlight-color': '#ffffff',
           'hillshade-accent-color': '#333333',
-          'hillshade-exaggeration': style === 'topo' ? 0.4 : 0.25,
+          'hillshade-exaggeration': styleType === 'topo' ? 0.4 : 0.25,
         },
       })
     }
@@ -208,138 +209,7 @@ export default function Map3DViewer({
     // Terrain is set after map load via setTerrain() — not in the style object
     // This avoids style validation errors in some MapLibre GL versions
     return mapStyleObj
-  }, [showTerrain])
-
-  // MapLibre CSS is loaded via layout.tsx <link> tag from /maplibre-gl.css
-
-  // Initialize MapLibre GL map
-  useEffect(() => {
-    if (!containerRef.current) return
-
-    let map: any = null
-    let cancelled = false
-    let errorCount = 0
-    let hasLoadedSuccessfully = false
-
-    const initMap = async () => {
-      try {
-        setIsLoading(true)
-        setInitError(null)
-
-        const maplibregl = await import('maplibre-gl')
-
-        if (cancelled) return
-
-        maplibreRef.current = maplibregl
-
-        // Check WebGL support
-        const canvas = document.createElement('canvas')
-        const gl = canvas.getContext('webgl2') || canvas.getContext('webgl')
-        if (!gl) {
-          setInitError('Vaš brskalnik ne podpira WebGL, ki je potreben za 3D zemljevid.')
-          setIsLoading(false)
-          return
-        }
-
-        map = new maplibregl.Map({
-          container: containerRef.current!,
-          style: buildStyle(mapStyle),
-          center: center,
-          zoom: zoom,
-          pitch: currentPitch,
-          bearing: bearing,
-          maxPitch: 85,
-          antialias: true,
-        } as any)
-
-        map.addControl(new maplibregl.NavigationControl({ visualizePitch: true }), 'top-left')
-        map.addControl(new maplibregl.ScaleControl(), 'bottom-left')
-
-        map.on('load', () => {
-          if (cancelled) return
-          hasLoadedSuccessfully = true
-          setIs3DReady(true)
-          setIsLoading(false)
-
-          if (showTerrain) {
-            try { map!.setTerrain({ source: 'terrain-dem', exaggeration: 1.5 }) } catch {}
-          }
-
-          // Add 3D buildings vector source (OpenFreeMap)
-          try {
-            map!.addSource('openmaptiles', {
-              type: 'vector',
-              tiles: ['https://tiles.openfreemap.org/planet/{z}/{x}/{y}.pbf'],
-              maxzoom: 14,
-              attribution: '&copy; OpenFreeMap &copy; OpenMapTiles &copy; OpenStreetMap',
-            })
-
-            map!.addLayer({
-              id: '3d-buildings',
-              source: 'openmaptiles',
-              'source-layer': 'building',
-              type: 'fill-extrusion',
-              minzoom: 12,
-              paint: {
-                'fill-extrusion-color': mapStyle === 'dark' ? '#2a2a3a' : '#c8b89a',
-                'fill-extrusion-height': ['coalesce', ['get', 'render_height'], 5],
-                'fill-extrusion-base': ['coalesce', ['get', 'render_min_height'], 0],
-                'fill-extrusion-opacity': mapStyle === 'dark' ? 0.7 : 0.6,
-              },
-            })
-          } catch (err) {
-            console.warn('Could not add 3D buildings layer:', err)
-          }
-
-          addTrackData(map!)
-        })
-
-        // Only show fatal error overlay for critical errors, not individual tile failures
-        // MapLibre fires error events for many non-fatal reasons (tile 404, CORS, etc.)
-        map.on('error', (e: any) => {
-          errorCount++
-          const error = e?.error || e
-          console.warn('MapLibre non-fatal error:', error)
-
-          // Only show the error overlay if:
-          // 1. The map hasn't loaded successfully yet (critical init error)
-          // 2. There are many errors (something is fundamentally broken)
-          // 3. The error is a WebGL context loss
-          const isWebGLContextLoss = error?.message?.includes('WebGL') ||
-            error?.message?.includes('context') ||
-            error?.message?.includes('RENDERER')
-
-          if (!hasLoadedSuccessfully && errorCount > 5) {
-            setInitError('Napaka pri nalaganju 3D zemljevida. Preverite povezavo in poskusite znova.')
-            setIsLoading(false)
-          } else if (isWebGLContextLoss) {
-            setInitError('WebGL napaka. Poskusite osvežiti stran.')
-            setIsLoading(false)
-          }
-          // Individual tile errors are silently ignored — the map continues working
-        })
-
-        mapRef.current = map
-      } catch (err) {
-        if (cancelled) return
-        console.error('MapLibre init error:', err)
-        setInitError(err instanceof Error ? err.message : 'Napaka pri nalaganju 3D zemljevida')
-        setIsLoading(false)
-        toast.error('Napaka pri nalaganju 3D zemljevida')
-      }
-    }
-
-    initMap()
-
-    return () => {
-      cancelled = true
-      if (flyAnimRef.current) cancelAnimationFrame(flyAnimRef.current)
-      if (map) {
-        map.remove()
-        mapRef.current = null
-      }
-    }
-  }, [retryCount]) // retryCount triggers re-initialization on retry
+  }, [])
 
   // Add track/route data to the map
   const addTrackData = useCallback((map: any) => {
@@ -453,6 +323,18 @@ export default function Map3DViewer({
           })
 
           map.addLayer({
+            id: 'distance-markers-circle',
+            type: 'circle',
+            source: 'distance-markers',
+            paint: {
+              'circle-radius': 4,
+              'circle-color': '#f59e0b',
+              'circle-stroke-color': '#ffffff',
+              'circle-stroke-width': 1.5,
+            },
+          })
+
+          map.addLayer({
             id: 'distance-markers-layer',
             type: 'symbol',
             source: 'distance-markers',
@@ -470,19 +352,6 @@ export default function Map3DViewer({
               'text-halo-width': 2,
             },
           })
-
-          // Add small circle behind the marker
-          map.addLayer({
-            id: 'distance-markers-circle',
-            type: 'circle',
-            source: 'distance-markers',
-            paint: {
-              'circle-radius': 4,
-              'circle-color': '#f59e0b',
-              'circle-stroke-color': '#ffffff',
-              'circle-stroke-width': 1.5,
-            },
-          }, 'distance-markers-layer')
         }
       }
 
@@ -619,7 +488,208 @@ export default function Map3DViewer({
       allCoords.forEach(c => bounds.extend(c))
       map.fitBounds(bounds, { padding: 60, pitch: currentPitch, bearing, duration: 1500 })
     }
-  }, [trackPoints, routeCoords, trackData, currentPitch, bearing, mapStyle])
+  }, [trackPoints, routeCoords, trackData, currentPitch, bearing])
+
+  // Initialize MapLibre GL map — with robust container dimension handling
+  useEffect(() => {
+    const container = containerRef.current
+    if (!container || initializedRef.current) return
+
+    let map: any = null
+    let cancelled = false
+    let errorCount = 0
+    let hasLoadedSuccessfully = false
+    let loadTimeout: ReturnType<typeof setTimeout> | null = null
+
+    const initMap = async () => {
+      try {
+        setIsLoading(true)
+        setInitError(null)
+
+        // Dynamically import maplibre-gl
+        const maplibregl = await import('maplibre-gl')
+
+        if (cancelled) return
+
+        // Handle both default and named exports (v5 may differ)
+        const ml = maplibregl.default || maplibregl
+        maplibreRef.current = ml
+
+        // Wait for container to have proper dimensions
+        // This is critical — MapLibre reads container dimensions at init time
+        await new Promise<void>((resolve) => {
+          const checkDimensions = () => {
+            if (cancelled) { resolve(); return }
+            const rect = container.getBoundingClientRect()
+            if (rect.width > 0 && rect.height > 0) {
+              resolve()
+            } else {
+              // Container not yet laid out — wait a frame
+              requestAnimationFrame(checkDimensions)
+            }
+          }
+          checkDimensions()
+        })
+
+        if (cancelled) return
+
+        // Verify WebGL support
+        const testCanvas = document.createElement('canvas')
+        const gl = testCanvas.getContext('webgl2') || testCanvas.getContext('webgl')
+        if (!gl) {
+          setInitError('Vaš brskalnik ne podpira WebGL, ki je potreben za 3D zemljevid.')
+          setIsLoading(false)
+          return
+        }
+        // Clean up test canvas
+        const loseCtx = gl.getExtension('WEBGL_lose_context')
+        if (loseCtx) loseCtx.loseContext()
+
+        // Build map style
+        const styleObj = buildStyle(mapStyle)
+
+        // Create MapLibre GL Map with v5-compatible options
+        // In v5, antialias is under canvasContextAttributes (not a top-level option)
+        const mapOptions: any = {
+          container: container,
+          style: styleObj,
+          center: center,
+          zoom: zoom,
+          pitch: currentPitch,
+          bearing: bearing,
+          maxPitch: 85,
+        }
+
+        // MapLibre GL v5 uses canvasContextAttributes for WebGL context options
+        // v4 and earlier used top-level antialias
+        try {
+          mapOptions.canvasContextAttributes = {
+            antialias: true,
+            powerPreference: 'high-performance',
+            contextType: 'webgl2withfallback' as any,
+          }
+        } catch {
+          // Fallback for older versions
+          mapOptions.antialias = true
+        }
+
+        map = new ml.Map(mapOptions)
+
+        // Add controls
+        map.addControl(new ml.NavigationControl({ visualizePitch: true }), 'top-left')
+        map.addControl(new ml.ScaleControl(), 'bottom-left')
+
+        // Store ref immediately so cleanup can remove it
+        mapRef.current = map
+        initializedRef.current = true
+
+        // Handle map load
+        map.on('load', () => {
+          if (cancelled) return
+          hasLoadedSuccessfully = true
+          setIs3DReady(true)
+          setIsLoading(false)
+
+          // Call resize to ensure canvas dimensions are correct
+          try { map.resize() } catch {}
+
+          // Add terrain after map loads
+          if (showTerrain) {
+            try { map.setTerrain({ source: 'terrain-dem', exaggeration: 1.5 }) } catch {}
+          }
+
+          // Add 3D buildings vector source (OpenFreeMap)
+          try {
+            if (!map.getSource('openmaptiles')) {
+              map.addSource('openmaptiles', {
+                type: 'vector',
+                tiles: ['https://tiles.openfreemap.org/planet/{z}/{x}/{y}.pbf'],
+                maxzoom: 14,
+                attribution: '&copy; OpenFreeMap &copy; OpenMapTiles &copy; OpenStreetMap',
+              })
+            }
+
+            map.addLayer({
+              id: '3d-buildings',
+              source: 'openmaptiles',
+              'source-layer': 'building',
+              type: 'fill-extrusion',
+              minzoom: 12,
+              paint: {
+                'fill-extrusion-color': mapStyle === 'dark' ? '#2a2a3a' : '#c8b89a',
+                'fill-extrusion-height': ['coalesce', ['get', 'render_height'], 5],
+                'fill-extrusion-base': ['coalesce', ['get', 'render_min_height'], 0],
+                'fill-extrusion-opacity': mapStyle === 'dark' ? 0.7 : 0.6,
+              },
+            })
+          } catch (err) {
+            console.warn('Could not add 3D buildings layer:', err)
+          }
+
+          addTrackData(map)
+        })
+
+        // Error handler — only show overlay for critical errors
+        map.on('error', (e: any) => {
+          errorCount++
+          const error = e?.error || e
+          console.warn('MapLibre error:', error?.message || error)
+
+          const isWebGLContextLoss = error?.message?.includes('WebGL') ||
+            error?.message?.includes('context') ||
+            error?.message?.includes('RENDERER')
+
+          if (!hasLoadedSuccessfully && errorCount > 5) {
+            setInitError('Napaka pri nalaganju 3D zemljevida. Preverite povezavo in poskusite znova.')
+            setIsLoading(false)
+          } else if (isWebGLContextLoss) {
+            setInitError('WebGL napaka. Poskusite osvežiti stran.')
+            setIsLoading(false)
+          }
+        })
+
+        // Safety timeout — if map doesn't load in 20 seconds, show error
+        loadTimeout = setTimeout(() => {
+          if (!hasLoadedSuccessfully && !cancelled) {
+            console.error('MapLibre load timeout')
+            setInitError('3D zemljevid se ni naložil v pričakovanem času. Poskusite znova.')
+            setIsLoading(false)
+            if (map) {
+              try { map.remove() } catch {}
+              mapRef.current = null
+              initializedRef.current = false
+            }
+          }
+        }, 20000)
+
+      } catch (err) {
+        if (cancelled) return
+        console.error('MapLibre init error:', err)
+        setInitError(err instanceof Error ? err.message : 'Napaka pri nalaganju 3D zemljevida')
+        setIsLoading(false)
+        initializedRef.current = false
+        toast.error('Napaka pri nalaganju 3D zemljevida')
+      }
+    }
+
+    initMap()
+
+    return () => {
+      cancelled = true
+      if (loadTimeout) clearTimeout(loadTimeout)
+      if (flyAnimRef.current) {
+        clearTimeout(flyAnimRef.current)
+        cancelAnimationFrame(flyAnimRef.current)
+        flyAnimRef.current = null
+      }
+      if (map) {
+        try { map.remove() } catch {}
+        mapRef.current = null
+        initializedRef.current = false
+      }
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [retryCount]) // retryCount triggers re-initialization on retry
 
   // Switch map style
   useEffect(() => {
@@ -628,6 +698,7 @@ export default function Map3DViewer({
     try {
       map.setStyle(buildStyle(mapStyle))
       map.once('style.load', () => {
+        try { map.resize() } catch {}
         if (showTerrain) {
           try { map.setTerrain({ source: 'terrain-dem', exaggeration: 1.5 }) } catch {}
         }
@@ -881,7 +952,7 @@ export default function Map3DViewer({
         center: [p.lng, p.lat],
         pitch: currentPitch,
         duration: delayMs,
-        easing: (t) => t,
+        easing: (t: number) => t,
       })
 
       setProfilePoint(currentIndex)
@@ -930,8 +1001,8 @@ export default function Map3DViewer({
 
   return (
     <div className="relative w-full h-full">
-      {/* Map container */}
-      <div ref={containerRef} className="absolute inset-0" />
+      {/* Map container — must have explicit dimensions for MapLibre */}
+      <div ref={containerRef} className="absolute inset-0" style={{ width: '100%', height: '100%' }} />
 
       {/* Loading overlay */}
       {isLoading && !initError && (
@@ -951,7 +1022,7 @@ export default function Map3DViewer({
             <p className="text-sm text-white/90 font-medium">{initError}</p>
             <p className="text-xs text-white/50">Preverite povezavo in poskusite znova</p>
             <div className="flex gap-2 mt-2">
-              <Button variant="outline" size="sm" className="gap-1" onClick={() => { setInitError(null); setRetryCount(c => c + 1); }}>
+              <Button variant="outline" size="sm" className="gap-1" onClick={() => { setInitError(null); setRetryCount(c => c + 1); initializedRef.current = false; }}>
                 <RotateCcw className="size-3" /> Poskusi znova
               </Button>
               {onClose && (
