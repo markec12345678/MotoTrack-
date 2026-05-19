@@ -6,6 +6,7 @@ import { pipeline } from 'stream';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const PORT = 3000;
+const API_PORT = 3001;
 
 // Load HTML once (small, keep in memory)
 let INDEX_HTML;
@@ -32,9 +33,8 @@ const MIME = {
   '.html': 'text/html',
 };
 
-// Small file cache only (< 100KB)
-const cache = new Map();
 const MAX_CACHE_SIZE = 100_000;
+const cache = new Map();
 
 function getContentType(fp) {
   const ext = path.extname(fp).toLowerCase();
@@ -43,31 +43,24 @@ function getContentType(fp) {
 
 function serveFile(fp, res, maxAge) {
   try {
-    // Check cache first
     if (cache.has(fp)) {
       const { data, ct } = cache.get(fp);
       res.writeHead(200, { 'Content-Type': ct, 'Cache-Control': `public, max-age=${maxAge}` });
       res.end(data);
       return;
     }
-    
-    // Check if file exists
     if (!fs.existsSync(fp)) {
       res.writeHead(404, { 'Content-Type': 'text/plain' });
       res.end('Not Found');
       return;
     }
-    
     const stat = fs.statSync(fp);
     if (!stat.isFile()) {
       res.writeHead(404, { 'Content-Type': 'text/plain' });
       res.end('Not Found');
       return;
     }
-    
     const ct = getContentType(fp);
-    
-    // Small files: cache in memory
     if (stat.size < MAX_CACHE_SIZE) {
       const data = fs.readFileSync(fp);
       cache.set(fp, { data, ct });
@@ -75,13 +68,9 @@ function serveFile(fp, res, maxAge) {
       res.end(data);
       return;
     }
-    
-    // Large files: stream from disk
     res.writeHead(200, { 'Content-Type': ct, 'Cache-Control': `public, max-age=${maxAge}`, 'Content-Length': stat.size });
     const stream = fs.createReadStream(fp);
-    pipeline(stream, res, (err) => {
-      if (err) stream.destroy();
-    });
+    pipeline(stream, res, (err) => { if (err) stream.destroy(); });
   } catch (e) {
     if (!res.headersSent) {
       res.writeHead(500, { 'Content-Type': 'text/plain' });
@@ -90,13 +79,10 @@ function serveFile(fp, res, maxAge) {
   }
 }
 
-// Preload small files only
+// Preload small files
 function preloadSmall() {
   let count = 0;
-  const dirs = [
-    path.join(__dirname, '.next', 'static'),
-    path.join(__dirname, 'public'),
-  ];
+  const dirs = [path.join(__dirname, '.next', 'static'), path.join(__dirname, 'public')];
   for (const dir of dirs) {
     if (!fs.existsSync(dir)) continue;
     const walk = (d) => {
@@ -132,14 +118,11 @@ const API_GET = {
   '/api/sos': () => ({ ok: true }),
   '/api/seed': () => ({ needsSeed: false, userCount: 3 }),
   '/api/leaderboard': () => [{ id: 'demo1', name: 'Miran M.', totalDistance: 0, totalRides: 0 }],
-  '/api/rides': () => [],
-  '/api/routes': () => [],
   '/api/comments': () => [],
   '/api/settings': () => ({ unitSystem: 'metric', autoPauseEnabled: true, autoPauseSpeedThreshold: 5, wakelockEnabled: true, hideStartEnd: false }),
   '/api/stats': () => ({ totalRides: 0, totalDistance: 0, totalDuration: 0, avgSpeed: 0, maxSpeed: 0 }),
   '/api/weather': () => null,
   '/api/fuel': () => [],
-  '/api/fuel-prices': () => [],
   '/api/balkan-roads': () => [],
   '/api/events': () => [],
   '/api/challenges': () => [],
@@ -154,7 +137,61 @@ const API_GET = {
   '/api/subscription': () => ({ plan: 'free' }),
 };
 
-const server = http.createServer((req, res) => {
+// Check if Next.js API server is alive
+let nextJsAlive = false;
+function checkNextJs() {
+  return new Promise((resolve) => {
+    const req = http.get(`http://localhost:${API_PORT}/api/voice-commands`, (res) => {
+      let data = '';
+      res.on('data', chunk => data += chunk);
+      res.on('end', () => {
+        nextJsAlive = res.statusCode === 200;
+        resolve(nextJsAlive);
+      });
+    });
+    req.on('error', () => { nextJsAlive = false; resolve(false); });
+    req.setTimeout(5000, () => { req.destroy(); nextJsAlive = false; resolve(false); });
+  });
+}
+
+// Proxy API request to Next.js server
+function proxyApiRequest(req, res) {
+  return new Promise((resolve) => {
+    const url = new URL(req.url, `http://localhost:${API_PORT}`);
+    const options = {
+      hostname: 'localhost',
+      port: API_PORT,
+      path: url.pathname + url.search,
+      method: req.method,
+      headers: { ...req.headers, host: `localhost:${API_PORT}` },
+    };
+
+    const proxyReq = http.request(options, (proxyRes) => {
+      res.writeHead(proxyRes.statusCode, proxyRes.headers);
+      proxyRes.pipe(res);
+      proxyRes.on('end', () => resolve(true));
+    });
+
+    proxyReq.on('error', () => {
+      resolve(false);
+    });
+    proxyReq.setTimeout(60000, () => { proxyReq.destroy(); resolve(false); });
+
+    if (req.method === 'POST' || req.method === 'PUT' || req.method === 'DELETE') {
+      // Collect request body and forward
+      let body = '';
+      req.on('data', chunk => body += chunk);
+      req.on('end', () => {
+        proxyReq.write(body);
+        proxyReq.end();
+      });
+    } else {
+      proxyReq.end();
+    }
+  });
+}
+
+const server = http.createServer(async (req, res) => {
   try {
     const urlPath = req.url.split('?')[0];
     
@@ -177,7 +214,8 @@ const server = http.createServer((req, res) => {
         res.end(JSON.stringify({ success: true, message: 'Database seeded successfully (mock)', data: { users: 3, rides: 10, routes: 6 } }));
         return;
       }
-      // /api/tiles - proxy tile requests to external providers
+      
+      // /api/tiles - proxy tile requests
       if (urlPath === '/api/tiles') {
         const params = new URL(req.url, `http://${req.headers.host}`).searchParams;
         const provider = params.get('provider') || 'carto-voyager';
@@ -205,7 +243,6 @@ const server = http.createServer((req, res) => {
           return;
         }
         
-        // Fetch tile from external provider and proxy to client
         try {
           const tileRes = await fetch(tileUrl, {
             headers: { 'User-Agent': 'MotoTrack/1.0' },
@@ -230,6 +267,12 @@ const server = http.createServer((req, res) => {
         }
         return;
       }
+
+      // Try to proxy to Next.js API server first
+      const proxied = await proxyApiRequest(req, res);
+      if (proxied) return;
+      
+      // Fallback to mock data
       const handler = API_GET[urlPath];
       const data = handler ? handler() : null;
       res.writeHead(200, { 'Content-Type': 'application/json' });
@@ -243,7 +286,6 @@ const server = http.createServer((req, res) => {
       return;
     }
     
-    // Try public folder
     const fp = path.join(__dirname, 'public', urlPath.slice(1));
     serveFile(fp, res, 3600);
   } catch (e) {
@@ -256,5 +298,5 @@ const server = http.createServer((req, res) => {
 
 const count = preloadSmall();
 server.listen(PORT, () => {
-  console.log(`> MotoTrack v10 on :${PORT} | ${count} small files cached | streaming large files`);
+  console.log(`> MotoTrack v11 on :${PORT} | ${count} cached | API proxy to :${API_PORT}`);
 });

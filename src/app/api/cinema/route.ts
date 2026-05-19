@@ -130,25 +130,25 @@ export async function POST(request: NextRequest) {
         const ZAI = (await import('z-ai-web-dev-sdk')).default
         const zai = await ZAI.create()
 
+        // Available voices: tongtong, chuichui, xiaochen, jam, kazi, douji, luodo
         const response = await zai.audio.tts.create({
           input: narration,
-          voice: 'female',
+          voice: 'tongtong',
           speed: 1.0,
+          response_format: 'wav',
+          stream: false,
         })
 
-        if (response.ok) {
-          const pcmData = await response.arrayBuffer()
-          const pcmBuffer = Buffer.from(pcmData)
+        // The SDK returns a standard Response object
+        const arrayBuffer = await response.arrayBuffer()
+        const audioBuffer = Buffer.from(new Uint8Array(arrayBuffer))
 
-          // Create WAV header
-          const wavHeader = createWavHeader(pcmBuffer.length)
-          const wavBuffer = Buffer.concat([wavHeader, pcmBuffer])
-
-          return new NextResponse(wavBuffer, {
+        if (audioBuffer.length >= 44) {
+          return new NextResponse(audioBuffer, {
             status: 200,
             headers: {
               'Content-Type': 'audio/wav',
-              'Content-Length': wavBuffer.length.toString(),
+              'Content-Length': audioBuffer.length.toString(),
               'Cache-Control': 'public, max-age=3600',
             },
           })
@@ -168,28 +168,6 @@ export async function POST(request: NextRequest) {
     console.error('Cinema narration error:', error)
     return NextResponse.json({ error: 'Napaka pri generiranju narracije' }, { status: 500 })
   }
-}
-
-function createWavHeader(dataLength: number, sampleRate = 24000, numChannels = 1, bitsPerSample = 16): Buffer {
-  const header = Buffer.alloc(44)
-  const byteRate = sampleRate * numChannels * (bitsPerSample / 8)
-  const blockAlign = numChannels * (bitsPerSample / 8)
-
-  header.write('RIFF', 0)
-  header.writeUInt32LE(36 + dataLength, 4)
-  header.write('WAVE', 8)
-  header.write('fmt ', 12)
-  header.writeUInt32LE(16, 16)
-  header.writeUInt16LE(1, 20)
-  header.writeUInt16LE(numChannels, 22)
-  header.writeUInt32LE(sampleRate, 24)
-  header.writeUInt32LE(byteRate, 28)
-  header.writeUInt16LE(blockAlign, 32)
-  header.writeUInt16LE(bitsPerSample, 34)
-  header.write('data', 36)
-  header.writeUInt32LE(dataLength, 40)
-
-  return header
 }
 
 async function reverseGeocode(lat: number, lng: number): Promise<string> {

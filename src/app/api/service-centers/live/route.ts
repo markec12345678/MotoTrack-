@@ -284,10 +284,10 @@ export async function GET(req: NextRequest) {
           // Try to read the page for more details
           let pageContent = ''
           try {
-            const pageData = await zai.functions.invoke('web_reader' as any, {
+            const pageData = await zai.functions.invoke('page_reader', {
               url: result.url,
-            }) as { html?: string; content?: string; text?: string }
-            pageContent = pageData?.html || pageData?.content || pageData?.text || ''
+            }) as { data?: { html?: string; content?: string; text?: string }; html?: string; content?: string; text?: string }
+            pageContent = pageData?.data?.html || pageData?.data?.content || pageData?.data?.text || pageData?.html || pageData?.content || pageData?.text || ''
           } catch {
             // Page reading can fail, continue with search snippet
             console.log(`[Live Service Centers] Could not read page: ${result.url}`)

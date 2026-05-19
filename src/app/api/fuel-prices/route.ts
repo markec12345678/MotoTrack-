@@ -301,11 +301,11 @@ async function fetchLivePrices(): Promise<CachedPrices> {
       // ── Try reading top result pages ──
       for (const result of searchResults.slice(0, 3)) {
         try {
-          const pageContent = await zai.functions.invoke('web_reader' as any, {
+          const pageContent = await zai.functions.invoke('page_reader', {
             url: result.url,
-          }) as WebPageContent
+          }) as { data?: { html?: string; content?: string; title?: string }; html?: string; content?: string }
 
-          const text = pageContent?.content || pageContent?.html || ''
+          const text = pageContent?.data?.html || pageContent?.data?.content || pageContent?.html || pageContent?.content || ''
           if (!text) continue
 
           const pagePrices = parseFuelPricesFromText(text)
@@ -334,7 +334,7 @@ async function fetchLivePrices(): Promise<CachedPrices> {
         }
       }
 
-      // ── If web_reader didn't find enough, try parsing search snippets ──
+      // ── If page_reader didn't find enough, try parsing search snippets ──
       if (!foundEnough && Object.keys(extractedPrices).length < 2) {
         const allSnippets = searchResults.map(r => `${r.name} ${r.snippet}`).join(' ')
         const snippetPrices = parseFuelPricesFromText(allSnippets)

@@ -1,8 +1,4 @@
 #!/bin/bash
 cd /home/z/my-project
-echo "[DEV] Starting MotoTrack Node.js server..."
-while true; do
-  node static-server.mjs 2>&1
-  echo "[DEV] Server died, restarting in 1s..."
-  sleep 1
-done
+echo "[DEV] Starting MotoTrack Next.js dev server..."
+NODE_OPTIONS='--max-old-space-size=4096' npx next dev --port 3000 2>&1
