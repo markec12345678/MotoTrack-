@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useRef, useCallback } from 'react'
 import L from 'leaflet'
-import 'leaflet/dist/leaflet.css'
+// Leaflet CSS is loaded from CDN in layout.tsx to bypass Tailwind v4 CSS processing
 import { Button } from '@/components/ui/button'
 import { Progress } from '@/components/ui/progress'
 import { Badge } from '@/components/ui/badge'

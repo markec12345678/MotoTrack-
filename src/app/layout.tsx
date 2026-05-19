@@ -1,6 +1,5 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
-import "leaflet/dist/leaflet.css";
 import "./globals.css";
 import { Toaster } from "@/components/ui/sonner";
 import { ThemeProvider } from "next-themes";
@@ -58,6 +57,13 @@ export default function RootLayout({
   return (
     <html lang="sl" suppressHydrationWarning>
       <head>
+        {/* Leaflet CSS loaded from CDN to bypass Tailwind v4 CSS processing which breaks Leaflet styles */}
+        <link
+          rel="stylesheet"
+          href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+          integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY="
+          crossOrigin=""
+        />
         <script
           dangerouslySetInnerHTML={{
             __html: `

@@ -2,7 +2,7 @@
 
 import { useEffect, useRef } from 'react'
 import L from 'leaflet'
-import 'leaflet/dist/leaflet.css'
+// Leaflet CSS is loaded from CDN in layout.tsx to bypass Tailwind v4 CSS processing
 import { poiTypeEmoji, poiTypeColor, poiTypeLabel } from '@/components/tabs/types'
 import type { LiveRider, HazardData, RoadRatingData, TripDayData } from '@/components/tabs/types'
 
