@@ -1032,3 +1032,32 @@ Stage Summary:
 - Plan tab has better visual hierarchy and interaction patterns
 - All changes pass lint check (0 errors)
 - Pushed to GitHub for Vercel deployment
+---
+Task ID: UI-Overhaul-Session
+Agent: Main Coordinator
+Task: Professional UI/UX overhaul - fix map rendering, redesign navigation, header, FAB
+
+Work Log:
+- Analyzed user screenshot with VLM - identified: map not loading (black screen), overlapping elements, cramped dark nav, low contrast
+- Fixed map container: changed map-tab from "relative w-full h-screen" to "fixed inset-0 z-0" for proper full-viewport rendering
+- Fixed moto-map container: added explicit "position: absolute; inset: 0" for reliable Leaflet tile loading
+- Added ResizeObserver to moto-map for automatic size recalculation
+- Added multiple invalidateSize() calls (200ms + 500ms) for reliable tile loading after mount
+- Redesigned header: taller (56px), bold primary icon with shadow, proper text contrast on map tab (white) vs other tabs (primary)
+- Redesigned bottom nav: replaced dark/black bg (bg-black/95) with professional light design (bg-background/95)
+  - Active pill background, top indicator bar, proper spacing, muted-foreground for inactive
+  - Increased touch targets (px-4 sm:px-6 py-2)
+- Fixed FAB button: better positioning (84px above nav), removed annoying ping animation, added fab-breathe class
+- Updated all header buttons for map tab context: white text on dark map background
+- Updated LoadingSkeleton to match new dimensions
+- Updated CSS: subtler header gradient, cleaner FAB breathing, updated nav indicator style
+- Adjusted map-tab floating panel positions for new header height (top-[66px], top-[120px], etc.)
+- All changes pass lint (0 errors)
+- Pushed to GitHub (commit 6877532)
+
+Stage Summary:
+- Map rendering fixed: fixed inset-0 positioning + ResizeObserver + delayed invalidateSize
+- Professional bottom nav: light theme, proper spacing, active indicators
+- Clean header with bold branding and context-aware colors
+- FAB no longer overlaps with bottom nav
+- Pushed to Vercel for deployment verification
