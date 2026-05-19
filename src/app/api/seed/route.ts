@@ -94,6 +94,16 @@ async function seedDatabase() {
     // try { await db.parkingLog.deleteMany() } catch {}        // Model not in Prisma schema
     // try { await db.speedAlertSetting.deleteMany() } catch {}  // Model not in Prisma schema
     try { await db.favorite.deleteMany() } catch {}
+    try { await db.videoFootage.deleteMany() } catch {}
+    try { await db.routeRoiScore.deleteMany() } catch {}
+    try { await db.routeReview.deleteMany() } catch {}
+    try { await db.offlineSyncQueue.deleteMany() } catch {}
+    try { await db.savedRoute.deleteMany() } catch {}
+    try { await db.fuelPrice.deleteMany() } catch {}
+    try { await db.privacyZone.deleteMany() } catch {}
+    try { await db.offlineMap.deleteMany() } catch {}
+    try { await db.motoEvent.deleteMany() } catch {}
+    try { await db.campSite.deleteMany() } catch {}
     try { await db.user.deleteMany() } catch {}
 
     // Create demo users

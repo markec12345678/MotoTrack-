@@ -32,6 +32,7 @@ export async function GET(req: NextRequest) {
           id: gr.id,
           title: gr.title,
           description: gr.description,
+          creatorId: gr.creatorId,
           date: gr.date.toISOString(),
           meetingLat: gr.meetingLat,
           meetingLng: gr.meetingLng,
@@ -42,10 +43,12 @@ export async function GET(req: NextRequest) {
           maxRiders: gr.maxRiders,
           category: gr.category,
           status: gr.status,
+          createdAt: gr.createdAt.toISOString(),
           creator,
           participantCount: participants.length,
           participants: participants.map(p => ({
             id: p.id,
+            groupRideId: p.groupRideId,
             userId: p.userId,
             status: p.status,
             joinedAt: p.joinedAt.toISOString(),
@@ -58,7 +61,7 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ success: true, data: ridesWithCounts })
   } catch (error) {
     console.error('GroupRides GET error:', error)
-    return NextResponse.json({ error: 'Napaka pri pridobivanju skupinskih voženj' }, { status: 500 })
+    return NextResponse.json({ success: false, error: 'Napaka pri pridobivanju skupinskih voženj' }, { status: 500 })
   }
 }
 
@@ -68,7 +71,7 @@ export async function POST(req: NextRequest) {
     const { creatorId, title, description, date, meetingLat, meetingLng, meetingPlace, destinationLat, destinationLng, destinationPlace, maxRiders, category } = body
 
     if (!creatorId || !title || !date || meetingLat == null || meetingLng == null || !meetingPlace) {
-      return NextResponse.json({ error: 'Manjkajo obvezni podatki' }, { status: 400 })
+      return NextResponse.json({ success: false, error: 'Manjkajo obvezni podatki' }, { status: 400 })
     }
 
     const groupRide = await db.groupRide.create({
@@ -100,6 +103,6 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ success: true, data: groupRide })
   } catch (error) {
     console.error('GroupRides POST error:', error)
-    return NextResponse.json({ error: 'Napaka pri ustvarjanju skupinske vožnje' }, { status: 500 })
+    return NextResponse.json({ success: false, error: 'Napaka pri ustvarjanju skupinske vožnje' }, { status: 500 })
   }
 }

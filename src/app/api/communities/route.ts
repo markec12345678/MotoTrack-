@@ -22,7 +22,7 @@ export async function GET(request: NextRequest) {
       description: c.description,
       avatar: c.avatar,
       isPublic: c.isPublic,
-      createdAt: c.createdAt,
+      createdAt: c.createdAt.toISOString(),
       memberCount: c._count.members,
       rideCount: c._count.rides,
       isMember: userId ? c.members.some(m => m.userId === userId) : false,
@@ -30,10 +30,10 @@ export async function GET(request: NextRequest) {
       recentMembers: c.members.slice(-3).map(m => m.user),
     }))
 
-    return NextResponse.json({ data })
+    return NextResponse.json({ success: true, data })
   } catch (error) {
     console.error('Communities fetch error:', error)
-    return NextResponse.json({ error: 'Napaka pri pridobivanju skupnosti' }, { status: 500 })
+    return NextResponse.json({ success: false, error: 'Napaka pri pridobivanju skupnosti' }, { status: 500 })
   }
 }
 
@@ -43,7 +43,7 @@ export async function POST(request: NextRequest) {
     const { name, description, avatar, isPublic, userId } = body
 
     if (!name || !userId) {
-      return NextResponse.json({ error: 'Manjka ime ali userId' }, { status: 400 })
+      return NextResponse.json({ success: false, error: 'Manjka ime ali userId' }, { status: 400 })
     }
 
     const community = await db.community.create({
@@ -59,9 +59,9 @@ export async function POST(request: NextRequest) {
       include: { members: true },
     })
 
-    return NextResponse.json({ data: community })
+    return NextResponse.json({ success: true, data: community })
   } catch (error) {
     console.error('Community create error:', error)
-    return NextResponse.json({ error: 'Napaka pri ustvarjanju skupnosti' }, { status: 500 })
+    return NextResponse.json({ success: false, error: 'Napaka pri ustvarjanju skupnosti' }, { status: 500 })
   }
 }
