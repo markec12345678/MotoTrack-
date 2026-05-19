@@ -475,10 +475,10 @@ export default function MapTab({ rides, routes, onOpenDetail, userId }: MapTabPr
       />
       </div>
 
-      {/* Floating search bar - professional style (hidden in 3D) */}
+      {/* Floating search bar - Premium frosted style (hidden in 3D) */}
       <div className="absolute top-[66px] left-4 right-16 z-[1000]">
         <div className="relative max-w-md">
-          <div className="flex items-center gap-2 bg-white/95 dark:bg-black/80 backdrop-blur-xl border border-white/20 dark:border-white/10 rounded-2xl shadow-xl shadow-black/10 dark:shadow-black/30 px-3.5 py-2.5">
+          <div className="flex items-center gap-2 bg-white/90 dark:bg-black/70 backdrop-blur-2xl border border-white/20 dark:border-white/[0.08] rounded-2xl shadow-xl shadow-black/5 dark:shadow-black/30 px-3.5 py-2.5">
             <Search className="h-4 w-4 text-primary shrink-0" />
             <Input
               value={searchInput}
@@ -522,13 +522,13 @@ export default function MapTab({ rides, routes, onOpenDetail, userId }: MapTabPr
         </div>
       </div>
 
-      {/* Right side - Grouped category buttons */}
-      <div className="absolute top-[66px] right-4 z-[1000] flex flex-col gap-1.5">
+      {/* Right side - Premium grouped category buttons */}
+      <div className="absolute top-[66px] right-4 z-[1000] flex flex-col gap-2">
         {/* LAYERS group */}
         <Popover>
           <PopoverTrigger asChild>
-            <Button size="icon" variant="secondary" className={`h-9 w-9 rounded-full shadow-md backdrop-blur-md border border-white/10 ${(showFilters || showTwistyRoads || showTraffic || showRoadQuality || showCamps || activePoiCount > 0) ? 'bg-primary text-primary-foreground' : 'bg-black/50 text-white hover:bg-black/70'}`} title="Plasti">
-              <Layers className="h-4 w-4" />
+            <Button size="icon" variant="secondary" className={`h-10 w-10 rounded-full shadow-lg backdrop-blur-md border transition-all ${(showFilters || showTwistyRoads || showTraffic || showRoadQuality || showCamps || activePoiCount > 0) ? 'bg-primary text-primary-foreground border-primary/30' : 'bg-black/50 text-white hover:bg-black/70 border-white/10'}`} title="Plasti">
+              <Layers className="h-[18px] w-[18px]" />
               {(activePoiCount > 0 || showTwistyRoads || showTraffic || showRoadQuality || showCamps) && <span className="absolute -top-1 -right-1 bg-red-500 text-white text-[8px] font-bold rounded-full size-3.5 flex items-center justify-center">!</span>}
             </Button>
           </PopoverTrigger>
@@ -723,20 +723,20 @@ export default function MapTab({ rides, routes, onOpenDetail, userId }: MapTabPr
         </div>
       )}
 
-      {/* Locate button & Map Style */}
-      <div className="absolute bottom-28 right-4 z-[1000] flex flex-col gap-1.5">
+      {/* Locate button & Map Style - Premium FAB buttons */}
+      <div className="absolute bottom-28 right-4 z-[1000] flex flex-col gap-2">
         <MapStyleSelector userId={userId} />
         <Button
           size="icon"
           variant="secondary"
-          className={`h-9 w-9 rounded-full shadow-md backdrop-blur-md border ${show3D ? 'bg-emerald-500/90 text-white hover:bg-emerald-600' : 'bg-black/50 hover:bg-black/70 text-white border-white/10'}`}
+          className={`h-10 w-10 rounded-full shadow-lg backdrop-blur-md border transition-all ${show3D ? 'bg-emerald-500/90 text-white hover:bg-emerald-600 border-emerald-400/30' : 'bg-black/50 hover:bg-black/70 text-white border-white/10'}`}
           onClick={() => setShow3D(!show3D)}
           title="3D pogled"
         >
-          <Mountain className="h-4 w-4" />
+          <Mountain className="h-[18px] w-[18px]" />
         </Button>
-        <Button size="icon" variant="secondary" className="h-9 w-9 rounded-full shadow-md bg-black/50 backdrop-blur-md border border-white/10 text-white hover:bg-black/70" onClick={handleLocate}>
-          <LocateFixed className="h-4 w-4" />
+        <Button size="icon" variant="secondary" className="h-10 w-10 rounded-full shadow-lg bg-black/50 backdrop-blur-md border border-white/10 text-white hover:bg-black/70" onClick={handleLocate}>
+          <LocateFixed className="h-[18px] w-[18px]" />
         </Button>
       </div>
 
@@ -789,10 +789,10 @@ export default function MapTab({ rides, routes, onOpenDetail, userId }: MapTabPr
         </div>
       )}
 
-      {/* Nearby panel - REVER-style compact strip */}
+      {/* Nearby panel - Premium compact strip */}
       <div className="absolute bottom-20 left-4 right-4 z-[1000]">
-        <div className={`bg-black/85 backdrop-blur-xl border border-white/10 rounded-2xl shadow-xl shadow-black/20 transition-all duration-300 overflow-hidden ${nearbyExpanded ? 'max-h-[60vh]' : 'max-h-12'}`}>
-          <button onClick={() => setNearbyExpanded(!nearbyExpanded)} className="w-full flex items-center justify-between px-4 h-12 text-sm font-medium text-white hover:bg-white/5 transition-colors rounded-t-2xl">
+        <div className={`bg-black/80 backdrop-blur-2xl border border-white/[0.08] rounded-2xl shadow-2xl shadow-black/30 transition-all duration-300 overflow-hidden ${nearbyExpanded ? 'max-h-[60vh]' : 'max-h-12'}`}>
+          <button onClick={() => setNearbyExpanded(!nearbyExpanded)} className="w-full flex items-center justify-between px-4 h-12 text-sm font-semibold text-white/80 hover:bg-white/5 transition-colors rounded-t-2xl">
             <div className="flex items-center gap-2">
               <div className="flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-primary/20 text-primary text-[10px] font-bold">
                 <Bike className="size-3" /> {rides.length}
