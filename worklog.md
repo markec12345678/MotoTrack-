@@ -1084,3 +1084,28 @@ Stage Summary:
 - Header is larger with gradient logo icon
 - All tab heights properly adjusted for new dimensions
 - Changes pushed to GitHub, Vercel should auto-deploy
+
+---
+Task ID: 10
+Agent: Main Agent
+Task: CRITICAL FIX - Map tiles not rendering on Vercel (empty white squares)
+
+Work Log:
+- User reported "se vedno kvadratki prazni belo nic ni videt" - still seeing empty white squares on Vercel
+- VLM analysis confirmed: tile containers visible but images not rendering
+- Identified root cause: Tailwind v4's CSS compiler strips/weaken !important declarations in globals.css on Vercel production builds
+- Fix 1: Moved ALL Leaflet CSS overrides from globals.css to inline <style> tag in layout.tsx <head>
+  - This bypasses Tailwind's CSS processing entirely
+  - Added .leaflet-tile img selector (was missing before)
+  - Added opacity:1 and visibility:inherit to tile overrides
+- Fix 2: Added MutationObserver script in layout.tsx that watches for new tile <img> elements
+  - Forces correct inline styles: maxWidth:none, width:256px, height:256px, display:inline
+- Fix 3: Added runtime fixTileStyles() in moto-map.tsx component
+  - MutationObserver on the map container catches new tiles
+  - Periodic interval (every 500ms for 10 seconds) enforces correct styles
+- Fix 4: Removed duplicate Leaflet overrides from globals.css (replaced with comment)
+- Committed and pushed (3402854)
+
+Stage Summary:
+- Triple-layer fix for Leaflet tiles: inline CSS, global MutationObserver, component-level MutationObserver
+- This should definitively fix the empty white squares on Vercel
