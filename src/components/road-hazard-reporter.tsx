@@ -211,10 +211,10 @@ export default function RoadHazardReporter({
 
   return (
     <>
-      {/* Floating hazard button - bottom left, above dashboard */}
+      {/* Floating hazard button - bottom right, above dashboard */}
       <button
         onClick={() => setDialogOpen(true)}
-        className="absolute bottom-4 left-4 z-[1001] size-12 rounded-full bg-amber-500 hover:bg-amber-600 text-white shadow-lg shadow-amber-500/40 flex items-center justify-center active:scale-95 transition-all"
+        className="absolute bottom-4 right-4 z-[1001] size-12 rounded-full bg-amber-500 hover:bg-amber-600 text-white shadow-lg shadow-amber-500/40 flex items-center justify-center active:scale-95 transition-all"
         title="Prijavi nevarnost na cesti"
       >
         <AlertTriangle className="size-5" />
