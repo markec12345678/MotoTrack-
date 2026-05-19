@@ -1517,12 +1517,12 @@ export default function PlanTab({
           tripDays={mapTripDays}
         />
       </div>
-      <div className="lg:w-96 w-full bg-card border-t lg:border-t-0 lg:border-l border-border/50 p-4 overflow-y-auto max-h-[40vh] lg:max-h-full custom-scrollbar">
-        {/* Mode toggle - 3 options with icons */}
-        <div className="flex items-center gap-1 mb-4 bg-secondary/50 rounded-xl p-1">
+      <div className="lg:w-96 w-full bg-card/80 backdrop-blur-sm border-t lg:border-t-0 lg:border-l border-border/30 p-4 overflow-y-auto max-h-[40vh] lg:max-h-full custom-scrollbar">
+        {/* Mode toggle - Premium pill-style */}
+        <div className="flex items-center gap-1 mb-4 bg-muted/40 rounded-xl p-1 inner-glow">
           <button
-            className={`flex-1 flex items-center justify-center gap-1.5 text-xs font-medium py-2.5 px-2 rounded-lg transition-all duration-200 ${
-              mode === 'single' ? 'bg-primary text-primary-foreground shadow-sm shadow-primary/20' : 'text-muted-foreground hover:text-foreground hover:bg-secondary/80'
+            className={`flex-1 flex items-center justify-center gap-1.5 text-xs font-semibold py-2.5 px-2 rounded-lg transition-all duration-200 ${
+              mode === 'single' ? 'bg-primary text-primary-foreground shadow-sm shadow-primary/25' : 'text-muted-foreground hover:text-foreground hover:bg-muted/60'
             }`}
             onClick={() => { setMode('single'); setViewingTrip(null) }}
           >
@@ -1530,8 +1530,8 @@ export default function PlanTab({
             <span>Enodnevna</span>
           </button>
           <button
-            className={`flex-1 flex items-center justify-center gap-1.5 text-xs font-medium py-2.5 px-2 rounded-lg transition-all duration-200 ${
-              mode === 'roundtrip' ? 'bg-primary text-primary-foreground shadow-sm shadow-primary/20' : 'text-muted-foreground hover:text-foreground hover:bg-secondary/80'
+            className={`flex-1 flex items-center justify-center gap-1.5 text-xs font-semibold py-2.5 px-2 rounded-lg transition-all duration-200 ${
+              mode === 'roundtrip' ? 'bg-primary text-primary-foreground shadow-sm shadow-primary/25' : 'text-muted-foreground hover:text-foreground hover:bg-muted/60'
             }`}
             onClick={() => { setMode('roundtrip'); setViewingTrip(null) }}
           >
@@ -1539,8 +1539,8 @@ export default function PlanTab({
             <span>Krožna</span>
           </button>
           <button
-            className={`flex-1 flex items-center justify-center gap-1.5 text-xs font-medium py-2.5 px-2 rounded-lg transition-all duration-200 ${
-              mode === 'multiday' ? 'bg-primary text-primary-foreground shadow-sm shadow-primary/20' : 'text-muted-foreground hover:text-foreground hover:bg-secondary/80'
+            className={`flex-1 flex items-center justify-center gap-1.5 text-xs font-semibold py-2.5 px-2 rounded-lg transition-all duration-200 ${
+              mode === 'multiday' ? 'bg-primary text-primary-foreground shadow-sm shadow-primary/25' : 'text-muted-foreground hover:text-foreground hover:bg-muted/60'
             }`}
             onClick={() => { setMode('multiday'); setViewingTrip(null) }}
           >
@@ -1552,11 +1552,14 @@ export default function PlanTab({
         {mode === 'single' ? (
           /* ===== SINGLE DAY MODE ===== */
           <div className="space-y-4">
-            <div className="flex items-center gap-2">
-              <div className="flex items-center justify-center size-7 rounded-lg bg-primary/15">
+            <div className="flex items-center gap-2.5">
+              <div className="flex items-center justify-center size-8 rounded-xl bg-primary/10 inner-glow">
                 <Route className="size-4 text-primary" />
               </div>
-              <h2 className="font-bold text-lg tracking-tight">Načrtuj pot</h2>
+              <div>
+                <h2 className="font-bold text-base tracking-tight">Načrtuj pot</h2>
+                <p className="text-[10px] text-muted-foreground/60">Kliknite na zemljevid za točke</p>
+              </div>
             </div>
             <div>
               <label className="text-xs font-medium text-muted-foreground mb-1 block">Ime poti</label>

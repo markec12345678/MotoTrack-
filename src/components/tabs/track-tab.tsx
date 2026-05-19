@@ -661,39 +661,45 @@ export default function TrackTab({
         <DrawerContent className="bg-black/95 backdrop-blur-xl border-t border-white/10 max-h-[92vh]">
           <DrawerTitle className="sr-only">Sledenje vožnji</DrawerTitle>
           
-          {/* When not tracking - Start button */}
+          {/* When not tracking - Premium Start button */}
           {!isTracking && !trackPoints.length && (
-            <div className="px-4 py-4 flex flex-col items-center gap-3">
-              <div className="flex items-center gap-2 text-white/50 text-xs">
+            <div className="px-4 py-5 flex flex-col items-center gap-4">
+              <div className="flex items-center gap-2 text-white/40 text-xs">
                 <Bike className="size-4" />
-                <span>Pripravljen na vožnjo</span>
+                <span className="font-medium">Pripravljen na vožnjo</span>
               </div>
               {/* Auto-start countdown display */}
               {autoStartEnabled && autoStartCountdown !== null && autoStartCountdown > 0 && (
-                <div className="flex items-center gap-2 px-4 py-2 rounded-xl bg-amber-500/20 border border-amber-500/30 animate-pulse">
+                <div className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-amber-500/15 border border-amber-500/25 animate-pulse">
                   <Radio className="size-4 text-amber-400" />
                   <span className="text-xs font-bold text-amber-300">
                     Zaznavam gibanje... sledenje se začne čez {autoStartCountdown} s
                   </span>
                 </div>
               )}
+              {/* Premium Start button with gradient and glow */}
               <button
                 onClick={() => setShowChecklist(true)}
-                className="relative w-16 h-16 rounded-full bg-primary flex items-center justify-center shadow-lg shadow-primary/40 active:scale-95 transition-transform"
+                className="relative group"
               >
-                <Play className="size-7 text-white fill-white ml-1" />
-                {/* Pulse ring animation */}
-                <div className="absolute inset-0 rounded-full bg-primary/30 animate-ping" />
+                <div className="absolute inset-0 rounded-full bg-primary/40 blur-xl group-hover:bg-primary/50 transition-colors" />
+                <div className="relative w-20 h-20 rounded-full bg-gradient-to-br from-primary to-primary/80 flex items-center justify-center shadow-xl shadow-primary/30 active:scale-95 transition-transform">
+                  <Play className="size-8 text-white fill-white ml-1" />
+                  {/* Inner glow */}
+                  <div className="absolute inset-0 rounded-full bg-gradient-to-br from-white/20 to-transparent" />
+                </div>
+                {/* Animated pulse ring */}
+                <div className="absolute inset-0 rounded-full border-2 border-primary/30 animate-ping" />
               </button>
-              <span className="text-white/40 text-[10px]">Pritisni za začetek</span>
+              <span className="text-white/30 text-[10px] font-medium uppercase tracking-widest">Pritisni za začetek</span>
               {/* Auto-start toggle */}
               {onToggleAutoStart && (
                 <button
                   onClick={onToggleAutoStart}
-                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[10px] font-bold transition-colors ${
+                  className={`flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-[10px] font-bold transition-all ${
                     autoStartEnabled
-                      ? 'bg-amber-500/20 text-amber-400 border border-amber-500/30'
-                      : 'bg-white/10 text-white/40 border border-white/10 hover:bg-white/15'
+                      ? 'bg-amber-500/15 text-amber-400 border border-amber-500/25'
+                      : 'bg-white/5 text-white/30 border border-white/10 hover:bg-white/10 hover:text-white/50'
                   }`}
                   title="Samodejni začetek sledenja pri hitrosti > 20 km/h"
                 >
@@ -803,23 +809,23 @@ export default function TrackTab({
                 </div>
               )}
 
-              {/* Stats grid - REVER style */}
-              <div className="grid grid-cols-3 gap-3 mb-3">
-                <div className="text-center">
+              {/* Stats grid - Premium REVER style with glass morphism */}
+              <div className="grid grid-cols-3 gap-2 mb-3">
+                <div className="text-center py-3 px-2 rounded-xl bg-white/[0.04] border border-white/[0.06]">
                   <div className="flex items-center justify-center gap-1">
-                    <p className={`text-2xl font-bold ${isOverSpeed ? 'text-red-400' : 'text-white'}`}>
+                    <p className={`text-2xl font-extrabold tabular-nums tracking-tight ${isOverSpeed ? 'text-red-400' : 'text-white'}`}>
                       {displaySpeed}
                     </p>
                   </div>
-                  <p className="text-[10px] text-white/40 uppercase tracking-wider">{speedUnitLabel}</p>
+                  <p className="text-[9px] text-white/30 uppercase tracking-[0.15em] font-semibold mt-0.5">{speedUnitLabel}</p>
                 </div>
-                <div className="text-center">
-                  <p className="text-2xl font-bold text-white">{displayDistance.toFixed(1)}</p>
-                  <p className="text-[10px] text-white/40 uppercase tracking-wider">{distanceUnitLabel}</p>
+                <div className="text-center py-3 px-2 rounded-xl bg-white/[0.04] border border-white/[0.06]">
+                  <p className="text-2xl font-extrabold tabular-nums tracking-tight text-white">{displayDistance.toFixed(1)}</p>
+                  <p className="text-[9px] text-white/30 uppercase tracking-[0.15em] font-semibold mt-0.5">{distanceUnitLabel}</p>
                 </div>
-                <div className="text-center">
-                  <p className="text-2xl font-bold text-white/70">{displayMaxSpeed}</p>
-                  <p className="text-[10px] text-white/40 uppercase tracking-wider">max</p>
+                <div className="text-center py-3 px-2 rounded-xl bg-white/[0.04] border border-white/[0.06]">
+                  <p className="text-2xl font-extrabold tabular-nums tracking-tight text-white/60">{displayMaxSpeed}</p>
+                  <p className="text-[9px] text-white/30 uppercase tracking-[0.15em] font-semibold mt-0.5">max</p>
                 </div>
               </div>
 
