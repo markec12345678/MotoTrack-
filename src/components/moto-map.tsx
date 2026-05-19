@@ -346,6 +346,34 @@ export default function MotoMap({
       onMapReady(map)
     }
 
+    // CRITICAL: Force Leaflet tile images to render correctly
+    // Tailwind CSS v4 preflight resets img styles (max-width:100%, height:auto, display:block)
+    // which breaks Leaflet's 256x256 tile images. This MutationObserver + periodic fix
+    // ensures tiles always have correct inline styles, even if CSS overrides fail.
+    const fixTileStyles = () => {
+      try {
+        const tiles = container.querySelectorAll('.leaflet-tile-pane img')
+        tiles.forEach((img: Element) => {
+          const htmlImg = img as HTMLImageElement
+          htmlImg.style.maxWidth = 'none'
+          htmlImg.style.maxHeight = 'none'
+          htmlImg.style.width = '256px'
+          htmlImg.style.height = '256px'
+          htmlImg.style.display = 'inline'
+          htmlImg.style.position = 'absolute'
+          htmlImg.style.opacity = '1'
+        })
+      } catch { /* ignore */ }
+    }
+
+    // Fix tiles when they load
+    const tileObserver = new MutationObserver(() => fixTileStyles())
+    tileObserver.observe(container, { childList: true, subtree: true })
+
+    // Also fix periodically for the first 10 seconds (catches lazy-loaded tiles)
+    const fixInterval = setInterval(fixTileStyles, 500)
+    setTimeout(() => clearInterval(fixInterval), 10000)
+
     // ResizeObserver to ensure map fills container properly
     const resizeObserver = new ResizeObserver(() => {
       if (mapRef.current === map) {
@@ -370,6 +398,8 @@ export default function MotoMap({
     return () => {
       clearTimeout(timerId)
       clearTimeout(timerId2)
+      clearInterval(fixInterval)
+      tileObserver.disconnect()
       resizeObserver.disconnect()
       map.remove()
       mapRef.current = null

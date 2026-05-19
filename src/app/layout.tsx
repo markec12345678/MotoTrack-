@@ -64,6 +64,144 @@ export default function RootLayout({
           integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY="
           crossOrigin=""
         />
+        {/* CRITICAL: Leaflet CSS overrides MUST be in a raw style tag to bypass Tailwind v4 CSS processing.
+            Tailwind v4 preflight resets: img { max-width:100%; height:auto; display:block; } which destroys Leaflet tiles.
+            Putting overrides in globals.css doesn't work on Vercel because Tailwind's compiler strips/weakens !important. */}
+        <style dangerouslySetInnerHTML={{ __html: `
+          /* Fix tile images - Tailwind resets img to max-width:100% + display:block */
+          .leaflet-container img,
+          .leaflet-tile-container img,
+          .leaflet-tile-pane img,
+          .leaflet-tile img {
+            max-width: none !important;
+            max-height: none !important;
+            width: 256px !important;
+            height: 256px !important;
+            display: inline !important;
+            position: absolute !important;
+            border: none !important;
+            outline: none !important;
+            padding: 0 !important;
+            margin: 0 !important;
+            vertical-align: baseline !important;
+            opacity: 1 !important;
+            visibility: inherit !important;
+          }
+          /* Fix SVG icons in Leaflet controls */
+          .leaflet-container svg {
+            max-width: none !important;
+            max-height: none !important;
+            display: inline !important;
+          }
+          /* Ensure tile container renders properly */
+          .leaflet-tile {
+            visibility: inherit !important;
+            position: absolute !important;
+            left: 0 !important;
+            top: 0 !important;
+            transition: none !important;
+          }
+          .leaflet-tile-loaded {
+            visibility: inherit !important;
+          }
+          /* Fix Leaflet container sizing */
+          .leaflet-container {
+            width: 100% !important;
+            height: 100% !important;
+            font-family: inherit !important;
+            position: absolute !important;
+            inset: 0 !important;
+          }
+          /* Fix pane stacking - Tailwind may reset z-index via * selector */
+          .leaflet-pane {
+            z-index: auto !important;
+            position: absolute !important;
+            left: 0 !important;
+            top: 0 !important;
+          }
+          .leaflet-map-pane { z-index: auto !important; }
+          .leaflet-tile-pane { z-index: 2 !important; transition: none !important; }
+          .leaflet-overlay-pane { z-index: 4 !important; }
+          .leaflet-shadow-pane { z-index: 5 !important; }
+          .leaflet-marker-pane { z-index: 6 !important; }
+          .leaflet-tooltip-pane { z-index: 7 !important; }
+          .leaflet-popup-pane { z-index: 8 !important; }
+          .leaflet-top, .leaflet-bottom { z-index: auto !important; position: absolute !important; }
+          /* Fix control positioning */
+          .leaflet-control { position: relative !important; z-index: auto !important; clear: both !important; }
+          .leaflet-control-zoom { z-index: auto !important; }
+          .leaflet-control-attribution { z-index: auto !important; }
+          /* Custom Leaflet markers */
+          .custom-marker { background: none !important; border: none !important; }
+          /* Leaflet popup override */
+          .leaflet-popup-content-wrapper { border-radius: 12px !important; box-shadow: 0 4px 16px rgba(0,0,0,0.15) !important; }
+          .leaflet-popup-content { margin: 10px 14px !important; font-size: 13px !important; line-height: 1.5 !important; }
+          /* Fix Leaflet zoom controls from Tailwind reset */
+          .leaflet-container .leaflet-control-zoom-in,
+          .leaflet-container .leaflet-control-zoom-out {
+            font-size: 18px !important;
+            text-indent: 0 !important;
+            line-height: normal !important;
+            text-align: center !important;
+            display: block !important;
+          }
+          /* Larger controls for touch on mobile */
+          .leaflet-control-zoom a {
+            width: 36px !important;
+            height: 36px !important;
+            line-height: 36px !important;
+            font-size: 18px !important;
+          }
+        ` }} />
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `
+// MotoTrack: Force Leaflet tile images to render correctly (bypasses Tailwind v4 CSS resets)
+// This MutationObserver watches for new img elements inside .leaflet-tile-pane and forces correct styles
+(function() {
+  function fixTile(el) {
+    if (el.tagName === 'IMG' && el.closest && el.closest('.leaflet-tile-pane')) {
+      el.style.maxWidth = 'none';
+      el.style.maxHeight = 'none';
+      el.style.width = '256px';
+      el.style.height = '256px';
+      el.style.display = 'inline';
+      el.style.position = 'absolute';
+      el.style.opacity = '1';
+      el.style.visibility = 'inherit';
+    }
+  }
+  
+  // Fix existing tiles
+  document.addEventListener('DOMContentLoaded', function() {
+    var observer = new MutationObserver(function(mutations) {
+      mutations.forEach(function(m) {
+        m.addedNodes.forEach(function(node) {
+          if (node.nodeType === 1) {
+            fixTile(node);
+            if (node.querySelectorAll) {
+              node.querySelectorAll('.leaflet-tile-pane img').forEach(fixTile);
+            }
+          }
+        });
+      });
+    });
+    
+    observer.observe(document.body || document.documentElement, {
+      childList: true,
+      subtree: true
+    });
+    
+    // Also periodically fix tiles (belt and suspenders approach)
+    setInterval(function() {
+      var tiles = document.querySelectorAll('.leaflet-tile-pane img');
+      tiles.forEach(fixTile);
+    }, 2000);
+  });
+})();
+`,
+          }}
+        />
         <script
           dangerouslySetInnerHTML={{
             __html: `
