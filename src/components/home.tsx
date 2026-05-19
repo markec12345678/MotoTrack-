@@ -144,14 +144,17 @@ function LoadingSkeleton() {
       </main>
 
       {/* Bottom nav skeleton */}
-      <nav className="fixed bottom-0 left-0 right-0 z-[1500] bg-black/95 backdrop-blur-xl border-t border-white/5" style={{ paddingBottom: 'env(safe-area-inset-bottom, 0px)' }}>
-        <div className="flex items-center justify-around max-w-lg mx-auto h-[72px]">
-          {[1,2,3,4,5].map(i => (
-            <div key={i} className="flex flex-col items-center gap-1 px-4 py-2">
-              <Skeleton className="size-5 rounded bg-white/10" />
-              <Skeleton className="h-2.5 w-8 bg-white/10" />
-            </div>
-          ))}
+      <nav className="fixed bottom-0 left-0 right-0 z-[1500]" style={{ paddingBottom: 'env(safe-area-inset-bottom, 0px)' }}>
+        <div className="h-px bg-gradient-to-r from-transparent via-primary/30 to-transparent" />
+        <div className="bg-black/95 backdrop-blur-xl">
+          <div className="flex items-center justify-around max-w-lg mx-auto h-[68px]">
+            {[1,2,3,4,5].map(i => (
+              <div key={i} className="flex flex-col items-center gap-0.5 px-3 sm:px-5 py-1.5">
+                <Skeleton className="size-5 rounded bg-white/10" />
+                <Skeleton className="h-2 w-8 bg-white/10" />
+              </div>
+            ))}
+          </div>
         </div>
       </nav>
     </div>
@@ -1043,22 +1046,34 @@ export default function Home() {
   return (
     <div className="min-h-screen flex flex-col bg-background">
       {/* Header - REVER-inspired with bold orange brand */}
-      <header className={`fixed top-0 left-0 right-0 z-[1400] h-12 flex items-center px-4 transition-all duration-300 ${
+      <header className={`fixed top-0 left-0 right-0 z-[1400] h-12 flex items-center px-3 sm:px-4 transition-all duration-300 ${
         exploreFullscreen
           ? '-translate-y-full opacity-0 pointer-events-none'
           : activeTab === 'map'
-            ? 'bg-black/40 backdrop-blur-sm'
+            ? 'bg-black/50 backdrop-blur-md'
             : 'bg-background/95 backdrop-blur-md border-b border-border/30'
       }`}>
-        <div className="flex items-center gap-2 flex-1">
-          <div className="flex items-center justify-center size-8 rounded-xl bg-primary/20 shadow-sm shadow-primary/20">
+        <div className="flex items-center gap-2.5 flex-1 min-w-0">
+          <div className="flex items-center justify-center size-8 rounded-xl bg-primary/20 shadow-sm shadow-primary/20 flex-shrink-0">
             <Bike className="size-[18px] text-primary" strokeWidth={2.5} />
           </div>
-          <div className="flex flex-col -space-y-0.5">
+          <div className="flex flex-col min-w-0">
             <span className="font-black text-[15px] tracking-tight text-primary leading-none">MotoTrack</span>
             <span className="text-[8px] text-muted-foreground/70 uppercase tracking-[0.2em] font-semibold leading-none hidden sm:block">GPS Sledenje</span>
-            <span className="text-[8px] text-primary/50 font-semibold leading-none hidden sm:block">by Markec</span>
           </div>
+          {/* Active tab context label - shows on map tab */}
+          {activeTab === 'map' && (
+            <span className="hidden sm:inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-white/10 text-white/60 text-[10px] font-medium ml-1">
+              <MapIcon className="size-3" />
+              Zemljevid
+            </span>
+          )}
+          {activeTab === 'track' && isTracking && (
+            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-red-500/20 text-red-400 text-[10px] font-bold ml-1 animate-pulse">
+              <div className="size-1.5 rounded-full bg-red-400" />
+              REC
+            </span>
+          )}
         </div>
         {mounted && (
           <div className="flex items-center gap-0.5">
@@ -1155,7 +1170,7 @@ export default function Home() {
 
       <main className="flex-1 relative" style={{
         paddingTop: exploreFullscreen ? '0' : activeTab === 'map' ? '0' : '48px',
-        paddingBottom: exploreFullscreen ? '0' : 'calc(72px + env(safe-area-inset-bottom, 0px))'
+        paddingBottom: exploreFullscreen ? '0' : 'calc(68px + env(safe-area-inset-bottom, 0px))'
       }}>
         <div key={activeTab} className="tab-transition">
           {activeTab === 'map' && (
@@ -1457,26 +1472,53 @@ export default function Home() {
         />
       )}
 
-      {/* Bottom Nav - REVER-inspired dark bar with bold orange active */}
-      <nav className={`fixed bottom-0 left-0 right-0 z-[1500] bg-black/95 backdrop-blur-xl border-t border-white/5 dark:bg-black/95 transition-all duration-300 ${
+      {/* Bottom Nav - Professional REVER/Calimoto-inspired with orange active glow */}
+      <nav className={`fixed bottom-0 left-0 right-0 z-[1500] transition-all duration-300 ${
         exploreFullscreen ? 'translate-y-full opacity-0 pointer-events-none' : ''
       }`} style={{ paddingBottom: 'env(safe-area-inset-bottom, 0px)' }}>
-        <div className="flex items-center justify-around max-w-lg mx-auto h-[72px]">
-          {tabs.map(tab => {
-            const isActive = activeTab === tab.id
-            return (
-              <button key={tab.id} onClick={() => setActiveTab(tab.id)} className={`relative flex flex-col items-center justify-center gap-1 px-4 py-2 rounded-2xl transition-all duration-300 active:scale-90 ${isActive ? '' : 'text-white/40 hover:text-white/70'}`}>
-                {/* Active indicator bar */}
-                {isActive && (
-                  <div className="absolute -top-px left-1/2 -translate-x-1/2 w-8 h-[3px] rounded-full bg-primary shadow-[0_0_12px_rgba(var(--primary-rgb),0.6)]" />
-                )}
-                <div className="relative">
-                  <tab.icon className={`size-[22px] transition-all duration-300 ${isActive ? 'text-primary drop-shadow-[0_0_10px_rgba(var(--primary-rgb),0.5)]' : ''}`} strokeWidth={isActive ? 2.5 : 1.5} />
-                </div>
-                <span className={`relative text-[10px] tracking-tight transition-all duration-300 ${isActive ? 'text-primary font-bold' : 'font-medium'}`}>{tab.label}</span>
-              </button>
-            )
-          })}
+        {/* Subtle top border gradient */}
+        <div className="h-px bg-gradient-to-r from-transparent via-primary/30 to-transparent" />
+        <div className="bg-black/95 backdrop-blur-xl">
+          <div className="flex items-center justify-around max-w-lg mx-auto h-[68px]">
+            {tabs.map(tab => {
+              const isActive = activeTab === tab.id
+              return (
+                <button
+                  key={tab.id}
+                  onClick={() => setActiveTab(tab.id)}
+                  className={`relative flex flex-col items-center justify-center gap-0.5 px-3 sm:px-5 py-1.5 rounded-2xl transition-all duration-200 active:scale-90 ${
+                    isActive
+                      ? 'text-primary'
+                      : 'text-white/35 hover:text-white/60'
+                  }`}
+                >
+                  {/* Active glow background */}
+                  {isActive && (
+                    <div className="absolute inset-0 rounded-2xl bg-primary/8" />
+                  )}
+                  {/* Active top indicator dot */}
+                  {isActive && (
+                    <div className="absolute -top-0.5 left-1/2 -translate-x-1/2 w-1 h-1 rounded-full bg-primary shadow-[0_0_6px_rgba(var(--primary-rgb),0.8)]" />
+                  )}
+                  <div className="relative">
+                    <tab.icon
+                      className={`size-[20px] sm:size-[22px] transition-all duration-200 ${
+                        isActive
+                          ? 'text-primary drop-shadow-[0_0_8px_rgba(var(--primary-rgb),0.4)]'
+                          : ''
+                      }`}
+                      strokeWidth={isActive ? 2.5 : 1.5}
+                    />
+                  </div>
+                  <span className={`relative text-[9px] sm:text-[10px] tracking-tight transition-all duration-200 ${
+                    isActive ? 'text-primary font-bold' : 'font-medium'
+                  }`}>
+                    {tab.label}
+                  </span>
+                </button>
+              )
+            })}
+          </div>
         </div>
       </nav>
     </div>

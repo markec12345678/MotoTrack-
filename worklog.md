@@ -992,3 +992,43 @@ Stage Summary:
 - ALL 8 REMAINING FEATURES ARE COMPLETE ✅
 - 106+ components, 86+ API endpoints, 0 lint errors
 - Project is feature-complete and deployed on Vercel
+---
+Task ID: UI-Polish-Phase1
+Agent: Main
+Task: Professional UI/UX overhaul Phase 1 - fix crash, polish header/nav/tabs
+
+Work Log:
+- Fixed critical ReferenceError: currentPos is not defined crash in home.tsx
+  - Added useMemo to derive currentPos from trackPoints (last real point) or userLat/userLng
+  - Moved userLat/userLng state declarations before currentPos to avoid TDZ
+  - Updated useRouteDeviation and useSpeedCameraAlert to use new currentPos
+- Polished home.tsx header:
+  - Better branding with flex-shrink-0 on logo
+  - Active tab context label (Zemljevid badge on map tab)
+  - REC indicator when tracking on track tab
+  - Improved dark mode map header (bg-black/50 backdrop-blur-md)
+  - Better spacing with responsive padding (px-3 sm:px-4)
+- Polished bottom navigation bar:
+  - Professional REVER/Calimoto-inspired design
+  - Subtle top border gradient (transparent → primary → transparent)
+  - Active glow background (bg-primary/8) on selected tab
+  - Smaller indicator dot instead of thick bar
+  - Better responsive sizing (size-20 sm:size-22)
+  - Reduced height from 72px to 68px for more content space
+  - Updated loading skeleton to match
+- Polished Plan tab:
+  - Professional section header with icon badge
+  - Improved waypoint list with numbered circles (green start, red end, orange middle)
+  - Better empty state with MapPin icon and helpful text
+  - Refined distance card with border and larger text
+  - Added shadow-glow to save button
+  - Added custom-scrollbar to panel
+  - Smoother transitions on mode toggle buttons
+
+Stage Summary:
+- Critical crash bug fixed (currentPos ReferenceError)
+- Header now shows contextual indicators (REC badge, map label)
+- Bottom nav redesigned with professional glow effect
+- Plan tab has better visual hierarchy and interaction patterns
+- All changes pass lint check (0 errors)
+- Pushed to GitHub for Vercel deployment

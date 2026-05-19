@@ -1517,12 +1517,12 @@ export default function PlanTab({
           tripDays={mapTripDays}
         />
       </div>
-      <div className="lg:w-96 w-full bg-card border-t lg:border-t-0 lg:border-l border-border/50 p-4 overflow-y-auto max-h-[40vh] lg:max-h-full">
+      <div className="lg:w-96 w-full bg-card border-t lg:border-t-0 lg:border-l border-border/50 p-4 overflow-y-auto max-h-[40vh] lg:max-h-full custom-scrollbar">
         {/* Mode toggle - 3 options with icons */}
         <div className="flex items-center gap-1 mb-4 bg-secondary/50 rounded-xl p-1">
           <button
-            className={`flex-1 flex items-center justify-center gap-1.5 text-xs font-medium py-2.5 px-2 rounded-lg transition-all ${
-              mode === 'single' ? 'bg-primary text-primary-foreground shadow-sm' : 'text-muted-foreground hover:text-foreground hover:bg-secondary/80'
+            className={`flex-1 flex items-center justify-center gap-1.5 text-xs font-medium py-2.5 px-2 rounded-lg transition-all duration-200 ${
+              mode === 'single' ? 'bg-primary text-primary-foreground shadow-sm shadow-primary/20' : 'text-muted-foreground hover:text-foreground hover:bg-secondary/80'
             }`}
             onClick={() => { setMode('single'); setViewingTrip(null) }}
           >
@@ -1530,8 +1530,8 @@ export default function PlanTab({
             <span>Enodnevna</span>
           </button>
           <button
-            className={`flex-1 flex items-center justify-center gap-1.5 text-xs font-medium py-2.5 px-2 rounded-lg transition-all ${
-              mode === 'roundtrip' ? 'bg-primary text-primary-foreground shadow-sm' : 'text-muted-foreground hover:text-foreground hover:bg-secondary/80'
+            className={`flex-1 flex items-center justify-center gap-1.5 text-xs font-medium py-2.5 px-2 rounded-lg transition-all duration-200 ${
+              mode === 'roundtrip' ? 'bg-primary text-primary-foreground shadow-sm shadow-primary/20' : 'text-muted-foreground hover:text-foreground hover:bg-secondary/80'
             }`}
             onClick={() => { setMode('roundtrip'); setViewingTrip(null) }}
           >
@@ -1539,8 +1539,8 @@ export default function PlanTab({
             <span>Krožna</span>
           </button>
           <button
-            className={`flex-1 flex items-center justify-center gap-1.5 text-xs font-medium py-2.5 px-2 rounded-lg transition-all ${
-              mode === 'multiday' ? 'bg-primary text-primary-foreground shadow-sm' : 'text-muted-foreground hover:text-foreground hover:bg-secondary/80'
+            className={`flex-1 flex items-center justify-center gap-1.5 text-xs font-medium py-2.5 px-2 rounded-lg transition-all duration-200 ${
+              mode === 'multiday' ? 'bg-primary text-primary-foreground shadow-sm shadow-primary/20' : 'text-muted-foreground hover:text-foreground hover:bg-secondary/80'
             }`}
             onClick={() => { setMode('multiday'); setViewingTrip(null) }}
           >
@@ -1552,7 +1552,12 @@ export default function PlanTab({
         {mode === 'single' ? (
           /* ===== SINGLE DAY MODE ===== */
           <div className="space-y-4">
-            <h2 className="font-bold text-lg flex items-center gap-2"><Route className="size-5 text-primary" />Načrtuj pot</h2>
+            <div className="flex items-center gap-2">
+              <div className="flex items-center justify-center size-7 rounded-lg bg-primary/15">
+                <Route className="size-4 text-primary" />
+              </div>
+              <h2 className="font-bold text-lg tracking-tight">Načrtuj pot</h2>
+            </div>
             <div>
               <label className="text-xs font-medium text-muted-foreground mb-1 block">Ime poti</label>
               <Input placeholder="Npr. Obala do Pirana" value={title} onChange={e => setTitle(e.target.value)} />
@@ -1628,15 +1633,24 @@ export default function PlanTab({
               </div>
               <ScrollArea className="max-h-40">
                 {waypoints.length === 0 ? (
-                  <p className="text-xs text-muted-foreground text-center py-4">Kliknite na zemljevid za dodajanje točk</p>
+                  <div className="text-center py-6">
+                    <MapPin className="size-6 text-muted-foreground/30 mx-auto mb-2" />
+                    <p className="text-xs text-muted-foreground">Kliknite na zemljevid za dodajanje točk</p>
+                    <p className="text-[10px] text-muted-foreground/50 mt-0.5">vsaj 2 točki za ruto</p>
+                  </div>
                 ) : (
                   <div className="space-y-1">
                     {waypoints.map((wp, i) => (
-                      <div key={i} className="flex items-center justify-between text-xs bg-secondary/50 rounded px-2 py-1.5">
+                      <div key={i} className="flex items-center justify-between text-xs bg-secondary/50 rounded-lg px-2.5 py-2 hover:bg-secondary/70 transition-colors">
                         <div className="flex items-center gap-2">
-                          <MapPin className="size-3 text-primary" />
-                          <span>Točka {i + 1}</span>
-                          <span className="text-muted-foreground">{wp.lat.toFixed(4)}, {wp.lng.toFixed(4)}</span>
+                          <div className={`flex items-center justify-center size-5 rounded-full text-[9px] font-bold ${
+                            i === 0 ? 'bg-emerald-500/20 text-emerald-400' :
+                            i === waypoints.length - 1 ? 'bg-red-500/20 text-red-400' :
+                            'bg-primary/15 text-primary'
+                          }`}>
+                            {i + 1}
+                          </div>
+                          <span className="text-muted-foreground text-[10px]">{wp.lat.toFixed(4)}, {wp.lng.toFixed(4)}</span>
                         </div>
                         <Button variant="ghost" size="sm" className="h-5 w-5 p-0 text-muted-foreground hover:text-destructive" onClick={() => setWaypoints(prev => prev.filter((_, idx) => idx !== i))}>
                           <X className="size-3" />
@@ -1648,10 +1662,10 @@ export default function PlanTab({
               </ScrollArea>
             </div>
             {waypoints.length > 1 && (
-              <div className="bg-primary/10 rounded-lg p-3">
-                <div className="flex items-center justify-between text-sm">
-                  <span className="text-muted-foreground">Skupna razdalja</span>
-                  <span className="font-bold text-primary">{distance} km</span>
+              <div className="bg-primary/10 rounded-xl p-3 border border-primary/15">
+                <div className="flex items-center justify-between">
+                  <span className="text-xs text-muted-foreground">Skupna razdalja</span>
+                  <span className="text-lg font-bold text-primary">{distance} km</span>
                 </div>
               </div>
             )}
@@ -1682,7 +1696,7 @@ export default function PlanTab({
               />
             )}
 
-            <Button className="w-full" onClick={onSave} disabled={waypoints.length < 2}>
+            <Button className="w-full shadow-lg shadow-primary/20 font-semibold" onClick={onSave} disabled={waypoints.length < 2}>
               <Save className="size-4 mr-2" />Shrani pot
             </Button>
 
