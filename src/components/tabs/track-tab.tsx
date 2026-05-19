@@ -494,6 +494,7 @@ export default function TrackTab({
         <MotoMap center={[46.15, 14.99]} zoom={12} rides={[]} routes={[]} trackPoints={trackPoints} showTrack={true}
           userPosition={trackPoints.length > 0 ? { lat: trackPoints[trackPoints.length - 1].lat, lng: trackPoints[trackPoints.length - 1].lng } : undefined}
           flyToLocation={isTracking && trackPoints.length === 1 ? { lat: trackPoints[0].lat, lng: trackPoints[0].lng, zoom: 16 } : undefined}
+          autoFollow={isTracking && !isPaused}
         />
 
         {/* Speed limit badge - top right */}
@@ -893,7 +894,7 @@ export default function TrackTab({
               )}
 
               {/* Control buttons */}
-              <div className="flex items-center justify-center gap-4 pb-1">
+              <div className="flex items-center justify-center gap-2 sm:gap-4 pb-1">
                 {isPaused ? (
                   <button
                     onClick={onResume}

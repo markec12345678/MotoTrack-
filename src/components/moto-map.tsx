@@ -94,6 +94,7 @@ interface MotoMapProps {
   parkedLocation?: { lat: number; lng: number; note?: string; parkedAt?: string }
   flyToLocation?: { lat: number; lng: number; zoom?: number }
   userPosition?: { lat: number; lng: number } | null
+  autoFollow?: boolean // When true, map pans to keep userPosition centered
   roadRatings?: RoadRatingData[]
   tripDays?: TripDayData[]
   showPlan?: boolean
@@ -228,6 +229,7 @@ export default function MotoMap({
   fuelCenter,
   parkedLocation,
   flyToLocation,
+  autoFollow,
   userPosition,
   roadRatings = [],
   tripDays = [],
@@ -1182,6 +1184,47 @@ export default function MotoMap({
       userPositionMarkerRef.current = marker
     }
   }, [userPosition])
+
+  // Auto-follow: when autoFollow is enabled, smoothly pan the map to keep user centered
+  // Only pan if the user hasn't manually panned the map recently
+  const userPannedRef = useRef(false)
+  const lastPanTimeRef = useRef(0)
+
+  // Detect when user manually pans the map
+  useEffect(() => {
+    const map = mapRef.current
+    if (!map) return
+
+    const onDragStart = () => {
+      userPannedRef.current = true
+      lastPanTimeRef.current = Date.now()
+    }
+
+    map.on('dragstart', onDragStart)
+    return () => { map.off('dragstart', onDragStart) }
+  }, [])
+
+  // Auto-pan to user position when tracking
+  useEffect(() => {
+    if (!autoFollow || !userPosition || !mapRef.current) return
+
+    // If user manually panned less than 10 seconds ago, don't override
+    if (userPannedRef.current && Date.now() - lastPanTimeRef.current < 10000) return
+
+    // If user panned but 10s passed, re-enable auto-follow
+    if (userPannedRef.current && Date.now() - lastPanTimeRef.current >= 10000) {
+      userPannedRef.current = false
+    }
+
+    const map = mapRef.current
+    const center = map.getCenter()
+    const dist = map.distance(center, [userPosition.lat, userPosition.lng])
+
+    // Only pan if user is > 50m from center (avoid jitter)
+    if (dist > 50) {
+      map.panTo([userPosition.lat, userPosition.lng], { animate: true, duration: 0.5 })
+    }
+  }, [autoFollow, userPosition])
 
   // Update live riders layer
   useEffect(() => {
