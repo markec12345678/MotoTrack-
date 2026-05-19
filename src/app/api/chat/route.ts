@@ -198,7 +198,8 @@ const OPENROUTER_MODELS = [
   'google/gemma-3-27b-it:free',
   'meta-llama/llama-4-scout:free',
   'mistralai/mistral-small-3.1-24b-instruct:free',
-  'google/gemma-4-31b-it:free',
+  'deepseek/deepseek-chat-v3-0324:free',
+  'qwen/qwen3-32b:free',
 ]
 
 // Circuit breaker: if OpenRouter fails, skip it for N seconds
@@ -224,11 +225,11 @@ async function callOpenRouter(messages: Array<{ role: string; content: string }>
     openRouterCircuitOpen = false
   }
 
-  // Try each free model in order with a 5-second timeout
+  // Try each free model in order with a 15-second timeout
   for (const model of OPENROUTER_MODELS) {
     try {
       const controller = new AbortController()
-      const timeout = setTimeout(() => controller.abort(), 5000)
+      const timeout = setTimeout(() => controller.abort(), 15000) // 15s timeout per model
 
       const response = await fetch(OPENROUTER_URL, {
         method: 'POST',

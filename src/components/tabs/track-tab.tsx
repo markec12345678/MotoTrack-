@@ -497,22 +497,11 @@ export default function TrackTab({
           autoFollow={isTracking && !isPaused}
         />
 
-        {/* Speed limit badge - top right */}
-        {speedSettings.speedAlertEnabled && isTracking && (
-          <div className={`absolute top-3 right-3 z-[1001] flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold shadow-lg backdrop-blur-sm transition-all duration-200 ${
-            isOverSpeed
-              ? 'bg-red-500/90 text-white'
-              : 'bg-background/80 text-muted-foreground border border-border/50'
-          }`}>
-            <Gauge className="size-3.5" />
-            <span>{Math.round(convertSpeed(speedSettings.speedLimit, unitSystem))} {speedUnitLabel}</span>
-            {isOverSpeed && <AlertTriangle className="size-3.5 ml-0.5 animate-pulse" />}
-          </div>
-        )}
+        {/* Speed limit badge removed from map - shown in bottom sheet dashboard */}
 
-        {/* Ride Weather Overlay - floating, below speed limit badge */}
+        {/* Ride Weather Overlay - floating, below SOS button, compact on mobile */}
         {isTracking && (
-          <div className="absolute top-12 right-3 z-[1001] w-48">
+          <div className="absolute top-12 right-3 z-[1001] w-36 sm:w-48">
             <RideWeatherOverlay
               lat={trackPoints.length > 0 ? trackPoints[trackPoints.length - 1].lat : null}
               lng={trackPoints.length > 0 ? trackPoints[trackPoints.length - 1].lng : null}
@@ -521,74 +510,87 @@ export default function TrackTab({
           </div>
         )}
 
-        {/* Auto-pause & WakeLock indicators - top left */}
+        {/* Top-left indicators - compact, only essential items */}
         {isTracking && (
-          <div className="absolute top-3 left-3 right-14 z-[1001] flex items-center gap-1.5 flex-wrap">
-            {autoPauseEnabled && isPaused && (
-              <div className="flex items-center gap-1 px-2 py-1 rounded-full bg-amber-500/90 text-white text-[10px] font-bold shadow-lg">
-                <Timer className="size-3" />
-                <span>AUTO-PAUSE</span>
-              </div>
-            )}
-            {wakelockEnabled && (
-              <div className="flex items-center gap-1 px-2 py-1 rounded-full bg-white/10 backdrop-blur-sm text-white/60 text-[10px] font-medium">
-                <Moon className="size-3" />
-                <span>Zaslon ON</span>
-              </div>
-            )}
-            {/* Driving Mode toggle */}
-            <button
-              onClick={() => setDrivingMode(!drivingMode)}
-              className={`flex items-center gap-1 px-2 py-1 rounded-full text-[10px] font-bold shadow-lg transition-colors ${
-                drivingMode
-                  ? 'bg-primary text-white'
-                  : 'bg-white/10 backdrop-blur-sm text-white/60 hover:bg-white/20'
-              }`}
-              title="Driving Mode - poenostavljen vmesnik za vožnjo"
-            >
-              <Eye className="size-3" />
-              <span>DRIVE</span>
-            </button>
-            {/* CarPlay Mode toggle */}
-            {onToggleCarplay && (
+          <div className="absolute top-3 left-3 z-[1001] flex flex-col gap-1.5">
+            {/* Row 1: Auto-pause + Driving mode */}
+            <div className="flex items-center gap-1.5">
+              {autoPauseEnabled && isPaused && (
+                <div className="flex items-center gap-1 px-2 py-1 rounded-full bg-amber-500/90 text-white text-[10px] font-bold shadow-lg">
+                  <Timer className="size-3" />
+                  <span>PAVZA</span>
+                </div>
+              )}
+              {/* Driving Mode toggle - always visible, compact */}
               <button
-                onClick={onToggleCarplay}
+                onClick={() => setDrivingMode(!drivingMode)}
                 className={`flex items-center gap-1 px-2 py-1 rounded-full text-[10px] font-bold shadow-lg transition-colors ${
-                  carplayMode
-                    ? 'bg-emerald-500 text-white'
+                  drivingMode
+                    ? 'bg-primary text-white'
                     : 'bg-white/10 backdrop-blur-sm text-white/60 hover:bg-white/20'
                 }`}
-                title="CarPlay način - velik vmesnik za avto/telefon na volanu"
+                title="Driving Mode"
               >
-                <Monitor className="size-3" />
-                <span>CAR</span>
+                <Eye className="size-3" />
+                <span>DRIVE</span>
               </button>
-            )}
-            {/* Parking Spot toggle */}
-            {onOpenParking && (
+              {/* More options menu toggle */}
               <button
-                onClick={onOpenParking}
-                className="flex items-center gap-1 px-2 py-1 rounded-full bg-blue-500/80 text-white text-[10px] font-bold shadow-lg shadow-blue-500/30 hover:bg-blue-500 transition-colors active:scale-95"
-                title="Parkirni spomin - kje sem parkiral?"
+                onClick={() => setShowFeatures(!showFeatures)}
+                className="flex items-center justify-center size-6 rounded-full bg-white/10 backdrop-blur-sm text-white/60 hover:bg-white/20 transition-colors shadow-lg"
+                title="Več možnosti"
               >
-                <MapPin className="size-3" />
-                <span>🅿️</span>
+                <ChevronDown className={`size-3 transition-transform ${showFeatures ? 'rotate-180' : ''}`} />
               </button>
-            )}
-            {/* Border Guide toggle */}
-            {onOpenBorderGuide && (
-              <button
-                onClick={onOpenBorderGuide}
-                className="flex items-center gap-1 px-2 py-1 rounded-full bg-emerald-500/80 text-white text-[10px] font-bold shadow-lg shadow-emerald-500/30 hover:bg-emerald-500 transition-colors active:scale-95"
-                title="Mejni prehodi - dokumenti, cene, časi"
-              >
-                <Globe className="size-3" />
-                <span>MEJA</span>
-              </button>
+            </div>
+            {/* Expandable secondary options */}
+            {showFeatures && (
+              <div className="flex items-center gap-1.5 flex-wrap bg-black/40 backdrop-blur-md rounded-lg p-1.5 max-w-[200px]">
+                {wakelockEnabled && (
+                  <div className="flex items-center gap-1 px-2 py-1 rounded-full bg-white/10 text-white/60 text-[10px] font-medium">
+                    <Moon className="size-3" />
+                    <span>Zaslon</span>
+                  </div>
+                )}
+                {onToggleCarplay && (
+                  <button
+                    onClick={onToggleCarplay}
+                    className={`flex items-center gap-1 px-2 py-1 rounded-full text-[10px] font-bold transition-colors ${
+                      carplayMode
+                        ? 'bg-emerald-500 text-white'
+                        : 'bg-white/10 text-white/60 hover:bg-white/20'
+                    }`}
+                    title="CarPlay"
+                  >
+                    <Monitor className="size-3" />
+                    <span>CAR</span>
+                  </button>
+                )}
+                {onOpenParking && (
+                  <button
+                    onClick={onOpenParking}
+                    className="flex items-center gap-1 px-2 py-1 rounded-full bg-blue-500/80 text-white text-[10px] font-bold hover:bg-blue-500 transition-colors active:scale-95"
+                    title="Parkirni spomin"
+                  >
+                    <MapPin className="size-3" />
+                    <span>🅿️</span>
+                  </button>
+                )}
+                {onOpenBorderGuide && (
+                  <button
+                    onClick={onOpenBorderGuide}
+                    className="flex items-center gap-1 px-2 py-1 rounded-full bg-emerald-500/80 text-white text-[10px] font-bold hover:bg-emerald-500 transition-colors active:scale-95"
+                    title="Mejni prehodi"
+                  >
+                    <Globe className="size-3" />
+                    <span>MEJA</span>
+                  </button>
+                )}
+              </div>
             )}
           </div>
         )}
-        {/* SOS Emergency button - always visible top-right, never hidden by overflow */}
+        {/* SOS Emergency button - always visible top-right */}
         {isTracking && (
           <button
             onClick={() => setShowEmergencyPanel(true)}
@@ -613,9 +615,9 @@ export default function TrackTab({
           isTracking={isTracking}
         />
 
-        {/* Wind Warning Panel - floating, bottom-left on map */}
+        {/* Wind Warning Panel - floating, bottom-left on map (compact on mobile) */}
         {isTracking && (
-          <div className="absolute bottom-4 left-3 z-[1001] w-52">
+          <div className="absolute bottom-4 left-3 z-[1001] w-40 sm:w-52">
             <WindWarningPanel
               lat={trackPoints.length > 0 ? trackPoints[trackPoints.length - 1].lat : null}
               lng={trackPoints.length > 0 ? trackPoints[trackPoints.length - 1].lng : null}
