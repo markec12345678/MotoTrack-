@@ -431,7 +431,7 @@ export default function Home() {
 
   useEffect(() => { fetchData() }, [fetchData])
 
-  // Auto day/night theme - switch based on sunrise/sunset
+  // Auto day/night theme - switch based on real sunrise/sunset
   useEffect(() => {
     if (!mounted || !autoThemeEnabled) return
     const lat = userLat ?? 46.0569 // default: Ljubljana
@@ -441,7 +441,7 @@ export default function Home() {
       const now = new Date()
       const dayOfYear = Math.floor((now.getTime() - new Date(now.getFullYear(), 0, 0).getTime()) / 86400000)
       const lngHour = lng / 15
-      const t = dayOfYear + ((18) - lngHour) / 24 // sunset calc
+      const t = dayOfYear + ((18) - lngHour) / 24
       const M = (0.9856 * t) - 3.289
       let L = M + (1.916 * Math.sin(M * Math.PI / 180)) + (0.020 * Math.sin(2 * M * Math.PI / 180)) + 282.634
       L = ((L % 360) + 360) % 360
@@ -450,10 +450,25 @@ export default function Home() {
       const zenith = 90.833
       const cosH = (Math.cos(zenith * Math.PI / 180) - (sinDec * Math.sin(lat * Math.PI / 180))) /
                    (cosDec * Math.cos(lat * Math.PI / 180))
-      // Simple check: if we can compute sunset hour, compare with current hour
-      const currentHour = now.getHours()
-      // Approximate: daytime is 6-20, nighttime is 20-6
-      const isDaytime = currentHour >= 6 && currentHour < 20
+
+      // Compute actual sunrise and sunset hours in UTC
+      let isDaytime = true
+      if (cosH > 1) {
+        // Sun never rises (polar night)
+        isDaytime = false
+      } else if (cosH < -1) {
+        // Sun never sets (midnight sun)
+        isDaytime = true
+      } else {
+        // Normal: compute sunrise and sunset
+        const H = Math.acos(cosH) * 180 / Math.PI // hour angle in degrees
+        // sunrise = 12 - H/15 (noon - half day), sunset = 12 + H/15
+        const sunriseLocal = ((12 - H / 15 + lngHour) % 24 + 24) % 24
+        const sunsetLocal = ((12 + H / 15 + lngHour) % 24 + 24) % 24
+        const currentHour = now.getHours() + now.getMinutes() / 60
+        // Daytime is between sunrise and sunset
+        isDaytime = currentHour >= sunriseLocal && currentHour < sunsetLocal
+      }
       setTheme(isDaytime ? 'light' : 'dark')
     }
 

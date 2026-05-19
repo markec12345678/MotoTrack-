@@ -135,6 +135,7 @@ export default function TrackTab({
   })
   const [flashOn, setFlashOn] = useState(false)
   const [showChecklist, setShowChecklist] = useState(false)
+  const [showStopConfirm, setShowStopConfirm] = useState(false)
   const audioCtxRef = useRef<AudioContext | null>(null)
   const hasPlayedBeepRef = useRef(false)
   const [showFeatures, setShowFeatures] = useState(false)
@@ -490,7 +491,10 @@ export default function TrackTab({
 
       {/* Map layer */}
       <div className="flex-1 relative">
-        <MotoMap center={[46.15, 14.99]} zoom={12} rides={[]} routes={[]} trackPoints={trackPoints} showTrack={true} />
+        <MotoMap center={[46.15, 14.99]} zoom={12} rides={[]} routes={[]} trackPoints={trackPoints} showTrack={true}
+          userPosition={trackPoints.length > 0 ? { lat: trackPoints[trackPoints.length - 1].lat, lng: trackPoints[trackPoints.length - 1].lng } : undefined}
+          flyToLocation={isTracking && trackPoints.length === 1 ? { lat: trackPoints[0].lat, lng: trackPoints[0].lng, zoom: 16 } : undefined}
+        />
 
         {/* Speed limit badge - top right */}
         {speedSettings.speedAlertEnabled && isTracking && (
@@ -518,7 +522,7 @@ export default function TrackTab({
 
         {/* Auto-pause & WakeLock indicators - top left */}
         {isTracking && (
-          <div className="absolute top-3 left-3 z-[1001] flex items-center gap-2">
+          <div className="absolute top-3 left-3 right-14 z-[1001] flex items-center gap-1.5 flex-wrap">
             {autoPauseEnabled && isPaused && (
               <div className="flex items-center gap-1 px-2 py-1 rounded-full bg-amber-500/90 text-white text-[10px] font-bold shadow-lg">
                 <Timer className="size-3" />
@@ -581,16 +585,18 @@ export default function TrackTab({
                 <span>MEJA</span>
               </button>
             )}
-            {/* SOS Emergency button */}
-            <button
-              onClick={() => setShowEmergencyPanel(true)}
-              className="flex items-center gap-1 px-2 py-1 rounded-full bg-red-500 text-white text-[10px] font-black shadow-lg shadow-red-500/30 hover:bg-red-600 transition-colors active:scale-95"
-              title="Nujna pomoč - klicne številke"
-            >
-              <ShieldAlert className="size-3" />
-              <span>SOS</span>
-            </button>
           </div>
+        )}
+        {/* SOS Emergency button - always visible top-right, never hidden by overflow */}
+        {isTracking && (
+          <button
+            onClick={() => setShowEmergencyPanel(true)}
+            className="absolute top-3 right-3 z-[1002] flex items-center gap-1 px-3 py-1.5 rounded-full bg-red-500 text-white text-[10px] font-black shadow-lg shadow-red-500/30 hover:bg-red-600 transition-colors active:scale-95"
+            title="Nujna pomoč - klicne številke"
+          >
+            <ShieldAlert className="size-3.5" />
+            <span>SOS</span>
+          </button>
         )}
 
         {/* Speed alert overlay flash */}
@@ -904,11 +910,24 @@ export default function TrackTab({
                   </button>
                 )}
                 <button
-                  onClick={onStop}
+                  onClick={() => setShowStopConfirm(true)}
                   className="w-10 h-10 rounded-full bg-red-500/80 flex items-center justify-center active:scale-95 transition-transform"
                 >
                   <Square className="size-4 text-white fill-white" />
                 </button>
+                {/* Stop confirmation dialog */}
+                {showStopConfirm && (
+                  <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/60 backdrop-blur-sm">
+                    <div className="bg-background border border-border rounded-2xl p-5 mx-4 max-w-xs w-full shadow-2xl">
+                      <h3 className="text-base font-bold mb-1">Ustavi vožnjo?</h3>
+                      <p className="text-sm text-muted-foreground mb-4">Ali ste prepričani, da želite končati snemanje? Podatki bodo ohranjeni za shranjevanje.</p>
+                      <div className="flex gap-2">
+                        <Button variant="outline" className="flex-1" onClick={() => setShowStopConfirm(false)}>Nadaljuj</Button>
+                        <Button variant="destructive" className="flex-1" onClick={() => { setShowStopConfirm(false); onStop(); }}>Ustavi</Button>
+                      </div>
+                    </div>
+                  </div>
+                )}
                 {/* Compact photo button */}
                 <PhotoButton
                   photoCount={photoCount}

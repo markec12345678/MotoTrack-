@@ -68,6 +68,7 @@ interface MapTabProps {
 }
 
 export default function MapTab({ rides, routes, onOpenDetail, userId }: MapTabProps) {
+  const mapInstanceRef = useRef<any>(null)
   const [searchInput, setSearchInput] = useState('') // Immediate input value
   const [searchQuery, setSearchQuery] = useState('') // Debounced value for filtering
   const [showSearch, setShowSearch] = useState(false)
@@ -418,9 +419,14 @@ export default function MapTab({ rides, routes, onOpenDetail, userId }: MapTabPr
     navigator.geolocation.getCurrentPosition(
       (position) => {
         const { latitude, longitude } = position.coords
-        toast.success(`Lokacija: ${latitude.toFixed(4)}, ${longitude.toFixed(4)}`)
+        // Fly the map to the user's location
+        if (mapInstanceRef.current) {
+          mapInstanceRef.current.flyTo([latitude, longitude], 15, { duration: 1.5 })
+        }
+        toast.success('📍 Lokacija najdena')
       },
-      () => { toast.error('Ne morem pridobiti lokacije') }
+      () => { toast.error('Ne morem pridobiti lokacije. Omogočite GPS.') },
+      { enableHighAccuracy: true, timeout: 15000 }
     )
   }
 
@@ -429,6 +435,14 @@ export default function MapTab({ rides, routes, onOpenDetail, userId }: MapTabPr
       prev.includes(type) ? prev.filter(t => t !== type) : [...prev, type]
     )
   }
+
+  // Mutual exclusion for bottom panels — only one can be open at a time
+  const openPanel = useCallback((panel: 'fuel' | 'parking' | 'roadQuality' | 'nearby') => {
+    setShowFuelPanel(panel === 'fuel' ? !showFuelPanel : false)
+    setShowParkingPanel(panel === 'parking' ? !showParkingPanel : false)
+    setShowRoadQuality(panel === 'roadQuality' ? !showRoadQuality : false)
+    setNearbyExpanded(panel === 'nearby' ? !nearbyExpanded : false)
+  }, [showFuelPanel, showParkingPanel, showRoadQuality, nearbyExpanded])
 
   const activePoiCount = activePoiTypes.length
 
@@ -449,6 +463,7 @@ export default function MapTab({ rides, routes, onOpenDetail, userId }: MapTabPr
         center={[46.15, 14.99]}
         zoom={8}
         mapStyle={mapStyleName}
+        onMapReady={(map: any) => { mapInstanceRef.current = map }}
         rides={rides}
         routes={routes}
         pois={pois}
@@ -557,7 +572,7 @@ export default function MapTab({ rides, routes, onOpenDetail, userId }: MapTabPr
               <button onClick={() => setShowTraffic(!showTraffic)} className={`w-full flex items-center gap-2 px-2.5 py-2 rounded-lg text-xs font-medium transition-colors ${showTraffic ? 'bg-orange-500/15 text-orange-500 border border-orange-500/30' : 'bg-secondary/50 text-muted-foreground hover:bg-muted'}`}>
                 <Layers className="size-3.5" /> Promet v živo
               </button>
-              <button onClick={() => setShowRoadQuality(!showRoadQuality)} className={`w-full flex items-center gap-2 px-2.5 py-2 rounded-lg text-xs font-medium transition-colors ${showRoadQuality ? 'bg-emerald-500/15 text-emerald-500 border border-emerald-500/30' : 'bg-secondary/50 text-muted-foreground hover:bg-muted'}`}>
+              <button onClick={() => openPanel('roadQuality')} className={`w-full flex items-center gap-2 px-2.5 py-2 rounded-lg text-xs font-medium transition-colors ${showRoadQuality ? 'bg-emerald-500/15 text-emerald-500 border border-emerald-500/30' : 'bg-secondary/50 text-muted-foreground hover:bg-muted'}`}>
                 <Gauge className="size-3.5" /> Kakovost ceste
               </button>
               <button onClick={() => setShowCurvyRoads(!showCurvyRoads)} className={`w-full flex items-center gap-2 px-2.5 py-2 rounded-lg text-xs font-medium transition-colors ${showCurvyRoads ? 'bg-orange-500/15 text-orange-500 border border-orange-500/30' : 'bg-secondary/50 text-muted-foreground hover:bg-muted'}`}>
@@ -623,10 +638,10 @@ export default function MapTab({ rides, routes, onOpenDetail, userId }: MapTabPr
               }} className={`w-full flex items-center gap-2 px-2.5 py-2 rounded-lg text-xs font-medium transition-colors ${showNavigation ? 'bg-amber-500/15 text-amber-500 border border-amber-500/30' : 'bg-secondary/50 text-muted-foreground hover:bg-muted'}`}>
                 <Navigation className="size-3.5" /> Navigacija
               </button>
-              <button onClick={() => setShowFuelPanel(!showFuelPanel)} className={`w-full flex items-center gap-2 px-2.5 py-2 rounded-lg text-xs font-medium transition-colors ${showFuelPanel ? 'bg-orange-500/15 text-orange-500 border border-orange-500/30' : 'bg-secondary/50 text-muted-foreground hover:bg-muted'}`}>
+              <button onClick={() => openPanel('fuel')} className={`w-full flex items-center gap-2 px-2.5 py-2 rounded-lg text-xs font-medium transition-colors ${showFuelPanel ? 'bg-orange-500/15 text-orange-500 border border-orange-500/30' : 'bg-secondary/50 text-muted-foreground hover:bg-muted'}`}>
                 <Fuel className="size-3.5" /> Kazalnik dosega
               </button>
-              <button onClick={() => setShowParkingPanel(!showParkingPanel)} className={`w-full flex items-center gap-2 px-2.5 py-2 rounded-lg text-xs font-medium transition-colors ${parkingData?.parkedLat != null ? 'bg-blue-500/15 text-blue-500 border border-blue-500/30' : 'bg-secondary/50 text-muted-foreground hover:bg-muted'}`}>
+              <button onClick={() => openPanel('parking')} className={`w-full flex items-center gap-2 px-2.5 py-2 rounded-lg text-xs font-medium transition-colors ${parkingData?.parkedLat != null ? 'bg-blue-500/15 text-blue-500 border border-blue-500/30' : 'bg-secondary/50 text-muted-foreground hover:bg-muted'}`}>
                 <MapPin className="size-3.5" /> Parkirišče
               </button>
               <button onClick={() => setShowFriendRides(!showFriendRides)} className={`w-full flex items-center gap-2 px-2.5 py-2 rounded-lg text-xs font-medium transition-colors ${showFriendRides ? 'bg-blue-500/15 text-blue-500 border border-blue-500/30' : 'bg-secondary/50 text-muted-foreground hover:bg-muted'}`}>
@@ -796,7 +811,7 @@ export default function MapTab({ rides, routes, onOpenDetail, userId }: MapTabPr
       {/* Nearby panel - Premium compact strip */}
       <div className="absolute bottom-20 left-4 right-4 z-[1000]">
         <div className={`bg-black/80 backdrop-blur-2xl border border-white/[0.08] rounded-2xl shadow-2xl shadow-black/30 transition-all duration-300 overflow-hidden ${nearbyExpanded ? 'max-h-[60vh]' : 'max-h-12'}`}>
-          <button onClick={() => setNearbyExpanded(!nearbyExpanded)} className="w-full flex items-center justify-between px-4 h-12 text-sm font-semibold text-white/80 hover:bg-white/5 transition-colors rounded-t-2xl">
+          <button onClick={() => openPanel('nearby')} className="w-full flex items-center justify-between px-4 h-12 text-sm font-semibold text-white/80 hover:bg-white/5 transition-colors rounded-t-2xl">
             <div className="flex items-center gap-2">
               <div className="flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-primary/20 text-primary text-[10px] font-bold">
                 <Bike className="size-3" /> {rides.length}
