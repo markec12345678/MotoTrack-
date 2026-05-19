@@ -130,7 +130,7 @@ const API_GET = {
   '/api/notifications': () => [],
   '/api/achievements': () => ({ earned: [], newlyEarned: [] }),
   '/api/sos': () => ({ ok: true }),
-  '/api/seed': () => ({ seeded: false }),
+  '/api/seed': () => ({ needsSeed: false, userCount: 3 }),
   '/api/leaderboard': () => [{ id: 'demo1', name: 'Miran M.', totalDistance: 0, totalRides: 0 }],
   '/api/rides': () => [],
   '/api/routes': () => [],
@@ -171,6 +171,12 @@ const server = http.createServer((req, res) => {
     }
     
     if (urlPath.startsWith('/api/')) {
+      // POST /api/seed - return success mock
+      if (req.method === 'POST' && urlPath === '/api/seed') {
+        res.writeHead(200, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ success: true, message: 'Database seeded successfully (mock)', data: { users: 3, rides: 10, routes: 6 } }));
+        return;
+      }
       const handler = API_GET[urlPath];
       const data = handler ? handler() : null;
       res.writeHead(200, { 'Content-Type': 'application/json' });

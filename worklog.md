@@ -92,3 +92,21 @@ Stage Summary:
 - Fixed 6 API routes with critical bugs (init, feed, favorites, group-rides, communities, seed)
 - Fixed mobile responsive issues for Android/iOS (search bar, bottom nav, floating buttons, cards)
 - All changes pushed to GitHub and auto-deployed on Vercel
+
+---
+Task ID: 1
+Agent: Main
+Task: Fix Vercel deployment errors - /api/seed 500 and OpenStreetMap tiles ERR_FAILED
+
+Work Log:
+- Diagnosed CSP issue: wildcards like `*.tile.openstreetmap.org` do NOT match the bare domain `tile.openstreetmap.org` in Content-Security-Policy
+- Added bare domains alongside wildcards in `next.config.ts` for both `img-src` and `connect-src` directives
+- Added 5 missing external domains to CSP: `tile.opentopomap.org`, `router.project-osrm.org`, `unpkg.com`, `tilecache.rainviewer.com`, `api.qrserver.com`
+- Improved `/api/seed` route: moved `export const dynamic` to top, added GET handler for seed status check, added detailed error hints for common Vercel database issues
+- Updated `static-server.mjs` mock API: fixed `/api/seed` GET response format, added POST handler for seed endpoint
+- Verified all changes compile with `bun run lint` (0 errors)
+
+Stage Summary:
+- CSP headers now include all external domains used by map tiles, APIs, and resources
+- /api/seed now has proper error handling with helpful hints for Vercel deployment issues
+- Both fixes target the Vercel deployment environment where CSP headers and database connectivity differ from local dev
