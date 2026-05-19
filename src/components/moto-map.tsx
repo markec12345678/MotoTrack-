@@ -346,15 +346,31 @@ export default function MotoMap({
       onMapReady(map)
     }
 
+    // ResizeObserver to ensure map fills container properly
+    const resizeObserver = new ResizeObserver(() => {
+      if (mapRef.current === map) {
+        try { map.invalidateSize() } catch { /* map already removed */ }
+      }
+    })
+    resizeObserver.observe(container)
+
     // Fix size issue - guard against map being removed before timeout fires
+    // Use multiple attempts to ensure tiles load properly
     const timerId = setTimeout(() => {
       if (mapRef.current === map) {
         try { map.invalidateSize() } catch { /* map already removed */ }
       }
-    }, 100)
+    }, 200)
+    const timerId2 = setTimeout(() => {
+      if (mapRef.current === map) {
+        try { map.invalidateSize() } catch { /* map already removed */ }
+      }
+    }, 500)
 
     return () => {
       clearTimeout(timerId)
+      clearTimeout(timerId2)
+      resizeObserver.disconnect()
       map.remove()
       mapRef.current = null
       layersRef.current = null
@@ -1358,11 +1374,11 @@ export default function MotoMap({
   }, [tripDays])
 
   return (
-    <div className="relative w-full h-full">
+    <div className="relative w-full h-full" style={{ position: 'absolute', inset: 0 }}>
       <div
         ref={containerRef}
         className={`w-full h-full ${className}`}
-        style={{ minHeight: '300px' }}
+        style={{ position: 'absolute', inset: 0, zIndex: 0 }}
       />
       {showBalkanRoads && (
         <div

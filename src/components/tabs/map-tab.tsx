@@ -441,9 +441,9 @@ export default function MapTab({ rides, routes, onOpenDetail, userId }: MapTabPr
   const navActiveCount = [showNavigation, showFuelPanel, showParkingPanel, showFriendRides].filter(Boolean).length
 
   return (
-    <div className="relative w-full h-screen">
+    <div className="fixed inset-0 z-0">
       {/* Map - hidden when 3D view is active */}
-      <div className={show3D ? 'hidden' : ''}>
+      <div className={show3D ? 'hidden' : 'absolute inset-0'}>
         <MotoMap
         center={[46.15, 14.99]}
         zoom={8}
@@ -471,12 +471,12 @@ export default function MapTab({ rides, routes, onOpenDetail, userId }: MapTabPr
         showHazards={showHazards}
         roadRatings={showRoadQuality ? roadRatings : []}
         userPosition={navUserPosition}
-        className="absolute inset-0"
+        className="absolute inset-0 w-full h-full"
       />
       </div>
 
-      {/* Floating search bar - REVER style with bold shadow (hidden in 3D) */}
-      <div className="absolute top-16 left-4 right-16 z-[1000]">
+      {/* Floating search bar - professional style (hidden in 3D) */}
+      <div className="absolute top-[66px] left-4 right-16 z-[1000]">
         <div className="relative max-w-md">
           <div className="flex items-center gap-2 bg-white/95 dark:bg-black/80 backdrop-blur-xl border border-white/20 dark:border-white/10 rounded-2xl shadow-xl shadow-black/10 dark:shadow-black/30 px-3.5 py-2.5">
             <Search className="h-4 w-4 text-primary shrink-0" />
@@ -523,7 +523,7 @@ export default function MapTab({ rides, routes, onOpenDetail, userId }: MapTabPr
       </div>
 
       {/* Right side - Grouped category buttons */}
-      <div className="absolute top-16 right-4 z-[1000] flex flex-col gap-1.5">
+      <div className="absolute top-[66px] right-4 z-[1000] flex flex-col gap-1.5">
         {/* LAYERS group */}
         <Popover>
           <PopoverTrigger asChild>
@@ -635,7 +635,7 @@ export default function MapTab({ rides, routes, onOpenDetail, userId }: MapTabPr
 
       {/* Filter panel */}
       {showFilters && (
-        <div className="absolute top-44 right-4 z-[1000] bg-background/95 backdrop-blur-md border border-border rounded-xl shadow-lg p-3 w-48">
+        <div className="absolute top-[180px] right-4 z-[1000] bg-background/95 backdrop-blur-md border border-border rounded-xl shadow-lg p-3 w-48">
           <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-2">Prikaži</p>
           <div className="flex gap-2 mb-3">
             <button onClick={() => setFilterRides(!filterRides)} className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-medium transition-colors ${filterRides ? 'bg-amber-500/20 text-amber-400 border border-amber-500/30' : 'bg-secondary text-muted-foreground border border-border'}`}>
@@ -658,7 +658,7 @@ export default function MapTab({ rides, routes, onOpenDetail, userId }: MapTabPr
 
       {/* POI toggle panel */}
       {showPoiPanel && (
-        <div className="absolute top-44 right-4 z-[1000] bg-background/95 backdrop-blur-md border border-border rounded-xl shadow-lg p-3 w-52">
+        <div className="absolute top-[180px] right-4 z-[1000] bg-background/95 backdrop-blur-md border border-border rounded-xl shadow-lg p-3 w-52">
           <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-2">Zanimive točke</p>
           <div className="space-y-1.5">
             {POI_TYPES.map(pt => (
@@ -677,7 +677,7 @@ export default function MapTab({ rides, routes, onOpenDetail, userId }: MapTabPr
 
       {/* Ride Score Widget */}
       {showRideScore && (
-        <div className="absolute top-32 left-4 right-16 z-[999]">
+        <div className="absolute top-[120px] left-4 right-16 z-[999]">
           <div className="max-w-xs">
             <RideScoreCard lat={fuelCenter.lat} lng={fuelCenter.lng} />
           </div>
@@ -686,7 +686,7 @@ export default function MapTab({ rides, routes, onOpenDetail, userId }: MapTabPr
 
       {/* LiveRIDE panel */}
       {showLiveRide && (
-        <div className="absolute top-32 left-4 right-16 z-[999]">
+        <div className="absolute top-[120px] left-4 right-16 z-[999]">
           <div className="bg-background/95 backdrop-blur-md border border-border rounded-xl shadow-lg p-3 max-w-md">
             <div className="flex items-center justify-between mb-2">
               <div className="flex items-center gap-2">
@@ -724,7 +724,7 @@ export default function MapTab({ rides, routes, onOpenDetail, userId }: MapTabPr
       )}
 
       {/* Locate button & Map Style */}
-      <div className="absolute bottom-24 right-4 z-[1000] flex flex-col gap-1.5">
+      <div className="absolute bottom-28 right-4 z-[1000] flex flex-col gap-1.5">
         <MapStyleSelector userId={userId} />
         <Button
           size="icon"

@@ -233,18 +233,17 @@ html {
   box-shadow: 0 0 8px oklch(0.68 0.2 45 / 0.35);
 }
 
-/* Header gradient line - REVER-style orange glow */
+/* Header gradient line - subtle accent */
 .header-gradient-line {
   background: linear-gradient(
     90deg,
     transparent 0%,
-    oklch(0.68 0.2 45 / 0.4) 15%,
-    oklch(0.68 0.2 45 / 1) 50%,
-    oklch(0.68 0.2 45 / 0.4) 85%,
+    oklch(0.68 0.2 45 / 0.3) 15%,
+    oklch(0.68 0.2 45 / 0.6) 50%,
+    oklch(0.68 0.2 45 / 0.3) 85%,
     transparent 100%
   );
   height: 1px;
-  box-shadow: 0 0 8px oklch(0.68 0.2 45 / 0.3);
 }
 
 /* Professional speed gauge ring */
@@ -259,8 +258,8 @@ html {
 
 /* Professional FAB breathing animation */
 @keyframes fabBreathe {
-  0%, 100% { box-shadow: 0 0 0 0 oklch(0.68 0.2 45 / 0.35), 0 4px 12px oklch(0 0 0 / 0.2); }
-  50% { box-shadow: 0 0 0 12px oklch(0.68 0.2 45 / 0), 0 4px 12px oklch(0 0 0 / 0.2); }
+  0%, 100% { box-shadow: 0 0 0 0 oklch(0.68 0.2 45 / 0.3), 0 4px 14px oklch(0 0 0 / 0.15); }
+  50% { box-shadow: 0 0 0 8px oklch(0.68 0.2 45 / 0), 0 4px 14px oklch(0 0 0 / 0.15); }
 }
 
 .fab-breathe {
@@ -532,9 +531,8 @@ button, nav, [role="button"] {
 /* ===== Premium Navigation Bar ===== */
 
 .nav-active-dot {
-  width: 4px;
-  height: 4px;
-  border-radius: 50%;
+  width: 20px;
+  height: 2px;
+  border-radius: 1px;
   background: oklch(0.68 0.2 45);
-  box-shadow: 0 0 6px oklch(0.68 0.2 45 / 0.5);
 }
