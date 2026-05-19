@@ -67,7 +67,9 @@ export default function RootLayout({
             Tailwind v4 preflight: img { max-width:100%; height:auto; display:block; }
             These overrides MUST be outside @layer and use !important to win. */}
         <style dangerouslySetInnerHTML={{ __html: `
-          /* Fix tile images - Tailwind v4 preflight breaks Leaflet tiles */
+          /* Fix tile images - Tailwind v4 preflight breaks Leaflet tiles.
+             Tailwind v4 sets: img { display:block; max-width:100%; height:auto; }
+             These overrides MUST use !important to win over Tailwind's preflight. */
           .leaflet-container .leaflet-tile-pane img,
           .leaflet-container .leaflet-shadow-pane img,
           .leaflet-container .leaflet-marker-pane img,
@@ -75,6 +77,19 @@ export default function RootLayout({
           .leaflet-container .leaflet-tile {
             max-width: none !important;
             max-height: none !important;
+            height: auto !important;
+            width: auto !important;
+          }
+          /* Ensure Leaflet tile container renders correctly */
+          .leaflet-container .leaflet-tile-pane {
+            position: absolute !important;
+            left: 0 !important;
+            top: 0 !important;
+          }
+          .leaflet-container .leaflet-layer {
+            position: absolute !important;
+            left: 0 !important;
+            top: 0 !important;
           }
           /* Fix SVG icons in Leaflet controls */
           .leaflet-container svg {

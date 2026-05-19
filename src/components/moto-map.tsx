@@ -115,16 +115,17 @@ interface MotoMapProps {
   onMapReady?: (map: L.Map) => void
 }
 
-const MAP_TILES: Record<string, { url: string; attribution: string; maxZoom: number; subdomains?: string }> = {
-  // Direct CDN URLs — no proxy needed since CSP is removed from next.config.ts
-  osm: { url: 'https://tile.opentopomap.org/{z}/{x}/{y}.png', attribution: '© OpenTopoMap contributors', maxZoom: 17 },
+const MAP_TILES: Record<string, { url: string; attribution: string; maxZoom: number; subdomains?: string; fallbackUrl?: string }> = {
+  // Default 'osm' uses CartoDB Voyager (reliable CDN, no rate-limit issues on Vercel)
+  // OpenTopoMap has strict 1 req/s/IP rate-limit — fails on shared hosting like Vercel
+  osm: { url: 'https://basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}@2x.png', attribution: '© CartoDB © OpenStreetMap contributors', maxZoom: 20, fallbackUrl: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png' },
   dark: { url: 'https://basemaps.cartocdn.com/dark_all/{z}/{x}/{y}@2x.png', attribution: '© CartoDB', maxZoom: 20 },
   satellite: { url: 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', attribution: '© Esri', maxZoom: 19 },
-  topo: { url: 'https://tile.opentopomap.org/{z}/{x}/{y}.png', attribution: '© OpenTopoMap', maxZoom: 17 },
+  topo: { url: 'https://tile.opentopomap.org/{z}/{x}/{y}.png', attribution: '© OpenTopoMap', maxZoom: 17, fallbackUrl: 'https://basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}@2x.png' },
   voyager: { url: 'https://basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}@2x.png', attribution: '© CartoDB', maxZoom: 20 },
   osm_direct: { url: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png', attribution: '© OpenStreetMap contributors', maxZoom: 19 },
-  streets: { url: 'https://tile.opentopomap.org/{z}/{x}/{y}.png', attribution: '© OpenTopoMap', maxZoom: 17 },
-  terrain: { url: 'https://tile.opentopomap.org/{z}/{x}/{y}.png', attribution: '© OpenTopoMap', maxZoom: 17 },
+  streets: { url: 'https://basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}@2x.png', attribution: '© CartoDB', maxZoom: 20 },
+  terrain: { url: 'https://tile.opentopomap.org/{z}/{x}/{y}.png', attribution: '© OpenTopoMap', maxZoom: 17, fallbackUrl: 'https://basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}@2x.png' },
 }
 
 const categoryColors: Record<string, string> = {
@@ -310,7 +311,7 @@ export default function MotoMap({
     }).addTo(map)
     tileRef.current = tileLayer
 
-    // Tile error retry: reload failed tiles after a short delay
+    // Tile error retry: reload failed tiles after a short delay, with fallback
     tileLayer.on('tileerror', (e: L.TileErrorEvent) => {
       const tile = e.tile as HTMLImageElement
       if (!tile || !tile.src) return
@@ -324,6 +325,20 @@ export default function MotoMap({
             tile.src = tile.src // Force reload
           }
         }, delay)
+      } else if (tileConfig.fallbackUrl) {
+        // After 3 retries, try fallback tile URL
+        const fallbackSrc = tile.src.replace(tileConfig.url.replace(/{z}/g, '\\{z\\}').replace(/{x}/g, '\\{x\\}').replace(/{y}/g, '\\{y\\}'), '')
+        if (!tile.dataset.fallback) {
+          tile.dataset.fallback = '1'
+          // Reconstruct URL with fallback by parsing current tile coordinates
+          const urlMatch = tile.src.match(/\/(\d+)\/(\d+)\/(\d+)/)
+          if (urlMatch) {
+            const fz = urlMatch[1], fx = urlMatch[2], fy = urlMatch[3]
+            let fallbackTileUrl = tileConfig.fallbackUrl
+              .replace('{z}', fz).replace('{x}', fx).replace('{y}', fy)
+            tile.src = fallbackTileUrl
+          }
+        }
       }
     })
 
@@ -419,7 +434,7 @@ export default function MotoMap({
       maxNativeZoom: tileConfig.maxZoom,
     })
 
-    // Tile error retry for new layer
+    // Tile error retry for new layer, with fallback
     newTile.on('tileerror', (e: L.TileErrorEvent) => {
       const tile = e.tile as HTMLImageElement
       if (!tile || !tile.src) return
@@ -432,6 +447,17 @@ export default function MotoMap({
             tile.src = tile.src
           }
         }, delay)
+      } else if (tileConfig.fallbackUrl) {
+        if (!tile.dataset.fallback) {
+          tile.dataset.fallback = '1'
+          const urlMatch = tile.src.match(/\/(\d+)\/(\d+)\/(\d+)/)
+          if (urlMatch) {
+            const fz = urlMatch[1], fx = urlMatch[2], fy = urlMatch[3]
+            let fallbackTileUrl = tileConfig.fallbackUrl
+              .replace('{z}', fz).replace('{x}', fx).replace('{y}', fy)
+            tile.src = fallbackTileUrl
+          }
+        }
       }
     })
 

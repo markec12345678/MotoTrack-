@@ -9,12 +9,12 @@ import { toast } from 'sonner'
 import type { MapStyleConfig } from '@/components/tabs/types'
 
 const MAP_STYLES = [
-  { id: 'streets', name: 'Ulice', icon: Map, desc: 'Standardni zemljevid' },
-  { id: 'satellite', name: 'Satelit', icon: Satellite, desc: 'Satelitski posnetki' },
-  { id: 'terrain', name: 'Teren', icon: Mountain, desc: 'Topografski zemljevid' },
+  { id: 'osm', name: 'Zemljevid', icon: Map, desc: 'Standardni zemljevid (CartoDB)' },
+  { id: 'satellite', name: 'Satelit', icon: Satellite, desc: 'Satelitski posnetki (Esri)' },
+  { id: 'topo', name: 'Topo', icon: Mountain, desc: 'Topografski (OpenTopoMap)' },
   { id: 'dark', name: 'Temni', icon: Moon, desc: 'Temna tema za nočno vožnjo' },
-  { id: 'topo', name: 'Topo', icon: Layers, desc: 'Topografski s plastmi' },
-  { id: 'osm', name: 'OSM', icon: Globe, desc: 'OpenStreetMap' },
+  { id: 'voyager', name: 'Voyager', icon: Globe, desc: 'CartoDB Voyager stil' },
+  { id: 'streets', name: 'Ulice', icon: Layers, desc: 'Ulični zemljevid' },
 ]
 
 interface Props {
@@ -24,7 +24,7 @@ interface Props {
 
 export default function MapStyleSelector({ userId, onStyleChange }: Props) {
   const [config, setConfig] = useState<MapStyleConfig>({
-    styleName: 'streets', customUrl: null, overlayTraffic: false, overlayWeather: false, overlayHazards: true, overlayPois: true
+    styleName: 'osm', customUrl: null, overlayTraffic: false, overlayWeather: false, overlayHazards: true, overlayPois: true
   })
 
   useEffect(() => {
