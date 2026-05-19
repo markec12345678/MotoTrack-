@@ -32,8 +32,10 @@ const nextConfig: NextConfig = {
             "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
             "font-src 'self' https://fonts.gstatic.com",
             // Allow map tiles from all major providers
-            "img-src 'self' data: blob: https://*.tile.openstreetmap.org https://*.openstreetmap.org https://server.arcgisonline.com https://*.basemaps.cartocdn.com https://s3.amazonaws.com https://tiles.openfreemap.org https://api.dicebear.com https://*.maplibre.org https://*.leaflet.org",
-            "connect-src 'self' https://*.tile.openstreetmap.org https://*.openstreetmap.org https://server.arcgisonline.com https://*.basemaps.cartocdn.com https://s3.amazonaws.com https://tiles.openfreemap.org https://api.openweathermap.org https://api.dicebear.com https://nominatim.openstreetmap.org https://overpass-api.de",
+            // NOTE: CSP wildcards like *.example.com do NOT match the bare domain itself.
+            // Both the bare domain AND the wildcard must be listed.
+            "img-src 'self' data: blob: https://tile.openstreetmap.org https://*.tile.openstreetmap.org https://openstreetmap.org https://*.openstreetmap.org https://basemaps.cartocdn.com https://*.basemaps.cartocdn.com https://server.arcgisonline.com https://s3.amazonaws.com https://tiles.openfreemap.org https://api.dicebear.com https://*.maplibre.org https://*.leaflet.org",
+            "connect-src 'self' https://tile.openstreetmap.org https://*.tile.openstreetmap.org https://openstreetmap.org https://*.openstreetmap.org https://basemaps.cartocdn.com https://*.basemaps.cartocdn.com https://server.arcgisonline.com https://s3.amazonaws.com https://tiles.openfreemap.org https://api.openweathermap.org https://api.dicebear.com https://nominatim.openstreetmap.org https://overpass-api.de https://www.openstreetmap.org",
             "worker-src 'self' blob:",
             "child-src 'self' blob:",
           ].join('; ')

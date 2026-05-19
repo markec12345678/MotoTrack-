@@ -1,6 +1,8 @@
 import { db } from '@/lib/db'
 import { NextResponse } from 'next/server'
 
+export const dynamic = 'force-dynamic'
+
 function interpolatePoints(
   start: [number, number, number],
   end: [number, number, number],
@@ -44,14 +46,19 @@ function generateTrackData(
   return JSON.stringify(allPoints)
 }
 
-export const dynamic = 'force-dynamic'
-
 export async function POST() {
   return seedDatabase()
 }
 
-// GET handler removed for security - seed via POST only
-// Accidental GET /api/seed could wipe the database
+// GET returns whether seeding is needed (safe, no side effects)
+export async function GET() {
+  try {
+    const userCount = await db.user.count()
+    return NextResponse.json({ needsSeed: userCount === 0, userCount })
+  } catch {
+    return NextResponse.json({ needsSeed: true, userCount: 0, error: 'Database not accessible' })
+  }
+}
 
 async function seedDatabase() {
   try {
@@ -876,8 +883,27 @@ async function seedDatabase() {
   } catch (error: unknown) {
     const message = error instanceof Error ? error.message : 'Failed to seed database'
     console.error('Seed error:', message, error instanceof Error ? error.stack : '')
+    
+    // Provide helpful error messages for common deployment issues
+    let hint = ''
+    if (message.includes('P1001') || message.includes('Can\'t reach database server')) {
+      hint = 'Database server is unreachable. Check TURSO_DATABASE_URL and TURSO_AUTH_TOKEN environment variables on Vercel.'
+    } else if (message.includes('P3009') || message.includes('schema validation')) {
+      hint = 'Database schema is out of sync. Run `prisma db push` against the production database.'
+    } else if (message.includes('ENOENT') || message.includes('SQLITE_CANTOPEN')) {
+      hint = 'Local SQLite file not accessible. On Vercel, ensure Turso (libsql) is configured.'
+    } else if (message.includes('P2002')) {
+      hint = 'Unique constraint violation - data may already exist. Try seeding again.'
+    } else if (message.includes('P2010') || message.includes('raw query')) {
+      hint = 'Database does not support this operation. Check your database provider.'
+    }
+    
     return NextResponse.json(
-      { success: false, error: message },
+      { 
+        success: false, 
+        error: message,
+        hint: hint || undefined,
+      },
       { status: 500 }
     )
   }
