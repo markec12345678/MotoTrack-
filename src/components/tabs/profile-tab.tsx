@@ -393,49 +393,46 @@ export default function ProfileTab({ user, allUsers, rides, routes, loading, onS
           </CardContent>
         </Card>
 
-        {/* ── Improved User Card ── */}
-        <Card className="rounded-xl overflow-hidden">
-          <div className="h-1 bg-gradient-to-r from-primary/70 via-primary/40 to-primary/10" />
+        {/* ── Improved User Card - Premium REVER style ── */}
+        <Card className="rounded-xl overflow-hidden border-primary/10">
+          <div className="h-1 bg-gradient-to-r from-primary/80 via-primary/50 to-primary/10" />
           <CardContent className="p-5">
             <div className="flex items-center gap-4">
-              {/* Avatar with gradient ring */}
+              {/* Avatar with gradient ring - Premium glow */}
               <div className="relative shrink-0">
-                <div className="absolute inset-0 rounded-full bg-gradient-to-br from-primary/60 to-primary/20 blur-[2px] scale-110" />
-                <Avatar className="size-16 relative ring-2 ring-background">
+                <div className="absolute inset-[-3px] rounded-full bg-gradient-to-br from-primary/40 to-primary/10 blur-[2px]" />
+                <Avatar className="size-16 relative ring-2 ring-background shadow-lg shadow-primary/15">
                   <AvatarFallback className="text-xl bg-primary/15 text-primary font-bold">{user.name.charAt(0)}</AvatarFallback>
                 </Avatar>
               </div>
               <div className="flex-1 min-w-0">
                 <h2 className="text-lg font-bold truncate">{user.name}</h2>
                 <p className="text-xs text-muted-foreground truncate">{user.email}</p>
-                {user.bike && <Badge className="mt-1.5 bg-primary/15 text-primary border-primary/25 text-[10px] h-5"><Bike className="size-3 mr-1" />{user.bike}</Badge>}
+                {user.bike && <Badge className="mt-1.5 bg-primary/10 text-primary border-primary/20 text-[10px] h-5"><Bike className="size-3 mr-1" />{user.bike}</Badge>}
               </div>
             </div>
             {user.bio && <p className="text-xs text-muted-foreground mt-3 leading-relaxed">{user.bio}</p>}
-            {/* Stats horizontal strip */}
-            <div className="mt-4 flex items-center justify-between gap-1 bg-muted/40 rounded-lg px-3 py-2.5">
-              <div className="flex items-center gap-1.5 text-xs">
+            {/* Stats horizontal strip - Premium pill style */}
+            <div className="mt-4 grid grid-cols-4 gap-1.5 bg-muted/30 rounded-xl p-2">
+              <div className="flex flex-col items-center gap-0.5 px-1 py-1.5 rounded-lg bg-background/50">
                 <Bike className="size-3.5 text-primary" />
-                <span className="font-bold">{user.stats.totalRides}</span>
-                <span className="text-muted-foreground">voženj</span>
+                <span className="text-xs font-bold">{user.stats.totalRides}</span>
+                <span className="text-[8px] text-muted-foreground">voženj</span>
               </div>
-              <div className="w-px h-4 bg-border/50" />
-              <div className="flex items-center gap-1.5 text-xs">
+              <div className="flex flex-col items-center gap-0.5 px-1 py-1.5 rounded-lg bg-background/50">
                 <Route className="size-3.5 text-primary" />
-                <span className="font-bold">{user.stats.totalRoutes}</span>
-                <span className="text-muted-foreground">poti</span>
+                <span className="text-xs font-bold">{user.stats.totalRoutes}</span>
+                <span className="text-[8px] text-muted-foreground">poti</span>
               </div>
-              <div className="w-px h-4 bg-border/50" />
-              <div className="flex items-center gap-1.5 text-xs">
+              <div className="flex flex-col items-center gap-0.5 px-1 py-1.5 rounded-lg bg-background/50">
                 <TrendingUp className="size-3.5 text-primary" />
-                <span className="font-bold">{user.stats.totalDistance}</span>
-                <span className="text-muted-foreground">km</span>
+                <span className="text-xs font-bold">{user.stats.totalDistance}</span>
+                <span className="text-[8px] text-muted-foreground">km</span>
               </div>
-              <div className="w-px h-4 bg-border/50" />
-              <div className="flex items-center gap-1.5 text-xs">
+              <div className="flex flex-col items-center gap-0.5 px-1 py-1.5 rounded-lg bg-background/50">
                 <Mountain className="size-3.5 text-primary" />
-                <span className="font-bold">{user.stats.totalElevation}</span>
-                <span className="text-muted-foreground">m</span>
+                <span className="text-xs font-bold">{user.stats.totalElevation}</span>
+                <span className="text-[8px] text-muted-foreground">m</span>
               </div>
             </div>
           </CardContent>

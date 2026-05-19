@@ -46,7 +46,7 @@ import dynamic from 'next/dynamic'
 
 const MoviePlayer = dynamic(() => import('@/components/movie-player'), { ssr: false, loading: () => null })
 
-// Tab pill component (defined outside render to avoid re-creation)
+// Tab pill component - Premium REVER style (defined outside render to avoid re-creation)
 function TabPill({ active, onClick, icon, label, badge, notification }: {
   active: boolean
   onClick: () => void
@@ -58,17 +58,17 @@ function TabPill({ active, onClick, icon, label, badge, notification }: {
   return (
     <button
       onClick={onClick}
-      className={`relative flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium transition-all duration-200 ${
+      className={`relative flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl text-xs font-medium transition-all duration-200 active:scale-95 ${
         active
-          ? 'bg-primary text-primary-foreground shadow-sm'
-          : 'text-muted-foreground hover:bg-secondary hover:text-foreground'
+          ? 'bg-primary text-primary-foreground shadow-sm shadow-primary/20'
+          : 'text-muted-foreground hover:bg-muted/60 hover:text-foreground glass-hud'
       }`}
     >
       {icon}
       <span>{label}</span>
       {badge}
       {notification !== undefined && notification > 0 && (
-        <span className="absolute -top-1 -right-1 bg-red-500 text-white text-[8px] font-bold rounded-full size-4 flex items-center justify-center">{notification}</span>
+        <span className="absolute -top-1 -right-1 bg-red-500 text-white text-[8px] font-bold rounded-full size-4 flex items-center justify-center shadow-sm">{notification}</span>
       )}
     </button>
   )
@@ -447,17 +447,17 @@ const ExploreTabInner = React.memo(function ExploreTabInner({ rides, routes, lea
       }`}
       onFocusCapture={handleFocusCapture}
     >
-      {/* Fullscreen header bar */}
+      {/* Fullscreen header bar - Premium style */}
       {fullscreen && (
-        <div className="sticky top-0 z-10 flex items-center justify-between px-4 py-2 bg-background/95 backdrop-blur-md border-b border-border/30">
+        <div className="sticky top-0 z-10 flex items-center justify-between px-4 py-2.5 glass-sheet">
           <div className="flex items-center gap-2">
             <Compass className="size-4 text-primary" />
             <span className="text-sm font-bold">Raziskuj</span>
-            <span className="text-[10px] text-muted-foreground bg-primary/10 px-2 py-0.5 rounded-full">Cel zaslon</span>
+            <span className="text-[10px] text-primary bg-primary/10 px-2 py-0.5 rounded-full font-medium">Cel zaslon</span>
           </div>
           <button
             onClick={() => onToggleFullscreen?.(false)}
-            className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground transition-colors px-3 py-1.5 rounded-full bg-secondary hover:bg-muted"
+            className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground transition-colors px-3 py-1.5 rounded-xl glass-hud hover:bg-white/10"
           >
             <Minimize2 className="size-3.5" />
             Skrči
