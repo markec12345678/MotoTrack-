@@ -441,7 +441,7 @@ export default function MapTab({ rides, routes, onOpenDetail, userId }: MapTabPr
   const navActiveCount = [showNavigation, showFuelPanel, showParkingPanel, showFriendRides].filter(Boolean).length
 
   return (
-    <div className="relative w-full h-[calc(100vh-72px)]">
+    <div className="relative w-full h-screen">
       {/* Map - hidden when 3D view is active */}
       <div className={show3D ? 'hidden' : ''}>
         <MotoMap
@@ -476,7 +476,7 @@ export default function MapTab({ rides, routes, onOpenDetail, userId }: MapTabPr
       </div>
 
       {/* Floating search bar - REVER style with bold shadow (hidden in 3D) */}
-      <div className="absolute top-4 left-4 right-16 z-[1000]">
+      <div className="absolute top-16 left-4 right-16 z-[1000]">
         <div className="relative max-w-md">
           <div className="flex items-center gap-2 bg-white/95 dark:bg-black/80 backdrop-blur-xl border border-white/20 dark:border-white/10 rounded-2xl shadow-xl shadow-black/10 dark:shadow-black/30 px-3.5 py-2.5">
             <Search className="h-4 w-4 text-primary shrink-0" />
@@ -523,7 +523,7 @@ export default function MapTab({ rides, routes, onOpenDetail, userId }: MapTabPr
       </div>
 
       {/* Right side - Grouped category buttons */}
-      <div className="absolute top-4 right-4 z-[1000] flex flex-col gap-1.5">
+      <div className="absolute top-16 right-4 z-[1000] flex flex-col gap-1.5">
         {/* LAYERS group */}
         <Popover>
           <PopoverTrigger asChild>
@@ -635,7 +635,7 @@ export default function MapTab({ rides, routes, onOpenDetail, userId }: MapTabPr
 
       {/* Filter panel */}
       {showFilters && (
-        <div className="absolute top-16 right-4 z-[1000] bg-background/95 backdrop-blur-md border border-border rounded-xl shadow-lg p-3 w-48">
+        <div className="absolute top-44 right-4 z-[1000] bg-background/95 backdrop-blur-md border border-border rounded-xl shadow-lg p-3 w-48">
           <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-2">Prikaži</p>
           <div className="flex gap-2 mb-3">
             <button onClick={() => setFilterRides(!filterRides)} className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-medium transition-colors ${filterRides ? 'bg-amber-500/20 text-amber-400 border border-amber-500/30' : 'bg-secondary text-muted-foreground border border-border'}`}>
@@ -658,7 +658,7 @@ export default function MapTab({ rides, routes, onOpenDetail, userId }: MapTabPr
 
       {/* POI toggle panel */}
       {showPoiPanel && (
-        <div className="absolute top-28 right-4 z-[1000] bg-background/95 backdrop-blur-md border border-border rounded-xl shadow-lg p-3 w-52">
+        <div className="absolute top-44 right-4 z-[1000] bg-background/95 backdrop-blur-md border border-border rounded-xl shadow-lg p-3 w-52">
           <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-2">Zanimive točke</p>
           <div className="space-y-1.5">
             {POI_TYPES.map(pt => (
@@ -677,7 +677,7 @@ export default function MapTab({ rides, routes, onOpenDetail, userId }: MapTabPr
 
       {/* Ride Score Widget */}
       {showRideScore && (
-        <div className="absolute top-4 left-4 right-16 z-[999] mt-[52px]">
+        <div className="absolute top-32 left-4 right-16 z-[999]">
           <div className="max-w-xs">
             <RideScoreCard lat={fuelCenter.lat} lng={fuelCenter.lng} />
           </div>
@@ -686,7 +686,7 @@ export default function MapTab({ rides, routes, onOpenDetail, userId }: MapTabPr
 
       {/* LiveRIDE panel */}
       {showLiveRide && (
-        <div className="absolute top-4 left-4 right-16 z-[999] mt-[52px]">
+        <div className="absolute top-32 left-4 right-16 z-[999]">
           <div className="bg-background/95 backdrop-blur-md border border-border rounded-xl shadow-lg p-3 max-w-md">
             <div className="flex items-center justify-between mb-2">
               <div className="flex items-center gap-2">
@@ -724,7 +724,7 @@ export default function MapTab({ rides, routes, onOpenDetail, userId }: MapTabPr
       )}
 
       {/* Locate button & Map Style */}
-      <div className="absolute bottom-28 right-4 z-[1000] flex flex-col gap-1.5">
+      <div className="absolute bottom-24 right-4 z-[1000] flex flex-col gap-1.5">
         <MapStyleSelector userId={userId} />
         <Button
           size="icon"
@@ -782,7 +782,7 @@ export default function MapTab({ rides, routes, onOpenDetail, userId }: MapTabPr
 
       {/* Traffic Overlay Panel */}
       {showTraffic && (
-        <div className="absolute top-4 left-4 z-[1000] mt-[52px] max-w-md">
+        <div className="absolute top-32 left-4 z-[1000] max-w-md">
           <div className="bg-background/95 backdrop-blur-md border border-border rounded-xl shadow-lg p-3">
             <TrafficOverlay lat={fuelCenter.lat} lng={fuelCenter.lng} enabled={showTraffic} userId={userId} />
           </div>
@@ -790,7 +790,7 @@ export default function MapTab({ rides, routes, onOpenDetail, userId }: MapTabPr
       )}
 
       {/* Nearby panel - REVER-style compact strip */}
-      <div className="absolute bottom-4 left-4 right-4 z-[1000]">
+      <div className="absolute bottom-20 left-4 right-4 z-[1000]">
         <div className={`bg-black/85 backdrop-blur-xl border border-white/10 rounded-2xl shadow-xl shadow-black/20 transition-all duration-300 overflow-hidden ${nearbyExpanded ? 'max-h-[60vh]' : 'max-h-12'}`}>
           <button onClick={() => setNearbyExpanded(!nearbyExpanded)} className="w-full flex items-center justify-between px-4 h-12 text-sm font-medium text-white hover:bg-white/5 transition-colors rounded-t-2xl">
             <div className="flex items-center gap-2">
