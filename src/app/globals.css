@@ -404,6 +404,55 @@ html {
   box-shadow: 0 -4px 24px oklch(0 0 0 / 0.25);
 }
 
+/* ===== CRITICAL: Leaflet CSS fixes for Tailwind CSS v4 compatibility ===== */
+/* Tailwind's preflight resets img to max-width:100% and display:block which breaks Leaflet tiles */
+
+/* Fix tile images - must override Tailwind's img reset */
+.leaflet-container img {
+  max-width: none !important;
+  max-height: none !important;
+  width: auto !important;
+  height: auto !important;
+  display: inline !important;
+}
+
+/* Fix SVG icons in Leaflet controls */
+.leaflet-container svg {
+  max-width: none !important;
+  max-height: none !important;
+}
+
+/* Ensure tile container renders properly */
+.leaflet-tile {
+  visibility: inherit !important;
+}
+
+.leaflet-tile-loaded {
+  visibility: inherit !important;
+}
+
+/* Fix Leaflet container sizing */
+.leaflet-container {
+  width: 100% !important;
+  height: 100% !important;
+  font-family: inherit !important;
+}
+
+/* Fix pane stacking */
+.leaflet-pane {
+  z-index: auto !important;
+}
+
+.leaflet-top,
+.leaflet-bottom {
+  z-index: auto !important;
+}
+
+/* Fix control positioning that Tailwind may reset */
+.leaflet-control {
+  position: relative !important;
+}
+
 /* Custom Leaflet markers */
 .custom-marker {
   background: none !important;
@@ -420,6 +469,15 @@ html {
   margin: 10px 14px !important;
   font-size: 13px !important;
   line-height: 1.5 !important;
+}
+
+/* Fix Leaflet tile fade-in (Tailwind resets opacity transitions) */
+.leaflet-tile-pane {
+  transition: none !important;
+}
+
+.leaflet-tile {
+  transition: none !important;
 }
 
 /* ===== Mobile Compatibility ===== */
