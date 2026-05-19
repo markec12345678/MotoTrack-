@@ -60,6 +60,9 @@ export default function RootLayout({
         {/* Leaflet CSS - loaded from local /public folder */}
         <link rel="stylesheet" href="/leaflet.css" />
 
+        {/* MapLibre GL CSS - loaded from local /public folder for 3D map */}
+        <link rel="stylesheet" href="/maplibre-gl.css" />
+
         {/* Leaflet CSS overrides to fix Tailwind v4 preflight conflicts.
             Tailwind v4 preflight: img { max-width:100%; height:auto; display:block; }
             These overrides MUST be outside @layer and use !important to win. */}
@@ -98,6 +101,30 @@ export default function RootLayout({
             height: 36px !important;
             line-height: 36px !important;
             font-size: 18px !important;
+          }
+
+          /* ===== MapLibre GL CSS overrides - Tailwind v4 preflight fixes ===== */
+          /* Tailwind v4 preflight breaks MapLibre GL canvas and tile rendering */
+          .maplibregl-map img,
+          .maplibregl-map canvas {
+            max-width: none !important;
+            max-height: none !important;
+          }
+          .maplibregl-map svg {
+            max-width: none !important;
+            max-height: none !important;
+          }
+          /* Fix MapLibre popup content from Tailwind resets */
+          .maplibregl-popup-content {
+            font-size: 13px !important;
+            line-height: 1.5 !important;
+          }
+          /* Fix MapLibre controls from Tailwind resets */
+          .maplibregl-ctrl button {
+            display: block !important;
+          }
+          .maplibregl-ctrl button span {
+            display: block !important;
           }
         ` }} />
 

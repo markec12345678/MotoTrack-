@@ -272,7 +272,7 @@ export default function MapTab({ rides, routes, onOpenDetail, userId }: MapTabPr
 
     const initSocket = async () => {
       const { io } = await import('socket.io-client')
-      const socket = io('/', { transports: ['websocket'] })
+      const socket = io('/?XTransformPort=3002', { transports: ['websocket'] })
 
       socket.on('connect', () => {
         console.log('LiveRIDE connected')

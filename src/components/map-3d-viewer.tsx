@@ -89,6 +89,7 @@ export default function Map3DViewer({
   const canvasRef = useRef<HTMLCanvasElement>(null)
   const [initError, setInitError] = useState<string | null>(null)
   const [isLoading, setIsLoading] = useState(true)
+  const [retryCount, setRetryCount] = useState(0)
 
   // Compute track data with distances and elevation
   const trackData = useCallback(() => {
@@ -199,26 +200,17 @@ export default function Map3DViewer({
       })
     }
 
-    return {
+    const style: any = {
       version: 8,
       sources: baseSources,
       layers: baseLayers,
-      terrain: showTerrain ? { source: 'terrain-dem', exaggeration: 1.5 } : undefined,
-    } as any
+    }
+    // Terrain is set after map load via setTerrain() — not in the style object
+    // This avoids style validation errors in some MapLibre GL versions
+    return style
   }, [showTerrain])
 
-  // Load MapLibre CSS dynamically
-  useEffect(() => {
-    // Check if CSS is already loaded
-    const existingLink = document.querySelector('link[href*="maplibre-gl"]')
-    if (!existingLink) {
-      const link = document.createElement('link')
-      link.rel = 'stylesheet'
-      link.href = 'https://unpkg.com/maplibre-gl@5.24.0/dist/maplibre-gl.css'
-      link.crossOrigin = 'anonymous'
-      document.head.appendChild(link)
-    }
-  }, [])
+  // MapLibre CSS is loaded via layout.tsx <link> tag from /maplibre-gl.css
 
   // Initialize MapLibre GL map
   useEffect(() => {
@@ -226,6 +218,8 @@ export default function Map3DViewer({
 
     let map: any = null
     let cancelled = false
+    let errorCount = 0
+    let hasLoadedSuccessfully = false
 
     const initMap = async () => {
       try {
@@ -237,6 +231,15 @@ export default function Map3DViewer({
         if (cancelled) return
 
         maplibreRef.current = maplibregl
+
+        // Check WebGL support
+        const canvas = document.createElement('canvas')
+        const gl = canvas.getContext('webgl2') || canvas.getContext('webgl')
+        if (!gl) {
+          setInitError('Vaš brskalnik ne podpira WebGL, ki je potreben za 3D zemljevid.')
+          setIsLoading(false)
+          return
+        }
 
         map = new maplibregl.Map({
           container: containerRef.current!,
@@ -254,6 +257,7 @@ export default function Map3DViewer({
 
         map.on('load', () => {
           if (cancelled) return
+          hasLoadedSuccessfully = true
           setIs3DReady(true)
           setIsLoading(false)
 
@@ -290,10 +294,29 @@ export default function Map3DViewer({
           addTrackData(map!)
         })
 
+        // Only show fatal error overlay for critical errors, not individual tile failures
+        // MapLibre fires error events for many non-fatal reasons (tile 404, CORS, etc.)
         map.on('error', (e: any) => {
-          console.error('MapLibre map error:', e)
-          setInitError('Napaka pri nalaganju 3D zemljevida')
-          setIsLoading(false)
+          errorCount++
+          const error = e?.error || e
+          console.warn('MapLibre non-fatal error:', error)
+
+          // Only show the error overlay if:
+          // 1. The map hasn't loaded successfully yet (critical init error)
+          // 2. There are many errors (something is fundamentally broken)
+          // 3. The error is a WebGL context loss
+          const isWebGLContextLoss = error?.message?.includes('WebGL') ||
+            error?.message?.includes('context') ||
+            error?.message?.includes('RENDERER')
+
+          if (!hasLoadedSuccessfully && errorCount > 5) {
+            setInitError('Napaka pri nalaganju 3D zemljevida. Preverite povezavo in poskusite znova.')
+            setIsLoading(false)
+          } else if (isWebGLContextLoss) {
+            setInitError('WebGL napaka. Poskusite osvežiti stran.')
+            setIsLoading(false)
+          }
+          // Individual tile errors are silently ignored — the map continues working
         })
 
         mapRef.current = map
@@ -316,7 +339,7 @@ export default function Map3DViewer({
         mapRef.current = null
       }
     }
-  }, [])
+  }, [retryCount]) // retryCount triggers re-initialization on retry
 
   // Add track/route data to the map
   const addTrackData = useCallback((map: any) => {
@@ -927,9 +950,16 @@ export default function Map3DViewer({
             <AlertTriangle className="size-10 text-amber-400" />
             <p className="text-sm text-white/90 font-medium">{initError}</p>
             <p className="text-xs text-white/50">Preverite povezavo in poskusite znova</p>
-            <Button variant="outline" size="sm" className="mt-2" onClick={onClose}>
-              Zapri
-            </Button>
+            <div className="flex gap-2 mt-2">
+              <Button variant="outline" size="sm" className="gap-1" onClick={() => { setInitError(null); setRetryCount(c => c + 1); }}>
+                <RotateCcw className="size-3" /> Poskusi znova
+              </Button>
+              {onClose && (
+                <Button variant="outline" size="sm" onClick={onClose}>
+                  Zapri
+                </Button>
+              )}
+            </div>
           </div>
         </div>
       )}
