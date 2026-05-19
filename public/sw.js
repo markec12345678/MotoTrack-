@@ -1,7 +1,7 @@
 // MotoTrack Service Worker v2 — Offline-first with smart caching
 // Critical for Balkan motorcyclists where mobile signal is often unavailable
 
-const CACHE_VERSION = 'mototrack-v2'
+const CACHE_VERSION = 'mototrack-v3'
 const STATIC_CACHE = `${CACHE_VERSION}-static`
 const API_CACHE = `${CACHE_VERSION}-api`
 const TILE_CACHE = `${CACHE_VERSION}-tiles`
@@ -72,9 +72,10 @@ async function trimCache(cacheName, maxEntries) {
 
 // Helper: is this a map tile request?
 function isTileRequest(url) {
-  const tileHosts = ['tile.openstreetmap.org', 'tiles.wmflabs.org', 'a.tile.openstreetmap.org',
+  const tileHosts = ['tile.openstreetmap.org', 'a.tile.openstreetmap.org',
     'b.tile.openstreetmap.org', 'c.tile.openstreetmap.org', 'api.mapbox.com',
-    'demotiles.maplibre.org', 'basemaps.cartocdn.com', 'stamen-tiles.a.ssl.fastly.net']
+    'demotiles.maplibre.org', 'basemaps.cartocdn.com', 'stamen-tiles.a.ssl.fastly.net',
+    'tile.opentopomap.org', 'server.arcgisonline.com', 'tilecache.rainviewer.com']
   return tileHosts.some(host => url.hostname.includes(host))
 }
 
@@ -127,21 +128,30 @@ self.addEventListener('fetch', (event) => {
   // Skip OSRM routing and external API calls (not cacheable)
   if (url.hostname.includes('router.project-osrm.org')) return
 
-  // Map tiles: Stale-while-revalidate (show cached, update in background)
+  // Map tiles: Cache-first with network fallback (show cached instantly, fetch if not cached)
   if (isTileRequest(url)) {
     event.respondWith(
       caches.open(TILE_CACHE).then(async (cache) => {
+        // Try cache first for instant display
         const cached = await cache.match(event.request)
-        const fetchPromise = fetch(addXTP(url), { credentials: event.request.credentials })
-          .then((response) => {
-            if (response.ok) {
-              cache.put(event.request, response.clone())
-              trimCache(TILE_CACHE, MAX_TILE_ENTRIES)
-            }
-            return response
+        if (cached) return cached
+
+        // Not cached - fetch from network
+        try {
+          const response = await fetch(event.request.url, {
+            mode: 'no-cors',
+            credentials: 'omit',
           })
-          .catch(() => cached)
-        return cached || fetchPromise
+          // Cache the response for future use (opaque responses are OK for tiles)
+          if (response.status === 200 || response.type === 'opaque') {
+            cache.put(event.request, response.clone())
+            trimCache(TILE_CACHE, MAX_TILE_ENTRIES)
+          }
+          return response
+        } catch (err) {
+          // Network failed - return nothing (Leaflet will show empty tile and retry)
+          return new Response('', { status: 503, statusText: 'Tile unavailable' })
+        }
       })
     )
     return

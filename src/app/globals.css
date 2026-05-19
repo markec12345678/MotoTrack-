@@ -404,10 +404,9 @@ html {
   box-shadow: 0 -4px 24px oklch(0 0 0 / 0.25);
 }
 
-/* ===== Leaflet CSS overrides are now in layout.tsx <style> tag ===== */
-/* Tailwind v4's compiler strips !important in globals.css on Vercel production builds. */
-/* All Leaflet fixes are in an inline <style> tag in layout.tsx to bypass Tailwind processing. */
-/* A MutationObserver in layout.tsx also enforces correct tile styles at runtime. */
+/* ===== Leaflet CSS overrides are in layout.tsx <style> tag ===== */
+/* Tailwind v4's @layer system means globals.css styles have lower priority. */
+/* Leaflet fixes are in an inline <style> tag in layout.tsx to ensure they win. */
 
 /* ===== Mobile Compatibility ===== */
 

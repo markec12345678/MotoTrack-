@@ -114,17 +114,23 @@ interface MotoMapProps {
   onMapReady?: (map: L.Map) => void
 }
 
-const MAP_TILES: Record<string, { url: string; attribution: string; maxZoom: number }> = {
-  // Use OSM direct tiles as primary - most reliable and well-cached
-  osm: { url: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png', attribution: '© OpenStreetMap contributors', maxZoom: 19 },
+const MAP_TILES: Record<string, { url: string; attribution: string; maxZoom: number; subdomains?: string }> = {
+  // OpenTopoMap as primary - most reliable on Vercel/production deployments
+  osm: { url: 'https://tile.opentopomap.org/{z}/{x}/{y}.png', attribution: '© OpenTopoMap contributors', maxZoom: 17 },
   // CartoDB dark tiles - no subdomain needed, works without {s}
   dark: { url: 'https://basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', attribution: '© CartoDB', maxZoom: 20 },
   // Esri satellite - no subdomain, direct server
   satellite: { url: 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', attribution: '© Esri', maxZoom: 19 },
-  // OpenTopoMap
+  // OpenTopoMap explicit
   topo: { url: 'https://tile.opentopomap.org/{z}/{x}/{y}.png', attribution: '© OpenTopoMap', maxZoom: 17 },
   // CartoDB voyager - no subdomain needed
   voyager: { url: 'https://basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', attribution: '© CartoDB', maxZoom: 20 },
+  // OSM direct tiles (may be rate-limited on cloud providers)
+  osm_direct: { url: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png', attribution: '© OpenStreetMap contributors', maxZoom: 19 },
+  // Streets style = OpenTopoMap (reliable)
+  streets: { url: 'https://tile.opentopomap.org/{z}/{x}/{y}.png', attribution: '© OpenTopoMap', maxZoom: 17 },
+  // Terrain style = OpenTopoMap
+  terrain: { url: 'https://tile.opentopomap.org/{z}/{x}/{y}.png', attribution: '© OpenTopoMap', maxZoom: 17 },
 }
 
 const categoryColors: Record<string, string> = {
@@ -298,21 +304,32 @@ export default function MotoMap({
     // Add zoom control to top-left
     L.control.zoom({ position: 'topleft' }).addTo(map)
 
-    // Tile layer with style support
+    // Tile layer with style support and retry logic
     const tileConfig = MAP_TILES[mapStyle] || MAP_TILES.osm
     const tileLayer = L.tileLayer(tileConfig.url, {
       attribution: tileConfig.attribution,
       maxZoom: tileConfig.maxZoom,
-      crossOrigin: false, // Don't use CORS - just load images normally
+      crossOrigin: false,
+      // Retry failed tiles up to 3 times with exponential backoff
+      maxNativeZoom: tileConfig.maxZoom,
     }).addTo(map)
     tileRef.current = tileLayer
 
-    // Log tile loading events for debugging
+    // Tile error retry: reload failed tiles after a short delay
     tileLayer.on('tileerror', (e: L.TileErrorEvent) => {
-      console.warn('MotoTrack: Tile load error', e.tile?.src, e.error)
-    })
-    tileLayer.on('load', () => {
-      console.log('MotoTrack: Tile layer loaded successfully')
+      const tile = e.tile as HTMLImageElement
+      if (!tile || !tile.src) return
+      // Retry up to 3 times with increasing delay
+      const retryCount = parseInt(tile.dataset.retry || '0', 10)
+      if (retryCount < 3) {
+        tile.dataset.retry = String(retryCount + 1)
+        const delay = 500 * (retryCount + 1) // 500ms, 1000ms, 1500ms
+        setTimeout(() => {
+          if (tile.parentNode) {
+            tile.src = tile.src // Force reload
+          }
+        }, delay)
+      }
     })
 
     // Layer groups
@@ -360,34 +377,6 @@ export default function MotoMap({
       onMapReady(map)
     }
 
-    // CRITICAL: Force Leaflet tile images to render correctly
-    // Tailwind CSS v4 preflight resets img styles (max-width:100%, height:auto, display:block)
-    // which breaks Leaflet's 256x256 tile images. This MutationObserver + periodic fix
-    // ensures tiles always have correct inline styles, even if CSS overrides fail.
-    const fixTileStyles = () => {
-      try {
-        const tiles = container.querySelectorAll('.leaflet-tile-pane img')
-        tiles.forEach((img: Element) => {
-          const htmlImg = img as HTMLImageElement
-          htmlImg.style.maxWidth = 'none'
-          htmlImg.style.maxHeight = 'none'
-          htmlImg.style.width = '256px'
-          htmlImg.style.height = '256px'
-          htmlImg.style.display = 'inline'
-          htmlImg.style.position = 'absolute'
-          htmlImg.style.opacity = '1'
-        })
-      } catch { /* ignore */ }
-    }
-
-    // Fix tiles when they load
-    const tileObserver = new MutationObserver(() => fixTileStyles())
-    tileObserver.observe(container, { childList: true, subtree: true })
-
-    // Also fix periodically for the first 10 seconds (catches lazy-loaded tiles)
-    const fixInterval = setInterval(fixTileStyles, 500)
-    setTimeout(() => clearInterval(fixInterval), 10000)
-
     // ResizeObserver to ensure map fills container properly
     const resizeObserver = new ResizeObserver(() => {
       if (mapRef.current === map) {
@@ -396,24 +385,15 @@ export default function MotoMap({
     })
     resizeObserver.observe(container)
 
-    // Fix size issue - guard against map being removed before timeout fires
-    // Use multiple attempts to ensure tiles load properly
+    // Schedule initial size fix to ensure tiles load properly
     const timerId = setTimeout(() => {
       if (mapRef.current === map) {
         try { map.invalidateSize() } catch { /* map already removed */ }
       }
-    }, 200)
-    const timerId2 = setTimeout(() => {
-      if (mapRef.current === map) {
-        try { map.invalidateSize() } catch { /* map already removed */ }
-      }
-    }, 500)
+    }, 300)
 
     return () => {
       clearTimeout(timerId)
-      clearTimeout(timerId2)
-      clearInterval(fixInterval)
-      tileObserver.disconnect()
       resizeObserver.disconnect()
       map.remove()
       mapRef.current = null
