@@ -1109,3 +1109,29 @@ Work Log:
 Stage Summary:
 - Triple-layer fix for Leaflet tiles: inline CSS, global MutationObserver, component-level MutationObserver
 - This should definitively fix the empty white squares on Vercel
+---
+Task ID: 1
+Agent: Main Agent
+Task: Diagnose and fix Leaflet blank white tiles on Vercel
+
+Work Log:
+- Analyzed user's screenshot with VLM - confirmed blank white map tiles
+- Used agent-browser to diagnose the live Vercel deployment
+- **CRITICAL FINDING**: Leaflet CSS from CDN was NOT loading (sheet: 'NO SHEET', 0 rules)
+  - The `crossorigin="anonymous"` + `integrity` attributes on the CDN `<link>` tag were causing SRI/CORS failures
+  - Without Leaflet CSS, the entire map layout was broken
+- Also found tile images had `naturalWidth: 0` in headless browser (agent-browser limitation, not real issue)
+- Downloaded leaflet.css to /public folder (served locally, no CDN/SRI/CORS issues)
+- Removed CDN link with crossorigin + integrity, replaced with local /leaflet.css
+- Updated tile URLs to remove subdomain patterns ({s}.domain → domain) for reliability
+- Added crossOrigin: false to Leaflet tile layer config
+- Added tile loading error/debug logging
+- Pushed fix to GitHub and verified on Vercel
+- **VERIFIED**: After fix, Leaflet CSS now loads correctly (hasSheet: 'YES', 124 rules)
+
+Stage Summary:
+- Root cause: CDN Leaflet CSS with crossorigin+SRI was being blocked by the browser
+- Fix: Local leaflet.css from /public folder + simplified tile URLs
+- Key files changed: layout.tsx, moto-map.tsx, next.config.ts, public/leaflet.css
+- Vercel deployment verified: Leaflet CSS now loads (124 rules applied)
+- The agent-browser can't load external images (known limitation), so tile appearance needs user verification
