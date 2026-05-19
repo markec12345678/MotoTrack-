@@ -379,12 +379,12 @@ export default function ProfileTab({ user, allUsers, rides, routes, loading, onS
       <div className="mx-auto max-w-lg px-4 py-6 space-y-5">
 
         {/* ── User Switcher ── */}
-        <Card className="rounded-xl">
+        <Card className="rounded-2xl card-hover-lift">
           <CardContent className="p-3">
-            <div className="flex items-center gap-2 mb-2"><Users className="size-3.5 text-muted-foreground" /><span className="text-[11px] text-muted-foreground font-medium">Preklopi uporabnika</span></div>
+            <div className="flex items-center gap-2 mb-2"><Users className="size-3.5 text-muted-foreground/60" /><span className="text-[11px] text-muted-foreground/60 font-semibold uppercase tracking-wider">Preklopi uporabnika</span></div>
             <div className="flex gap-1.5 flex-wrap">
               {allUsers.map(u => (
-                <Button key={u.id} variant={user.id === u.id ? 'default' : 'outline'} size="sm" className="text-xs gap-1 h-7" onClick={() => onSwitchUser(u.id)}>
+                <Button key={u.id} variant={user.id === u.id ? 'default' : 'outline'} size="sm" className="text-xs gap-1 h-7 font-semibold" onClick={() => onSwitchUser(u.id)}>
                   <Avatar className="size-4"><AvatarFallback className="text-[7px]">{u.name.charAt(0)}</AvatarFallback></Avatar>
                   {u.name}
                 </Button>
@@ -394,45 +394,45 @@ export default function ProfileTab({ user, allUsers, rides, routes, loading, onS
         </Card>
 
         {/* ── Improved User Card - Premium REVER style ── */}
-        <Card className="rounded-xl overflow-hidden border-primary/10">
-          <div className="h-1 bg-gradient-to-r from-primary/80 via-primary/50 to-primary/10" />
+        <Card className="rounded-2xl overflow-hidden border-primary/10 card-hover-lift">
+          <div className="h-1.5 bg-gradient-to-r from-primary via-primary/60 to-transparent" />
           <CardContent className="p-5">
             <div className="flex items-center gap-4">
               {/* Avatar with gradient ring - Premium glow */}
               <div className="relative shrink-0">
-                <div className="absolute inset-[-3px] rounded-full bg-gradient-to-br from-primary/40 to-primary/10 blur-[2px]" />
-                <Avatar className="size-16 relative ring-2 ring-background shadow-lg shadow-primary/15">
-                  <AvatarFallback className="text-xl bg-primary/15 text-primary font-bold">{user.name.charAt(0)}</AvatarFallback>
+                <div className="absolute inset-[-4px] rounded-full bg-gradient-to-br from-primary/30 to-primary/5 blur-sm" />
+                <Avatar className="size-16 relative ring-2 ring-background shadow-lg shadow-primary/10">
+                  <AvatarFallback className="text-xl bg-primary/10 text-primary font-bold">{user.name.charAt(0)}</AvatarFallback>
                 </Avatar>
               </div>
               <div className="flex-1 min-w-0">
-                <h2 className="text-lg font-bold truncate">{user.name}</h2>
-                <p className="text-xs text-muted-foreground truncate">{user.email}</p>
-                {user.bike && <Badge className="mt-1.5 bg-primary/10 text-primary border-primary/20 text-[10px] h-5"><Bike className="size-3 mr-1" />{user.bike}</Badge>}
+                <h2 className="text-lg font-extrabold tracking-tight truncate">{user.name}</h2>
+                <p className="text-xs text-muted-foreground/70 truncate">{user.email}</p>
+                {user.bike && <Badge className="mt-1.5 bg-primary/10 text-primary border-primary/15 text-[10px] h-5 font-semibold"><Bike className="size-3 mr-1" />{user.bike}</Badge>}
               </div>
             </div>
-            {user.bio && <p className="text-xs text-muted-foreground mt-3 leading-relaxed">{user.bio}</p>}
-            {/* Stats horizontal strip - Premium pill style */}
-            <div className="mt-4 grid grid-cols-4 gap-1.5 bg-muted/30 rounded-xl p-2">
-              <div className="flex flex-col items-center gap-0.5 px-1 py-1.5 rounded-lg bg-background/50">
+            {user.bio && <p className="text-xs text-muted-foreground/70 mt-3 leading-relaxed">{user.bio}</p>}
+            {/* Stats horizontal strip - Premium glass style */}
+            <div className="mt-4 grid grid-cols-4 gap-1 stat-card rounded-xl p-2">
+              <div className="flex flex-col items-center gap-0.5 px-1 py-2 rounded-lg bg-background/60 dark:bg-white/[0.04]">
                 <Bike className="size-3.5 text-primary" />
-                <span className="text-xs font-bold">{user.stats.totalRides}</span>
-                <span className="text-[8px] text-muted-foreground">voženj</span>
+                <span className="text-sm font-extrabold tracking-tight">{user.stats.totalRides}</span>
+                <span className="text-[8px] text-muted-foreground/60 uppercase tracking-wider font-semibold">voženj</span>
               </div>
-              <div className="flex flex-col items-center gap-0.5 px-1 py-1.5 rounded-lg bg-background/50">
+              <div className="flex flex-col items-center gap-0.5 px-1 py-2 rounded-lg bg-background/60 dark:bg-white/[0.04]">
                 <Route className="size-3.5 text-primary" />
-                <span className="text-xs font-bold">{user.stats.totalRoutes}</span>
-                <span className="text-[8px] text-muted-foreground">poti</span>
+                <span className="text-sm font-extrabold tracking-tight">{user.stats.totalRoutes}</span>
+                <span className="text-[8px] text-muted-foreground/60 uppercase tracking-wider font-semibold">poti</span>
               </div>
-              <div className="flex flex-col items-center gap-0.5 px-1 py-1.5 rounded-lg bg-background/50">
+              <div className="flex flex-col items-center gap-0.5 px-1 py-2 rounded-lg bg-background/60 dark:bg-white/[0.04]">
                 <TrendingUp className="size-3.5 text-primary" />
-                <span className="text-xs font-bold">{user.stats.totalDistance}</span>
-                <span className="text-[8px] text-muted-foreground">km</span>
+                <span className="text-sm font-extrabold tracking-tight">{user.stats.totalDistance}</span>
+                <span className="text-[8px] text-muted-foreground/60 uppercase tracking-wider font-semibold">km</span>
               </div>
-              <div className="flex flex-col items-center gap-0.5 px-1 py-1.5 rounded-lg bg-background/50">
+              <div className="flex flex-col items-center gap-0.5 px-1 py-2 rounded-lg bg-background/60 dark:bg-white/[0.04]">
                 <Mountain className="size-3.5 text-primary" />
-                <span className="text-xs font-bold">{user.stats.totalElevation}</span>
-                <span className="text-[8px] text-muted-foreground">m</span>
+                <span className="text-sm font-extrabold tracking-tight">{user.stats.totalElevation}</span>
+                <span className="text-[8px] text-muted-foreground/60 uppercase tracking-wider font-semibold">m</span>
               </div>
             </div>
           </CardContent>

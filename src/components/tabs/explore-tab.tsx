@@ -58,10 +58,10 @@ function TabPill({ active, onClick, icon, label, badge, notification }: {
   return (
     <button
       onClick={onClick}
-      className={`relative flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl text-xs font-medium transition-all duration-200 active:scale-95 ${
+      className={`relative flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold transition-all duration-200 active:scale-95 ${
         active
-          ? 'bg-primary text-primary-foreground shadow-sm shadow-primary/20'
-          : 'text-muted-foreground hover:bg-muted/60 hover:text-foreground glass-hud'
+          ? 'bg-primary text-primary-foreground shadow-sm shadow-primary/25'
+          : 'text-muted-foreground/70 hover:bg-muted/50 hover:text-foreground'
       }`}
     >
       {icon}

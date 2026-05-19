@@ -153,14 +153,15 @@ export default function HeaderDrawer({
       <SheetContent side="right" className="w-[320px] sm:max-w-[320px] p-0">
         <SheetHeader className="p-4 pb-3">
           <div className="flex items-center gap-3">
-            <div className="flex items-center justify-center size-10 rounded-xl bg-primary/20 shadow-sm shadow-primary/20">
-              <Bike className="size-5 text-primary" strokeWidth={2.5} />
+            <div className="relative flex items-center justify-center size-10 rounded-xl bg-primary shadow-md shadow-primary/25">
+              <Bike className="size-5 text-primary-foreground" strokeWidth={2.5} />
+              <div className="absolute inset-0 rounded-xl bg-gradient-to-br from-white/20 to-transparent" />
             </div>
             <div>
-              <SheetTitle className="text-left font-black text-primary tracking-tight">
+              <SheetTitle className="text-left font-black logo-gradient tracking-tight">
                 MotoTrack
               </SheetTitle>
-              <SheetDescription className="text-left text-[10px] uppercase tracking-[0.15em] font-semibold text-muted-foreground/70">
+              <SheetDescription className="text-left text-[9px] uppercase tracking-[0.2em] font-bold text-muted-foreground/50">
                 GPS Sledenje
               </SheetDescription>
             </div>
@@ -189,24 +190,24 @@ export default function HeaderDrawer({
                 <button
                   key={iIdx}
                   onClick={item.onClick}
-                  className="w-full flex items-center gap-3 px-4 py-2.5 hover:bg-accent/50 transition-colors active:bg-accent text-left"
+                  className="w-full flex items-center gap-3 px-4 py-3 hover:bg-accent/40 transition-colors active:bg-accent/60 text-left"
                 >
-                  <div className={`flex items-center justify-center size-9 rounded-lg ${
+                  <div className={`flex items-center justify-center size-9 rounded-xl ${
                     item.active
-                      ? `bg-primary/15 ${item.activeColor || 'text-primary'}`
-                      : 'bg-muted/50 text-muted-foreground'
+                      ? `bg-primary/10 ${item.activeColor || 'text-primary'}`
+                      : 'bg-muted/30 text-muted-foreground'
                   }`}>
-                    <item.icon className="size-4" />
+                    <item.icon className="size-[18px]" />
                   </div>
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2">
-                      <span className={`text-sm font-medium ${
+                      <span className={`text-sm font-semibold ${
                         item.active ? item.activeColor || 'text-primary' : 'text-foreground'
                       }`}>
                         {item.label}
                       </span>
                       {item.badge && (
-                        <span className="text-[8px] font-bold px-1.5 py-0.5 rounded-full bg-primary/20 text-primary uppercase tracking-wider">
+                        <span className="text-[8px] font-bold px-1.5 py-0.5 rounded-full bg-primary/15 text-primary uppercase tracking-wider">
                           {item.badge}
                         </span>
                       )}
@@ -214,11 +215,11 @@ export default function HeaderDrawer({
                         <span className="size-1.5 rounded-full bg-primary animate-pulse" />
                       )}
                     </div>
-                    <p className="text-[11px] text-muted-foreground/60 truncate">
+                    <p className="text-[11px] text-muted-foreground/50 truncate">
                       {item.description}
                     </p>
                   </div>
-                  <ChevronRight className="size-3.5 text-muted-foreground/30" />
+                  <ChevronRight className="size-3.5 text-muted-foreground/20" />
                 </button>
               ))}
               {sIdx < menuSections.length - 1 && <Separator className="mt-2" />}
