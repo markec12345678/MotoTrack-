@@ -102,21 +102,22 @@ const tabs: { id: TabId; label: string; icon: React.ElementType }[] = [
 function LoadingSkeleton() {
   return (
     <div className="min-h-screen flex flex-col bg-background">
-      {/* Header skeleton */}
-      <header className="fixed top-0 left-0 right-0 z-[1400] h-14 flex items-center px-4 bg-background/95 backdrop-blur-lg border-b border-border/40">
+      {/* Header skeleton - matches premium header */}
+      <header className="fixed top-0 left-0 right-0 z-[1400] h-14 flex items-center px-3 sm:px-4 header-frosted">
         <div className="flex items-center gap-2.5 flex-1">
-          <div className="flex items-center justify-center size-9 rounded-xl bg-primary shadow-md shadow-primary/30">
+          <div className="relative flex items-center justify-center size-9 rounded-xl bg-primary shadow-md shadow-primary/25">
             <Bike className="size-[18px] text-primary-foreground" strokeWidth={2.5} />
+            <div className="absolute inset-0 rounded-xl bg-gradient-to-br from-white/20 to-transparent" />
           </div>
-          <div className="flex flex-col -space-y-0.5">
-            <span className="font-extrabold text-base tracking-tight text-primary leading-none">MotoTrack</span>
-            <span className="text-[9px] text-muted-foreground/70 uppercase tracking-[0.15em] font-semibold leading-none hidden sm:block">GPS Sledenje</span>
+          <div className="flex flex-col min-w-0">
+            <span className="font-extrabold text-[15px] tracking-tight logo-gradient leading-none">MotoTrack</span>
+            <span className="text-[8px] text-muted-foreground/50 uppercase tracking-[0.2em] font-bold leading-none hidden sm:block">GPS Sledenje</span>
           </div>
         </div>
       </header>
-      <div className="fixed top-14 left-0 right-0 z-[1400] h-px bg-gradient-to-r from-transparent via-primary/40 to-transparent" />
+      <div className="fixed top-14 left-0 right-0 z-[1400] h-px bg-gradient-to-r from-transparent via-primary/30 to-transparent" />
 
-      <main className="flex-1 pt-14 pb-20 px-4 max-w-lg mx-auto w-full">
+      <main className="flex-1 pt-14 pb-[68px] px-4 max-w-lg mx-auto w-full">
         <div className="py-6 space-y-6">
           <Skeleton className="w-full h-48 rounded-xl" />
           <div className="grid grid-cols-3 gap-4">
@@ -142,15 +143,14 @@ function LoadingSkeleton() {
         </div>
       </main>
 
-      {/* Bottom nav skeleton */}
+      {/* Bottom nav skeleton - matches premium nav */}
       <nav className="fixed bottom-0 left-0 right-0 z-[1500]" style={{ paddingBottom: 'env(safe-area-inset-bottom, 0px)' }}>
-        <div className="h-px bg-gradient-to-r from-transparent via-border to-transparent" />
-        <div className="bg-background/95 backdrop-blur-xl border-t border-border/40">
-          <div className="flex items-center justify-around max-w-lg mx-auto h-[72px]">
+        <div className="nav-frosted">
+          <div className="flex items-center justify-around max-w-lg mx-auto h-[68px]">
             {[1,2,3,4,5].map(i => (
-              <div key={i} className="flex flex-col items-center gap-1 px-4 sm:px-6 py-2">
-                <Skeleton className="size-5 rounded bg-muted" />
-                <Skeleton className="h-2.5 w-8 bg-muted" />
+              <div key={i} className="flex flex-col items-center gap-0.5 px-3 sm:px-5 py-2">
+                <Skeleton className="size-5 rounded bg-muted/50" />
+                <Skeleton className="h-2.5 w-8 bg-muted/50" />
               </div>
             ))}
           </div>
@@ -1044,26 +1044,36 @@ export default function Home() {
 
   return (
     <div className="min-h-screen flex flex-col bg-background">
-      {/* Header - Professional motorcycle app style */}
+      {/* Header - Premium REVER-style frosted glass */}
       <header className={`fixed top-0 left-0 right-0 z-[1400] h-14 flex items-center px-3 sm:px-4 transition-all duration-300 ${
         exploreFullscreen
           ? '-translate-y-full opacity-0 pointer-events-none'
           : activeTab === 'map'
-            ? 'bg-black/40 backdrop-blur-lg'
-            : 'bg-background/95 backdrop-blur-lg border-b border-border/40'
+            ? 'header-map'
+            : 'header-frosted'
       }`}>
         <div className="flex items-center gap-2.5 flex-1 min-w-0">
-          <div className="flex items-center justify-center size-9 rounded-xl bg-primary shadow-md shadow-primary/30 flex-shrink-0">
-            <Bike className="size-[18px] text-primary-foreground" strokeWidth={2.5} />
+          {/* Logo icon with gradient glow */}
+          <div className={`relative flex items-center justify-center size-9 rounded-xl flex-shrink-0 ${
+            activeTab === 'map'
+              ? 'bg-white/15 backdrop-blur-sm'
+              : 'bg-primary shadow-md shadow-primary/25'
+          }`}>
+            <Bike className={`size-[18px] ${activeTab === 'map' ? 'text-white' : 'text-primary-foreground'}`} strokeWidth={2.5} />
+            {activeTab !== 'map' && <div className="absolute inset-0 rounded-xl bg-gradient-to-br from-white/20 to-transparent" />}
           </div>
           <div className="flex flex-col min-w-0">
-            <span className={`font-extrabold text-base tracking-tight leading-none ${activeTab === 'map' ? 'text-white' : 'text-primary'}`}>MotoTrack</span>
-            <span className={`text-[9px] uppercase tracking-[0.15em] font-semibold leading-none hidden sm:block ${activeTab === 'map' ? 'text-white/50' : 'text-muted-foreground/70'}`}>GPS Sledenje</span>
+            <span className={`font-extrabold text-[15px] tracking-tight leading-none ${
+              activeTab === 'map' ? 'text-white drop-shadow-sm' : 'logo-gradient'
+            }`}>MotoTrack</span>
+            <span className={`text-[8px] uppercase tracking-[0.2em] font-bold leading-none hidden sm:block ${
+              activeTab === 'map' ? 'text-white/40' : 'text-muted-foreground/50'
+            }`}>GPS Sledenje</span>
           </div>
-          {/* REC indicator during tracking */}
+          {/* REC indicator during tracking - premium badge */}
           {activeTab === 'track' && isTracking && (
-            <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-red-500/20 text-red-400 text-[10px] font-bold ml-2 animate-pulse">
-              <div className="size-2 rounded-full bg-red-500" />
+            <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-red-500/15 border border-red-500/30 text-red-400 text-[10px] font-bold ml-1.5">
+              <div className="size-1.5 rounded-full bg-red-500 record-pulse" />
               REC
             </span>
           )}
@@ -1074,11 +1084,11 @@ export default function Home() {
             <Button
               variant="ghost"
               size="icon"
-              className={`size-9 rounded-xl ${activeTab === 'map' ? 'text-white/80 hover:text-white hover:bg-white/10' : 'hover:bg-primary/10'}`}
+              className={`size-9 rounded-xl ${activeTab === 'map' ? 'text-white/70 hover:text-white hover:bg-white/10' : 'text-foreground/60 hover:text-foreground hover:bg-muted/80'}`}
               onClick={() => setSearchOpen(true)}
               title="Iskanje (Ctrl+K)"
             >
-              <Search className="size-4" />
+              <Search className="size-[18px]" />
             </Button>
 
             {/* Desktop: full icon set visible on md+ */}
@@ -1086,12 +1096,12 @@ export default function Home() {
               <Button
                 variant="ghost"
                 size="icon"
-                className={`size-9 rounded-xl relative ${activeTab === 'map' ? 'text-white/80 hover:text-white hover:bg-white/10' : 'hover:bg-primary/10'}`}
+                className={`size-9 rounded-xl relative ${activeTab === 'map' ? 'text-white/70 hover:text-white hover:bg-white/10' : 'text-foreground/60 hover:text-foreground hover:bg-muted/80'}`}
                 onClick={() => setFeatureOpen(true)}
                 title="Napredne funkcije"
               >
-                <Sparkles className="size-4 text-primary" />
-                <span className="absolute -top-0.5 -right-0.5 w-2 h-2 bg-primary rounded-full animate-pulse" />
+                <Sparkles className="size-[18px] text-primary" />
+                <span className="absolute top-1 right-1 w-1.5 h-1.5 bg-primary rounded-full animate-pulse" />
               </Button>
               <NotificationBell userId={user?.id} />
               <AppShareButton />
@@ -1099,47 +1109,47 @@ export default function Home() {
               <Button
                 variant="ghost"
                 size="icon"
-                className={`size-9 rounded-xl ${voiceEnabled ? 'bg-red-500/20 text-red-400' : activeTab === 'map' ? 'text-white/80 hover:text-white hover:bg-white/10' : 'hover:bg-primary/10'}`}
+                className={`size-9 rounded-xl ${voiceEnabled ? 'bg-red-500/15 text-red-400 border border-red-500/20' : activeTab === 'map' ? 'text-white/70 hover:text-white hover:bg-white/10' : 'text-foreground/60 hover:text-foreground hover:bg-muted/80'}`}
                 onClick={() => { setVoiceEnabled(v => !v); toast[voiceEnabled ? 'info' : 'success'](voiceEnabled ? '🔇 Glasovni ukazi izklopljeni' : '🎤 Glasovni ukazi vklopljeni') }}
                 title={voiceEnabled ? 'Izklopi glasovne ukaze' : 'Vklopi glasovne ukaze'}
               >
-                <Mic className={`size-4 ${voiceEnabled ? 'text-red-400' : ''}`} />
+                <Mic className={`size-[18px] ${voiceEnabled ? 'text-red-400' : ''}`} />
               </Button>
               <Button
                 variant="ghost"
                 size="icon"
-                className={`size-9 rounded-xl ${showTwistiness ? 'bg-emerald-500/20 text-emerald-400' : activeTab === 'map' ? 'text-white/80 hover:text-white hover:bg-white/10' : 'hover:bg-primary/10'}`}
+                className={`size-9 rounded-xl ${showTwistiness ? 'bg-emerald-500/15 text-emerald-400 border border-emerald-500/20' : activeTab === 'map' ? 'text-white/70 hover:text-white hover:bg-white/10' : 'text-foreground/60 hover:text-foreground hover:bg-muted/80'}`}
                 onClick={() => setShowTwistiness(t => !t)}
                 title={showTwistiness ? 'Skrij heatmap vijugavosti' : 'Prikaži heatmap vijugavosti'}
               >
-                <Activity className={`size-4 ${showTwistiness ? 'text-emerald-400' : ''}`} />
+                <Activity className={`size-[18px] ${showTwistiness ? 'text-emerald-400' : ''}`} />
               </Button>
               <Button
                 variant="ghost"
                 size="icon"
-                className={`size-9 rounded-xl ${activeTab === 'map' ? 'text-white/80 hover:text-white hover:bg-white/10' : 'hover:bg-primary/10'}`}
+                className={`size-9 rounded-xl ${activeTab === 'map' ? 'text-white/70 hover:text-white hover:bg-white/10' : 'text-foreground/60 hover:text-foreground hover:bg-muted/80'}`}
                 onClick={() => setShowExport(true)}
                 title="Izvozi vožnjo (GPX/TCX/KML)"
               >
-                <Download className="size-4" />
+                <Download className="size-[18px]" />
               </Button>
               <Button
                 variant="ghost"
                 size="icon"
-                className={`size-9 rounded-xl ${showSimulator ? 'bg-orange-500/20 text-orange-400' : activeTab === 'map' ? 'text-white/80 hover:text-white hover:bg-white/10' : 'hover:bg-primary/10'}`}
+                className={`size-9 rounded-xl ${showSimulator ? 'bg-orange-500/15 text-orange-400 border border-orange-500/20' : activeTab === 'map' ? 'text-white/70 hover:text-white hover:bg-white/10' : 'text-foreground/60 hover:text-foreground hover:bg-muted/80'}`}
                 onClick={() => { if (planWaypoints.length < 2) { toast.error('Narišite ruto za simulacijo'); return } setShowSimulator(s => !s) }}
                 title="Simulacija rute"
               >
-                <Film className={`size-4 ${showSimulator ? 'text-orange-400' : ''}`} />
+                <Film className={`size-[18px] ${showSimulator ? 'text-orange-400' : ''}`} />
               </Button>
               <Button
                 variant="ghost"
                 size="icon"
-                className={`size-9 rounded-xl ${activeTab === 'map' ? 'text-white/80 hover:text-white hover:bg-white/10' : 'hover:bg-primary/10'}`}
+                className={`size-9 rounded-xl ${activeTab === 'map' ? 'text-white/70 hover:text-white hover:bg-white/10' : 'text-foreground/60 hover:text-foreground hover:bg-muted/80'}`}
                 onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
                 title={theme === 'dark' ? 'Svetla tema' : 'Temna tema'}
               >
-                {theme === 'dark' ? <Sun className="size-4" /> : <Moon className="size-4" />}
+                {theme === 'dark' ? <Sun className="size-[18px]" /> : <Moon className="size-[18px]" />}
               </Button>
             </div>
 
@@ -1147,7 +1157,7 @@ export default function Home() {
             <Button
               variant="ghost"
               size="icon"
-              className={`size-9 rounded-xl md:hidden ${activeTab === 'map' ? 'text-white/80 hover:text-white hover:bg-white/10' : 'hover:bg-primary/10'}`}
+              className={`size-9 rounded-xl md:hidden ${activeTab === 'map' ? 'text-white/70 hover:text-white hover:bg-white/10' : 'text-foreground/60 hover:text-foreground hover:bg-muted/80'}`}
               onClick={() => setHeaderDrawerOpen(true)}
               title="Meni"
             >
@@ -1156,14 +1166,14 @@ export default function Home() {
           </div>
         )}
       </header>
-      {/* Header bottom accent line */}
+      {/* Header bottom accent line - gradient primary glow */}
       <div className={`fixed top-14 left-0 right-0 z-[1400] h-px transition-opacity duration-300 ${
-        exploreFullscreen ? 'opacity-0' : activeTab === 'map' ? 'opacity-30' : 'opacity-100'
-      } bg-gradient-to-r from-transparent via-primary/40 to-transparent`} />
+        exploreFullscreen ? 'opacity-0' : activeTab === 'map' ? 'opacity-40' : 'opacity-100'
+      } bg-gradient-to-r from-transparent via-primary/30 to-transparent`} />
 
       <main className={`flex-1 relative ${activeTab === 'map' ? 'overflow-hidden' : ''}`} style={{
         paddingTop: exploreFullscreen ? '0' : activeTab === 'map' ? '0' : '56px',
-        paddingBottom: exploreFullscreen ? '0' : 'calc(72px + env(safe-area-inset-bottom, 0px))'
+        paddingBottom: exploreFullscreen ? '0' : 'calc(68px + env(safe-area-inset-bottom, 0px))'
       }}>
         <div key={activeTab} className="tab-transition">
           {activeTab === 'map' && (
@@ -1463,47 +1473,44 @@ export default function Home() {
         />
       )}
 
-      {/* Bottom Nav - Professional design with active indicator */}
+      {/* Bottom Navigation - Premium REVER-style frosted glass with floating indicator */}
       <nav className={`fixed bottom-0 left-0 right-0 z-[1500] transition-all duration-300 ${
         exploreFullscreen ? 'translate-y-full opacity-0 pointer-events-none' : ''
       }`} style={{ paddingBottom: 'env(safe-area-inset-bottom, 0px)' }}>
-        <div className="h-px bg-gradient-to-r from-transparent via-border to-transparent" />
-        <div className="bg-background/95 backdrop-blur-xl border-t border-border/40">
-          <div className="flex items-center justify-around max-w-lg mx-auto h-[72px]">
+        <div className="nav-frosted">
+          <div className="flex items-center justify-around max-w-lg mx-auto h-[68px]">
             {tabs.map(tab => {
               const isActive = activeTab === tab.id
               return (
                 <button
                   key={tab.id}
                   onClick={() => setActiveTab(tab.id)}
-                  className={`relative flex flex-col items-center justify-center gap-1 px-4 sm:px-6 py-2 rounded-2xl transition-all duration-200 active:scale-90 ${
+                  className={`relative flex flex-col items-center justify-center gap-0.5 px-3 sm:px-5 py-2 rounded-2xl transition-all duration-200 active:scale-90 ${
                     isActive
                       ? 'text-primary'
-                      : 'text-muted-foreground hover:text-foreground'
+                      : 'text-muted-foreground/60 hover:text-muted-foreground'
                   }`}
                 >
-                  {/* Active pill background */}
-                  {isActive && (
-                    <div className="absolute inset-x-1 inset-y-0.5 rounded-2xl bg-primary/10" />
-                  )}
-                  <div className="relative">
+                  <div className="relative flex items-center justify-center">
+                    {/* Active glow background */}
+                    {isActive && (
+                      <div className="absolute inset-0 -m-2 rounded-2xl bg-primary/8 dark:bg-primary/10" />
+                    )}
                     <tab.icon
                       className={`size-[22px] sm:size-5 transition-all duration-200 ${
-                        isActive
-                          ? 'text-primary'
-                          : ''
+                        isActive ? 'text-primary' : ''
                       }`}
-                      strokeWidth={isActive ? 2.2 : 1.5}
+                      strokeWidth={isActive ? 2.3 : 1.5}
                     />
                   </div>
-                  <span className={`relative text-[10px] sm:text-[11px] tracking-tight transition-all duration-200 ${
-                    isActive ? 'text-primary font-semibold' : 'font-medium'
+                  <span className={`text-[10px] sm:text-[11px] tracking-tight leading-tight transition-all duration-200 ${
+                    isActive ? 'text-primary font-bold' : 'font-medium'
                   }`}>
                     {tab.label}
                   </span>
-                  {/* Active dot indicator */}
+                  {/* Active bottom pill indicator */}
                   {isActive && (
-                    <div className="absolute -top-0 left-1/2 -translate-x-1/2 w-5 h-0.5 rounded-full bg-primary" />
+                    <div className="nav-pill-indicator absolute -bottom-2 left-1/2 -translate-x-1/2 w-5 h-[3px] rounded-full bg-primary" />
                   )}
                 </button>
               )
