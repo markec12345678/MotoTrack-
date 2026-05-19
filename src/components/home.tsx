@@ -353,13 +353,37 @@ export default function Home() {
   }, [activeTab])
 
   // User location useEffect (state declared earlier for currentPos)
+  // Use enableHighAccuracy: true and longer timeout for mobile GPS
+  // Mobile GPS needs more time to get the first fix (especially cold start)
   useEffect(() => {
-    if (navigator.geolocation) {
-      navigator.geolocation.getCurrentPosition(pos => {
+    if (!navigator.geolocation) return
+
+    const gpsOptions: PositionOptions = { enableHighAccuracy: true, maximumAge: 30000, timeout: 30000 }
+
+    // Try getting position with high accuracy first
+    navigator.geolocation.getCurrentPosition(
+      (pos) => {
         setUserLat(pos.coords.latitude)
         setUserLng(pos.coords.longitude)
-      }, () => {}, { enableHighAccuracy: false, timeout: 5000 })
-    }
+      },
+      (err) => {
+        // If high accuracy fails, try with low accuracy as fallback
+        console.warn('[GPS] High accuracy failed, trying low accuracy:', err.message)
+        navigator.geolocation.getCurrentPosition(
+          (pos) => {
+            setUserLat(pos.coords.latitude)
+            setUserLng(pos.coords.longitude)
+          },
+          () => {
+            // Use default Ljubljana coordinates as last resort
+            setUserLat(46.0569)
+            setUserLng(14.5058)
+          },
+          { enableHighAccuracy: false, maximumAge: 60000, timeout: 10000 }
+        )
+      },
+      gpsOptions
+    )
   }, [])
 
   // Fetch data - use single /api/init endpoint to reduce concurrent requests
@@ -517,7 +541,7 @@ export default function Home() {
               }
             },
             () => {}, // silently ignore errors on foreground resume
-            { enableHighAccuracy: true, maximumAge: 0, timeout: 10000 }
+            { enableHighAccuracy: true, maximumAge: 5000, timeout: 15000 }
           )
         }
         // Calculate time gap since last GPS fix and show informative toast
@@ -617,7 +641,7 @@ export default function Home() {
               }
             },
             () => {}, // silently ignore errors
-            { enableHighAccuracy: true, maximumAge: 0, timeout: 15000 }
+            { enableHighAccuracy: true, maximumAge: 5000, timeout: 15000 }
           )
         }
       }
@@ -733,7 +757,7 @@ export default function Home() {
         }
         // Don't stop tracking on GPS errors — keep timer running, just skip the point
       },
-      { enableHighAccuracy: true, maximumAge: 0, timeout: 15000 }
+      { enableHighAccuracy: true, maximumAge: 5000, timeout: 30000 }
     )
   }, [settings.autoPauseEnabled, settings.autoPauseSpeedThreshold, settings.wakelockEnabled])
 
@@ -1268,7 +1292,7 @@ export default function Home() {
 
       {/* FAB - Floating Action Button for tracking */}
       {activeTab === 'map' && !isTracking && (
-        <div className="fixed z-[1401] left-1/2 -translate-x-1/2" style={{ bottom: 'calc(88px + env(safe-area-inset-bottom, 0px))' }}>
+        <div className="fixed z-[1401] left-1/2 -translate-x-1/2" style={{ bottom: 'calc(72px + env(safe-area-inset-bottom, 0px))' }}>
           <button
             onClick={() => { setActiveTab('track'); startTracking() }}
             className="relative w-14 h-14 rounded-full bg-primary shadow-lg shadow-primary/40 flex items-center justify-center active:scale-95 transition-all hover:shadow-xl hover:shadow-primary/50 fab-breathe"

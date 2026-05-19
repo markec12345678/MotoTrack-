@@ -442,6 +442,24 @@ button, nav, [role="button"] {
   min-height: 100dvh;
 }
 
+/* Full height utility for mobile */
+.h-screen-mobile {
+  height: 100vh;
+  height: 100dvh;
+}
+
+/* Prevent overscroll bounce on mobile */
+html, body {
+  overscroll-behavior: none;
+  -webkit-overflow-scrolling: touch;
+}
+
+/* Prevent text size adjust on orientation change */
+html {
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
+}
+
 /* Larger Leaflet controls for touch on mobile */
 .leaflet-control-zoom a {
   width: 36px !important;
