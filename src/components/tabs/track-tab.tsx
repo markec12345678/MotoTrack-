@@ -448,7 +448,7 @@ export default function TrackTab({
   }, [navActive, navSteps, navStepIdx, navDistToStep])
 
   return (
-    <div className={`relative w-full h-[calc(100vh-120px)] flex flex-col transition-all duration-200 ${
+    <div className={`relative w-full h-[calc(100vh-136px)] flex flex-col transition-all duration-200 ${
       isOverSpeed && flashOn ? 'ring-4 ring-inset ring-red-500/70' : ''
     }`}>
       {/* Feature panels toggle - when not tracking */}

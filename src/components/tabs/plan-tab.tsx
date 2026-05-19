@@ -1504,7 +1504,7 @@ export default function PlanTab({
   const mapShowPlan = mode === 'single' || mode === 'roundtrip'
 
   return (
-    <div className="relative w-full h-[calc(100vh-120px)] flex flex-col lg:flex-row">
+    <div className="relative w-full h-[calc(100vh-136px)] flex flex-col lg:flex-row">
       <div className="flex-1 relative">
         <MotoMap
           center={[46.15, 14.99]}

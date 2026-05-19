@@ -443,7 +443,7 @@ const ExploreTabInner = React.memo(function ExploreTabInner({ rides, routes, lea
       className={`w-full overflow-y-auto custom-scrollbar transition-all duration-300 ${
         fullscreen
           ? 'h-[100vh] fixed inset-0 z-[1399] bg-background'
-          : 'h-[calc(100vh-120px)]'
+          : 'h-[calc(100vh-136px)]'
       }`}
       onFocusCapture={handleFocusCapture}
     >

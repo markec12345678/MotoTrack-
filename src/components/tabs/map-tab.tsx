@@ -475,11 +475,13 @@ export default function MapTab({ rides, routes, onOpenDetail, userId }: MapTabPr
       />
       </div>
 
-      {/* Floating search bar - Premium frosted style (hidden in 3D) */}
-      <div className="absolute top-[66px] left-4 right-16 z-[1000]">
+      {/* Floating search bar - Premium motorcycle app style (hidden in 3D) */}
+      <div className="absolute top-[66px] left-3 right-16 z-[1000]">
         <div className="relative max-w-md">
-          <div className="flex items-center gap-2 bg-white/90 dark:bg-black/70 backdrop-blur-2xl border border-white/20 dark:border-white/[0.08] rounded-2xl shadow-xl shadow-black/5 dark:shadow-black/30 px-3.5 py-2.5">
-            <Search className="h-4 w-4 text-primary shrink-0" />
+          <div className="flex items-center gap-2.5 bg-white/90 dark:bg-black/60 backdrop-blur-2xl border border-white/30 dark:border-white/[0.06] rounded-2xl shadow-xl shadow-black/[0.08] dark:shadow-black/40 px-4 py-3">
+            <div className="flex items-center justify-center size-7 rounded-xl bg-primary/10">
+              <Search className="h-3.5 w-3.5 text-primary shrink-0" />
+            </div>
             <Input
               value={searchInput}
               onChange={(e) => {
@@ -488,7 +490,7 @@ export default function MapTab({ rides, routes, onOpenDetail, userId }: MapTabPr
               }}
               onFocus={() => setShowSearch(true)}
               placeholder="Išči vožnje in poti..."
-              className="border-0 bg-transparent shadow-none focus-visible:ring-0 px-0 py-0 h-7 text-sm placeholder:text-muted-foreground"
+              className="border-0 bg-transparent shadow-none focus-visible:ring-0 px-0 py-0 h-6 text-[13px] placeholder:text-muted-foreground/50"
             />
             {searchInput && (
               <button onClick={() => { setSearchInput(''); setSearchQuery(''); setShowSearch(false) }} className="shrink-0 p-0.5 rounded-full hover:bg-muted transition-colors">
@@ -523,7 +525,7 @@ export default function MapTab({ rides, routes, onOpenDetail, userId }: MapTabPr
       </div>
 
       {/* Right side - Premium grouped category buttons */}
-      <div className="absolute top-[66px] right-4 z-[1000] flex flex-col gap-2">
+      <div className="absolute top-[66px] right-3 z-[1000] flex flex-col gap-2">
         {/* LAYERS group */}
         <Popover>
           <PopoverTrigger asChild>
