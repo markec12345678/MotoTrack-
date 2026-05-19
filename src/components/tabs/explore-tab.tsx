@@ -1531,69 +1531,89 @@ const ExploreTabInner = React.memo(function ExploreTabInner({ rides, routes, lea
             userLng={userLng}
           />
         ) : (
-          /* ====== DISCOVER SECTION ====== */
+          /* ====== DISCOVER SECTION - Premium ====== */
           <>
-            {/* Stats bar */}
-            <div className="flex items-center justify-center gap-3 py-3 px-4 bg-secondary/50 rounded-xl mb-6 text-sm">
-              <span className="flex items-center gap-1.5">
-                <Bike className="size-4 text-primary" />
-                <span className="font-bold">{exploreStats.totalRides}</span>
-                <span className="text-muted-foreground">voženj</span>
-              </span>
-              <span className="text-muted-foreground/50">·</span>
-              <span className="flex items-center gap-1.5">
-                <Route className="size-4 text-primary" />
-                <span className="font-bold">{exploreStats.totalRoutes}</span>
-                <span className="text-muted-foreground">poti</span>
-              </span>
-              <span className="text-muted-foreground/50">·</span>
-              <span className="flex items-center gap-1.5">
-                <TrendingUp className="size-4 text-primary" />
-                <span className="font-bold">{exploreStats.totalDistance}</span>
-                <span className="text-muted-foreground">km skupaj</span>
-              </span>
+            {/* Hero Banner - Premium gradient with stats overlay */}
+            <div className="relative -mx-4 -mt-2 mb-6 overflow-hidden rounded-b-2xl">
+              <div className="relative px-5 pt-6 pb-5 bg-gradient-to-br from-primary/15 via-primary/8 to-transparent dark:from-primary/20 dark:via-primary/10 dark:to-transparent">
+                {/* Decorative circles */}
+                <div className="absolute top-4 right-8 size-24 rounded-full bg-primary/5 blur-2xl" />
+                <div className="absolute bottom-0 left-4 size-16 rounded-full bg-primary/8 blur-xl" />
+                
+                <div className="relative">
+                  <div className="flex items-center gap-2 mb-3">
+                    <div className="flex items-center justify-center size-8 rounded-xl bg-primary/15">
+                      <Compass className="size-4 text-primary" />
+                    </div>
+                    <div>
+                      <h2 className="text-lg font-extrabold tracking-tight">Raziskuj</h2>
+                      <p className="text-[10px] text-muted-foreground/60 uppercase tracking-wider font-semibold">Balkan za motoriste</p>
+                    </div>
+                  </div>
+                  {/* Stats in frosted glass pills */}
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-background/80 dark:bg-white/[0.06] backdrop-blur-sm border border-border/50">
+                      <Bike className="size-3.5 text-primary" />
+                      <span className="text-xs font-bold">{exploreStats.totalRides}</span>
+                      <span className="text-[10px] text-muted-foreground">voženj</span>
+                    </div>
+                    <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-background/80 dark:bg-white/[0.06] backdrop-blur-sm border border-border/50">
+                      <Route className="size-3.5 text-primary" />
+                      <span className="text-xs font-bold">{exploreStats.totalRoutes}</span>
+                      <span className="text-[10px] text-muted-foreground">poti</span>
+                    </div>
+                    <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-background/80 dark:bg-white/[0.06] backdrop-blur-sm border border-border/50">
+                      <TrendingUp className="size-3.5 text-primary" />
+                      <span className="text-xs font-bold">{exploreStats.totalDistance}</span>
+                      <span className="text-[10px] text-muted-foreground">km</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              {/* Bottom gradient line */}
+              <div className="h-px bg-gradient-to-r from-transparent via-primary/20 to-transparent" />
             </div>
 
-            {/* Popular Routes Featured Section */}
+            {/* Popular Routes Featured Section - Premium card style */}
             {popularRoutes.length > 0 && (
               <div className="mb-6">
-                <h3 className="text-lg font-bold flex items-center gap-2 mb-3">
-                  <Star className="size-5 text-amber-400 fill-amber-400" /> Popularne poti
+                <h3 className="text-sm font-bold flex items-center gap-2 mb-3 uppercase tracking-wider text-muted-foreground">
+                  <Star className="size-4 text-amber-400 fill-amber-400" /> Popularne poti
                 </h3>
-                <div className="grid sm:grid-cols-3 gap-3">
+                <div className="flex gap-3 overflow-x-auto pb-2 -mx-4 px-4 snap-x snap-mandatory custom-scrollbar">
                   {popularRoutes.map((route, idx) => (
                     <Card
                       key={route.id}
-                      className={`rounded-xl overflow-hidden hover:border-primary/30 transition-all cursor-pointer group hover:-translate-y-0.5 hover:shadow-lg hover:shadow-primary/5 ${
-                        idx === 0 ? 'sm:col-span-1 sm:row-span-1 border-amber-500/20' : ''
-                      }`}
+                      className="rounded-2xl overflow-hidden hover:border-primary/30 transition-all cursor-pointer group min-w-[240px] max-w-[280px] snap-start shrink-0 card-hover-lift"
                       onClick={() => onOpenDetail(route, 'route')}
                     >
-                      <div className={`h-0.5 bg-gradient-to-r ${categoryGradient(route.category)}`} />
-                      <CardContent className={`p-4 ${idx === 0 ? '' : ''}`}>
+                      <div className={`h-1 bg-gradient-to-r ${categoryGradient(route.category)}`} />
+                      <CardContent className="p-4">
                         <div className="flex items-center gap-2 mb-2">
-                          <div className={`flex items-center justify-center size-7 rounded-full shrink-0 ${
-                            idx === 0 ? 'bg-amber-400/15' : 'bg-primary/15'
+                          <div className={`flex items-center justify-center size-8 rounded-xl shrink-0 ${
+                            idx === 0 ? 'bg-amber-400/15' : 'bg-primary/10'
                           }`}>
                             {idx === 0 ? (
-                              <Star className="size-3.5 text-amber-400 fill-amber-400" />
+                              <Crown className="size-4 text-amber-400" />
                             ) : (
-                              <Route className="size-3.5 text-primary" />
+                              <Route className="size-4 text-primary" />
                             )}
                           </div>
-                          <span className="font-semibold text-sm truncate group-hover:text-primary transition-colors">{route.title}</span>
+                          <div className="flex-1 min-w-0">
+                            <span className="font-bold text-sm truncate block group-hover:text-primary transition-colors">{route.title}</span>
+                          </div>
                         </div>
                         {route.description && (
-                          <p className="text-xs text-muted-foreground line-clamp-2 mb-2">{route.description}</p>
+                          <p className="text-[11px] text-muted-foreground line-clamp-2 mb-2.5 leading-relaxed">{route.description}</p>
                         )}
                         <div className="flex items-center gap-2 flex-wrap">
-                          <span className="flex items-center gap-1 text-xs text-muted-foreground">
+                          <span className="flex items-center gap-1 text-xs text-muted-foreground font-medium">
                             <Route className="size-3" /> {route.distance} km
                           </span>
                           <Badge variant="outline" className={`text-[9px] px-1.5 py-0 ${categoryColor(route.category)}`}>
                             {categoryLabel(route.category)}
                           </Badge>
-                          <span className="flex items-center gap-1 text-xs text-muted-foreground">
+                          <span className="flex items-center gap-1 text-xs text-muted-foreground ml-auto">
                             <Heart className="size-3" /> {route.likes}
                           </span>
                         </div>
@@ -1604,12 +1624,12 @@ const ExploreTabInner = React.memo(function ExploreTabInner({ rides, routes, lea
               </div>
             )}
 
-            {/* Search + Filters */}
+            {/* Search + Filters - Premium frosted search bar */}
             <div className="space-y-3 mb-6">
               <div className="relative">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground" />
-                <Input placeholder="Išči po imenu ali opisu..." value={searchQuery} onChange={e => setSearchQuery(e.target.value)} className="pl-9" />
-                {searchQuery && <Button variant="ghost" size="sm" className="absolute right-1 top-1/2 -translate-y-1/2 h-7 w-7 p-0" onClick={() => setSearchQuery('')}><X className="size-3" /></Button>}
+                <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 size-4 text-primary" />
+                <Input placeholder="Išči vožnje, poti, destinacije..." value={searchQuery} onChange={e => setSearchQuery(e.target.value)} className="pl-10 h-10 rounded-xl bg-secondary/50 border-border/50 focus-visible:border-primary/30 focus-visible:bg-background transition-colors" />
+                {searchQuery && <Button variant="ghost" size="sm" className="absolute right-1.5 top-1/2 -translate-y-1/2 h-7 w-7 p-0 rounded-full hover:bg-muted" onClick={() => setSearchQuery('')}><X className="size-3.5" /></Button>}
               </div>
               <div className="flex flex-wrap items-center gap-1.5">
                 {/* Type filter pills */}
@@ -1617,10 +1637,10 @@ const ExploreTabInner = React.memo(function ExploreTabInner({ rides, routes, lea
                   <button
                     key={f}
                     onClick={() => setExploreFilter(f)}
-                    className={`px-3 py-1 rounded-full text-xs font-medium transition-colors ${
+                    className={`px-3 py-1.5 rounded-full text-xs font-semibold transition-all duration-200 ${
                       exploreFilter === f
-                        ? 'bg-primary text-primary-foreground'
-                        : 'text-muted-foreground hover:bg-secondary hover:text-foreground'
+                        ? 'bg-primary text-primary-foreground shadow-sm shadow-primary/20'
+                        : 'text-muted-foreground/70 bg-secondary/50 hover:bg-secondary hover:text-foreground'
                     }`}
                   >
                     {f === 'all' ? 'Vse' : f === 'rides' ? 'Vožnje' : 'Poti'}
@@ -1628,14 +1648,14 @@ const ExploreTabInner = React.memo(function ExploreTabInner({ rides, routes, lea
                 ))}
                 <Separator orientation="vertical" className="h-5 mx-1" />
                 {/* Category filter pills */}
-                {['all', 'scenic', 'twisty', 'offroad', 'city', 'snowmobile', 'racetrack'].map(cat => (
+                {['all', 'scenic', 'twisty', 'offroad', 'city'].map(cat => (
                   <button
                     key={cat}
                     onClick={() => setExploreCategory(cat)}
-                    className={`px-3 py-1 rounded-full text-xs font-medium transition-colors ${
+                    className={`px-3 py-1.5 rounded-full text-xs font-semibold transition-all duration-200 ${
                       exploreCategory === cat
-                        ? 'bg-primary text-primary-foreground'
-                        : 'text-muted-foreground hover:bg-secondary hover:text-foreground'
+                        ? 'bg-primary text-primary-foreground shadow-sm shadow-primary/20'
+                        : 'text-muted-foreground/70 bg-secondary/50 hover:bg-secondary hover:text-foreground'
                     }`}
                   >
                     {cat === 'all' ? 'Vse' : categoryLabel(cat)}
@@ -1644,7 +1664,7 @@ const ExploreTabInner = React.memo(function ExploreTabInner({ rides, routes, lea
               </div>
             </div>
 
-            {/* Grid */}
+            {/* Grid - Premium card style */}
             {filteredItems.length === 0 ? (
               <div className="text-center py-16">
                 <div className="size-16 rounded-full bg-muted/50 flex items-center justify-center mx-auto mb-4">
@@ -1654,32 +1674,31 @@ const ExploreTabInner = React.memo(function ExploreTabInner({ rides, routes, lea
                 <p className="text-xs text-muted-foreground mt-1">Poskusite spremeniti filtre ali iskalni niz</p>
               </div>
             ) : (
-              <div className="grid sm:grid-cols-2 gap-4">
+              <div className="grid sm:grid-cols-2 gap-3">
                 {filteredItems.map(item => (
-                  <Card key={item.data.id + item.type} className="rounded-xl overflow-hidden hover:border-primary/30 transition-all cursor-pointer hover:-translate-y-0.5 hover:shadow-md" onClick={() => onOpenDetail(item.data, item.type)}>
-                    <div className={`h-0.5 bg-gradient-to-r ${categoryGradient(item.category)}`} />
+                  <Card key={item.data.id + item.type} className="rounded-2xl overflow-hidden hover:border-primary/30 transition-all cursor-pointer card-hover-lift group" onClick={() => onOpenDetail(item.data, item.type)}>
+                    <div className={`h-1 bg-gradient-to-r ${categoryGradient(item.category)}`} />
                     <CardContent className="p-4">
                       <div className="flex items-start gap-3">
-                        <div className={`size-9 rounded-lg flex items-center justify-center shrink-0 ${
-                          item.type === 'ride' ? 'bg-amber-500/15 text-amber-500' : 'bg-primary/15 text-primary'
+                        <div className={`size-10 rounded-xl flex items-center justify-center shrink-0 ${
+                          item.type === 'ride' ? 'bg-amber-500/10 text-amber-500' : 'bg-primary/10 text-primary'
                         }`}>
-                          {item.type === 'ride' ? <Bike className="size-4" /> : <Route className="size-4" />}
+                          {item.type === 'ride' ? <Bike className="size-5" /> : <Route className="size-5" />}
                         </div>
                         <div className="flex-1 min-w-0">
                           <div className="flex items-start justify-between gap-2">
-                            <p className="font-semibold text-sm truncate group-hover:text-primary transition-colors">{item.data.title}</p>
-                            <Badge variant="outline" className={`text-[9px] shrink-0 ${item.type === 'ride' ? 'bg-amber-500/20 text-amber-400 border-amber-500/30' : categoryColor((item.data as RouteData).category)}`}>
+                            <p className="font-bold text-sm truncate group-hover:text-primary transition-colors">{item.data.title}</p>
+                            <Badge variant="outline" className={`text-[9px] shrink-0 rounded-md ${item.type === 'ride' ? 'bg-amber-500/10 text-amber-500 border-amber-500/20' : categoryColor((item.data as RouteData).category)}`}>
                               {item.type === 'ride' ? 'Vožnja' : categoryLabel((item.data as RouteData).category)}
                             </Badge>
                           </div>
                           {item.data.description && (
-                            <p className="text-xs text-muted-foreground mt-0.5 line-clamp-1">{item.data.description}</p>
+                            <p className="text-[11px] text-muted-foreground mt-0.5 line-clamp-1 leading-relaxed">{item.data.description}</p>
                           )}
-                          <div className="flex items-center gap-3 mt-2 text-xs text-muted-foreground">
-                            <span className="flex items-center gap-1"><Route className="size-3" />{item.data.distance} km</span>
+                          <div className="flex items-center gap-3 mt-2 text-[11px] text-muted-foreground">
+                            <span className="flex items-center gap-1 font-medium"><Route className="size-3" />{item.data.distance} km</span>
                             {item.type === 'ride' && <span className="flex items-center gap-1"><Clock className="size-3" />{formatDuration((item.data as RideData).duration)}</span>}
                             {item.type === 'route' && <span className="flex items-center gap-1"><Heart className="size-3" />{(item.data as RouteData).likes}</span>}
-                            <span className="flex items-center gap-1"><User className="size-3" />{item.data.user?.name || 'Neznan'}</span>
                           </div>
                         </div>
                       </div>
@@ -1689,26 +1708,29 @@ const ExploreTabInner = React.memo(function ExploreTabInner({ rides, routes, lea
               </div>
             )}
 
-            {/* Leaderboard */}
+            {/* Leaderboard - Premium podium style */}
             {leaderboard.length > 0 && (
               <div className="mt-8">
-                <h3 className="text-lg font-bold flex items-center gap-2 mb-4">
-                  <Trophy className="size-5 text-primary" /> Lestvica motoristov
+                <h3 className="text-sm font-bold flex items-center gap-2 mb-3 uppercase tracking-wider text-muted-foreground">
+                  <Trophy className="size-4 text-primary" /> Lestvica motoristov
                 </h3>
                 <div className="space-y-2">
                   {leaderboard.map((u, i) => (
-                    <Card key={u.id} className="rounded-xl hover:border-primary/30 transition-all cursor-pointer" onClick={() => onSwitchUser(u.id)}>
-                      <CardContent className="p-4 flex items-center gap-3">
-                        <div className={`flex items-center justify-center size-8 rounded-full shrink-0 ${i === 0 ? 'bg-amber-500/20 text-amber-400' : i === 1 ? 'bg-slate-400/20 text-slate-300' : i === 2 ? 'bg-orange-500/20 text-orange-400' : 'bg-secondary text-muted-foreground'}`}>
+                    <Card key={u.id} className="rounded-2xl hover:border-primary/30 transition-all cursor-pointer card-hover-lift overflow-hidden" onClick={() => onSwitchUser(u.id)}>
+                      <div className={`h-0.5 ${i === 0 ? 'bg-gradient-to-r from-amber-400 to-amber-500' : i === 1 ? 'bg-gradient-to-r from-slate-300 to-slate-400' : i === 2 ? 'bg-gradient-to-r from-orange-400 to-orange-500' : 'bg-transparent'}`} />
+                      <CardContent className="p-3.5 flex items-center gap-3">
+                        <div className={`flex items-center justify-center size-8 rounded-xl shrink-0 ${
+                          i === 0 ? 'bg-amber-500/15 text-amber-500' : i === 1 ? 'bg-slate-400/15 text-slate-400' : i === 2 ? 'bg-orange-500/15 text-orange-500' : 'bg-secondary text-muted-foreground'
+                        }`}>
                           {i === 0 ? <Crown className="size-4" /> : i === 1 ? <Medal className="size-4" /> : i === 2 ? <Medal className="size-4" /> : <span className="text-xs font-bold">{i + 1}</span>}
                         </div>
-                        <Avatar className="size-9"><AvatarFallback className="text-xs bg-primary/20 text-primary font-semibold">{u.name.charAt(0)}</AvatarFallback></Avatar>
+                        <Avatar className="size-9 border border-border/50"><AvatarFallback className="text-xs bg-primary/10 text-primary font-bold">{u.name.charAt(0)}</AvatarFallback></Avatar>
                         <div className="flex-1 min-w-0">
-                          <p className="font-medium text-sm truncate">{u.name}</p>
-                          <p className="text-xs text-muted-foreground">{u.bike || 'Motocikel'}</p>
+                          <p className="font-semibold text-sm truncate">{u.name}</p>
+                          <p className="text-[10px] text-muted-foreground">{u.bike || 'Motocikel'}</p>
                         </div>
                         <div className="text-right shrink-0">
-                          <p className="text-sm font-bold text-primary">{u.totalDistance} km</p>
+                          <p className="text-sm font-extrabold text-primary">{u.totalDistance} km</p>
                           <p className="text-[10px] text-muted-foreground">{u.totalRides} voženj · {u.totalElevation}m</p>
                         </div>
                       </CardContent>

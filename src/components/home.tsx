@@ -117,7 +117,7 @@ function LoadingSkeleton() {
       </header>
       <div className="fixed top-14 left-0 right-0 z-[1400] h-px bg-gradient-to-r from-transparent via-primary/30 to-transparent" />
 
-      <main className="flex-1 pt-14 pb-[68px] px-4 max-w-lg mx-auto w-full">
+      <main className="flex-1 pt-14 pb-[64px] px-4 max-w-lg mx-auto w-full">
         <div className="py-6 space-y-6">
           <Skeleton className="w-full h-48 rounded-xl" />
           <div className="grid grid-cols-3 gap-4">
@@ -146,9 +146,9 @@ function LoadingSkeleton() {
       {/* Bottom nav skeleton - matches premium nav */}
       <nav className="fixed bottom-0 left-0 right-0 z-[1500]" style={{ paddingBottom: 'env(safe-area-inset-bottom, 0px)' }}>
         <div className="nav-frosted">
-          <div className="flex items-center justify-around max-w-lg mx-auto h-[68px]">
+          <div className="flex items-center justify-around max-w-lg mx-auto h-[64px]">
             {[1,2,3,4,5].map(i => (
-              <div key={i} className="flex flex-col items-center gap-0.5 px-3 sm:px-5 py-2">
+              <div key={i} className="flex flex-col items-center gap-[3px] px-4 sm:px-6 py-1.5">
                 <Skeleton className="size-5 rounded bg-muted/50" />
                 <Skeleton className="h-2.5 w-8 bg-muted/50" />
               </div>
@@ -1173,7 +1173,7 @@ export default function Home() {
 
       <main className={`flex-1 relative ${activeTab === 'map' ? 'overflow-hidden' : ''}`} style={{
         paddingTop: exploreFullscreen ? '0' : activeTab === 'map' ? '0' : '56px',
-        paddingBottom: exploreFullscreen ? '0' : 'calc(68px + env(safe-area-inset-bottom, 0px))'
+        paddingBottom: exploreFullscreen ? '0' : 'calc(64px + env(safe-area-inset-bottom, 0px))'
       }}>
         <div key={activeTab} className="tab-transition">
           {activeTab === 'map' && (
@@ -1274,7 +1274,7 @@ export default function Home() {
 
       {/* FAB - Floating Action Button for tracking */}
       {activeTab === 'map' && (
-        <div className="fixed z-[1401] left-1/2 -translate-x-1/2" style={{ bottom: 'calc(84px + env(safe-area-inset-bottom, 0px))' }}>
+        <div className="fixed z-[1401] left-1/2 -translate-x-1/2" style={{ bottom: 'calc(80px + env(safe-area-inset-bottom, 0px))' }}>
           <button
             onClick={() => setActiveTab('track')}
             className="relative w-14 h-14 rounded-full bg-primary shadow-lg shadow-primary/40 flex items-center justify-center active:scale-95 transition-all hover:shadow-xl hover:shadow-primary/50 fab-breathe"
@@ -1473,44 +1473,42 @@ export default function Home() {
         />
       )}
 
-      {/* Bottom Navigation - Premium REVER-style frosted glass with floating indicator */}
+      {/* Bottom Navigation - Premium REVER/Calimoto style frosted glass */}
       <nav className={`fixed bottom-0 left-0 right-0 z-[1500] transition-all duration-300 ${
         exploreFullscreen ? 'translate-y-full opacity-0 pointer-events-none' : ''
       }`} style={{ paddingBottom: 'env(safe-area-inset-bottom, 0px)' }}>
+        {/* Top edge gradient line */}
+        <div className="h-px bg-gradient-to-r from-transparent via-primary/20 to-transparent" />
         <div className="nav-frosted">
-          <div className="flex items-center justify-around max-w-lg mx-auto h-[68px]">
+          <div className="flex items-center justify-around max-w-lg mx-auto h-[64px]">
             {tabs.map(tab => {
               const isActive = activeTab === tab.id
               return (
                 <button
                   key={tab.id}
                   onClick={() => setActiveTab(tab.id)}
-                  className={`relative flex flex-col items-center justify-center gap-0.5 px-3 sm:px-5 py-2 rounded-2xl transition-all duration-200 active:scale-90 ${
+                  className={`relative flex flex-col items-center justify-center gap-[3px] px-4 sm:px-6 py-1.5 rounded-2xl transition-all duration-200 active:scale-90 ${
                     isActive
                       ? 'text-primary'
-                      : 'text-muted-foreground/60 hover:text-muted-foreground'
+                      : 'text-muted-foreground/50 hover:text-muted-foreground/80'
                   }`}
                 >
                   <div className="relative flex items-center justify-center">
-                    {/* Active glow background */}
-                    {isActive && (
-                      <div className="absolute inset-0 -m-2 rounded-2xl bg-primary/8 dark:bg-primary/10" />
-                    )}
                     <tab.icon
                       className={`size-[22px] sm:size-5 transition-all duration-200 ${
                         isActive ? 'text-primary' : ''
                       }`}
-                      strokeWidth={isActive ? 2.3 : 1.5}
+                      strokeWidth={isActive ? 2.4 : 1.5}
                     />
                   </div>
-                  <span className={`text-[10px] sm:text-[11px] tracking-tight leading-tight transition-all duration-200 ${
+                  <span className={`text-[10px] sm:text-[11px] tracking-tight leading-none transition-all duration-200 ${
                     isActive ? 'text-primary font-bold' : 'font-medium'
                   }`}>
                     {tab.label}
                   </span>
-                  {/* Active bottom pill indicator */}
+                  {/* Active top pill indicator - inside nav */}
                   {isActive && (
-                    <div className="nav-pill-indicator absolute -bottom-2 left-1/2 -translate-x-1/2 w-5 h-[3px] rounded-full bg-primary" />
+                    <div className="nav-pill-indicator absolute -top-1.5 left-1/2 -translate-x-1/2 w-6 h-[3px] rounded-full bg-primary shadow-sm shadow-primary/40" />
                   )}
                 </button>
               )
