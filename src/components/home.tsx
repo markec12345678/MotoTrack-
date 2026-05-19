@@ -1267,10 +1267,10 @@ export default function Home() {
       />
 
       {/* FAB - Floating Action Button for tracking */}
-      {activeTab === 'map' && (
+      {activeTab === 'map' && !isTracking && (
         <div className="fixed z-[1401] left-1/2 -translate-x-1/2" style={{ bottom: 'calc(88px + env(safe-area-inset-bottom, 0px))' }}>
           <button
-            onClick={() => setActiveTab('track')}
+            onClick={() => { setActiveTab('track'); startTracking() }}
             className="relative w-14 h-14 rounded-full bg-primary shadow-lg shadow-primary/40 flex items-center justify-center active:scale-95 transition-all hover:shadow-xl hover:shadow-primary/50 fab-breathe"
           >
             <Play className="size-6 text-primary-foreground fill-primary-foreground ml-0.5" />

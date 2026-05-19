@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react'
 import dynamic from 'next/dynamic'
-import { Play, Pause, Square, Save, Gauge, AlertTriangle, ChevronDown, ChevronUp, Activity, Bike, Moon, Timer, Share2, Navigation2, Volume2, VolumeX, Eye, Headphones, Zap, Radio, ShieldAlert, Camera, Monitor, MapPin, Globe } from 'lucide-react'
+import { Play, Pause, Square, Save, Gauge, AlertTriangle, ChevronDown, ChevronUp, Activity, Bike, Moon, Timer, Share2, Navigation2, Volume2, VolumeX, Eye, Headphones, Zap, Radio, ShieldAlert, Camera, Monitor, MapPin, Globe, ClipboardCheck } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Drawer, DrawerContent, DrawerTitle } from '@/components/ui/drawer'
@@ -677,9 +677,9 @@ export default function TrackTab({
                   </span>
                 </div>
               )}
-              {/* Premium Start button with gradient and glow */}
+              {/* Premium Start button with gradient and glow — starts tracking directly */}
               <button
-                onClick={() => setShowChecklist(true)}
+                onClick={onStart}
                 className="relative group"
               >
                 <div className="absolute inset-0 rounded-full bg-primary/40 blur-xl group-hover:bg-primary/50 transition-colors" />
@@ -692,6 +692,14 @@ export default function TrackTab({
                 <div className="absolute inset-0 rounded-full border-2 border-primary/30 animate-ping" />
               </button>
               <span className="text-white/30 text-[10px] font-medium uppercase tracking-widest">Pritisni za začetek</span>
+              {/* Pre-Ride Checklist - optional, opens via small link */}
+              <button
+                onClick={() => setShowChecklist(true)}
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[10px] text-white/30 hover:text-white/60 hover:bg-white/5 transition-colors"
+              >
+                <ClipboardCheck className="size-3" />
+                <span>Pre-ride checklist</span>
+              </button>
               {/* Auto-start toggle */}
               {onToggleAutoStart && (
                 <button
@@ -710,12 +718,6 @@ export default function TrackTab({
                   )}
                 </button>
               )}
-              {/* Pre-Ride Checklist */}
-              <PreRideChecklist
-                open={showChecklist}
-                onClose={(skipped) => setShowChecklist(false)}
-                onStartRide={() => { setShowChecklist(false); onStart() }}
-              />
             </div>
           )}
 
@@ -1028,6 +1030,12 @@ export default function TrackTab({
         currentLng={trackPoints.length > 0 ? trackPoints[trackPoints.length - 1].lng : null}
         isOpen={showEmergencyPanel}
         onClose={() => setShowEmergencyPanel(false)}
+      />
+      {/* Pre-Ride Checklist - rendered OUTSIDE Drawer to avoid z-index conflicts */}
+      <PreRideChecklist
+        open={showChecklist}
+        onClose={(skipped) => setShowChecklist(false)}
+        onStartRide={() => { setShowChecklist(false); onStart() }}
       />
     </div>
   )
