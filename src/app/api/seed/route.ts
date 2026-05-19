@@ -55,9 +55,12 @@ export async function POST() {
 
 async function seedDatabase() {
   try {
-    // Delete existing data in correct order (FK constraints)
+    // Delete existing data in correct order (respecting FK constraints)
     // Use deleteMany which ignores if no records exist
+    // Order matters: child tables first, then parent tables
     try { await db.activityLike.deleteMany() } catch {}
+    try { await db.videoHighlight?.deleteMany() } catch {}
+    try { await db.videoFootage.deleteMany() } catch {}
     try { await db.achievement.deleteMany() } catch {}
     try { await db.comment.deleteMany() } catch {}
     try { await db.like.deleteMany() } catch {}
@@ -84,17 +87,13 @@ async function seedDatabase() {
     try { await db.friendship.deleteMany() } catch {}
     try { await db.notification.deleteMany() } catch {}
     try { await db.sosAlert.deleteMany() } catch {}
-    // try { await db.emergencyContact.deleteMany() } catch {}  // Model not in Prisma schema
     try { await db.roadRating.deleteMany() } catch {}
+    try { await db.photo?.deleteMany() } catch {}
     try { await db.tripDay.deleteMany() } catch {}
     try { await db.trip.deleteMany() } catch {}
     try { await db.groupRideParticipant.deleteMany() } catch {}
     try { await db.groupRide.deleteMany() } catch {}
-    // try { await db.fuelLog.deleteMany() } catch {}           // Model not in Prisma schema
-    // try { await db.parkingLog.deleteMany() } catch {}        // Model not in Prisma schema
-    // try { await db.speedAlertSetting.deleteMany() } catch {}  // Model not in Prisma schema
     try { await db.favorite.deleteMany() } catch {}
-    try { await db.videoFootage.deleteMany() } catch {}
     try { await db.routeRoiScore.deleteMany() } catch {}
     try { await db.routeReview.deleteMany() } catch {}
     try { await db.offlineSyncQueue.deleteMany() } catch {}

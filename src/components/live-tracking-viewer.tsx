@@ -244,9 +244,9 @@ export default function LiveTrackingViewer({ shareToken: initialToken, onClose }
           zoomControl: false,
         })
 
-        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-          attribution: '&copy; OSM',
-          maxZoom: 19,
+        L.tileLayer('https://basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}@2x.png', {
+          attribution: '&copy; CartoDB &copy; OSM',
+          maxZoom: 20,
         }).addTo(map)
 
         // Custom motorcycle marker

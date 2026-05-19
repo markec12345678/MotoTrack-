@@ -132,20 +132,18 @@ export default function Map3DViewer({
         baseSources['osm-tiles'] = {
           type: 'raster',
           tiles: [
-            'https://a.tile.openstreetmap.org/{z}/{x}/{y}.png',
-            'https://b.tile.openstreetmap.org/{z}/{x}/{y}.png',
-            'https://c.tile.openstreetmap.org/{z}/{x}/{y}.png',
+            'https://basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}@2x.png',
           ],
           tileSize: 256,
-          attribution: '&copy; OpenStreetMap',
-          maxzoom: 19,
+          attribution: '&copy; CartoDB &copy; OpenStreetMap',
+          maxzoom: 20,
         }
         baseLayers.push({
           id: 'osm-tiles-layer',
           type: 'raster',
           source: 'osm-tiles',
           minzoom: 0,
-          maxzoom: 19,
+          maxzoom: 20,
         })
         break
       case 'satellite':
@@ -168,20 +166,18 @@ export default function Map3DViewer({
         baseSources['dark-tiles'] = {
           type: 'raster',
           tiles: [
-            'https://a.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}@2x.png',
-            'https://b.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}@2x.png',
-            'https://c.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}@2x.png',
+            'https://basemaps.cartocdn.com/dark_all/{z}/{x}/{y}@2x.png',
           ],
           tileSize: 256,
           attribution: '&copy; CartoDB',
-          maxzoom: 19,
+          maxzoom: 20,
         }
         baseLayers.push({
           id: 'dark-tiles-layer',
           type: 'raster',
           source: 'dark-tiles',
           minzoom: 0,
-          maxzoom: 19,
+          maxzoom: 20,
         })
         break
     }

@@ -20,6 +20,26 @@ const nextConfig: NextConfig = {
         { key: 'Service-Worker-Allowed', value: '/' },
       ],
     },
+    {
+      // Allow map tile loading and external resources from any page
+      source: '/(.*)',
+      headers: [
+        {
+          key: 'Content-Security-Policy',
+          value: [
+            "default-src 'self'",
+            "script-src 'self' 'unsafe-eval' 'unsafe-inline'",
+            "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
+            "font-src 'self' https://fonts.gstatic.com",
+            // Allow map tiles from all major providers
+            "img-src 'self' data: blob: https://*.tile.openstreetmap.org https://*.openstreetmap.org https://server.arcgisonline.com https://*.basemaps.cartocdn.com https://s3.amazonaws.com https://tiles.openfreemap.org https://api.dicebear.com https://*.maplibre.org https://*.leaflet.org",
+            "connect-src 'self' https://*.tile.openstreetmap.org https://*.openstreetmap.org https://server.arcgisonline.com https://*.basemaps.cartocdn.com https://s3.amazonaws.com https://tiles.openfreemap.org https://api.openweathermap.org https://api.dicebear.com https://nominatim.openstreetmap.org https://overpass-api.de",
+            "worker-src 'self' blob:",
+            "child-src 'self' blob:",
+          ].join('; ')
+        },
+      ],
+    },
   ],
 };
 

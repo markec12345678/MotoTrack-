@@ -110,7 +110,7 @@ function getTileUrl(z: number, x: number, y: number, source: 'cartodb' | 'osm'):
   if (source === 'cartodb') {
     return `https://a.basemaps.cartocdn.com/light_all/${z}/${x}/${y}.png`
   }
-  return `https://tile.openstreetmap.org/${z}/${x}/${y}.png`
+  return `https://basemaps.cartocdn.com/rastertiles/voyager/${z}/${x}/${y}@2x.png`
 }
 
 // ─── Constants ────────────────────────────────────────────────────────────────
