@@ -190,11 +190,11 @@ export default function MotoChat() {
 
   const quickPrompts = [
     'Najboljši prelazi v Sloveniji',
-    'Zapore na cestah danes',
     'Vreme za vikend vožnjo',
     'Vršič ali Predel?',
     'Nasveti za začetnike',
     'Jadranska magistrala',
+    'Gorivo na Balkanu',
   ]
 
   return (

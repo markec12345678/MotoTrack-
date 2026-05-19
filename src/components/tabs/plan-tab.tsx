@@ -1504,7 +1504,7 @@ export default function PlanTab({
   const mapShowPlan = mode === 'single' || mode === 'roundtrip'
 
   return (
-    <div className="relative w-full h-[calc(100vh-136px)] flex flex-col lg:flex-row">
+    <div className="relative w-full h-[calc(100dvh-136px)] flex flex-col lg:flex-row">
       <div className="flex-1 relative">
         <MotoMap
           center={[46.15, 14.99]}
@@ -1517,7 +1517,7 @@ export default function PlanTab({
           tripDays={mapTripDays}
         />
       </div>
-      <div className="lg:w-96 w-full bg-card/80 backdrop-blur-sm border-t lg:border-t-0 lg:border-l border-border/30 p-4 overflow-y-auto max-h-[40vh] lg:max-h-full custom-scrollbar">
+      <div className="lg:w-96 w-full bg-card/80 backdrop-blur-sm border-t lg:border-t-0 lg:border-l border-border/30 p-3 sm:p-4 overflow-y-auto max-h-[50vh] lg:max-h-full custom-scrollbar">
         {/* Mode toggle - Premium pill-style */}
         <div className="flex items-center gap-1 mb-4 bg-muted/40 rounded-xl p-1 inner-glow">
           <button
