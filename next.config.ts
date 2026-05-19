@@ -5,11 +5,6 @@ const nextConfig: NextConfig = {
     ignoreBuildErrors: true,
   },
   reactStrictMode: false,
-  // output: 'standalone', // Disabled - causes issues with custom server
-  // instrumentationHook is enabled by default in Next.js 14+
-  // No need to specify it explicitly (removed - was causing config warning)
-  // @libsql/client uses native bindings that must be externalized
-  // for Vercel serverless functions to work correctly.
   serverExternalPackages: ['@libsql/client', '@prisma/adapter-libsql'],
   allowedDevOrigins: [
     "preview-chat-4a0e5d7e-260f-4e68-a19b-8c7bdf46a006.space-z.ai",

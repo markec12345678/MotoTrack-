@@ -57,18 +57,20 @@ export default function RootLayout({
   return (
     <html lang="sl" suppressHydrationWarning>
       <head>
-        {/* Leaflet CSS loaded from CDN to bypass Tailwind v4 CSS processing which breaks Leaflet styles */}
-        <link
-          rel="stylesheet"
-          href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
-          integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY="
-          crossOrigin=""
-        />
-        {/* CRITICAL: Leaflet CSS overrides MUST be in a raw style tag to bypass Tailwind v4 CSS processing.
+        {/* Leaflet CSS - loaded from local /public folder to avoid CDN/SRI/CORS failures.
+            Previous CDN approach failed because crossorigin="anonymous" + integrity caused SRI check failures on Vercel. */}
+        <link rel="stylesheet" href="/leaflet.css" />
+
+        {/* CRITICAL: Leaflet CSS overrides in a raw style tag to bypass Tailwind v4 CSS processing.
             Tailwind v4 preflight resets: img { max-width:100%; height:auto; display:block; } which destroys Leaflet tiles.
             Putting overrides in globals.css doesn't work on Vercel because Tailwind's compiler strips/weakens !important. */}
         <style dangerouslySetInnerHTML={{ __html: `
-          /* Fix tile images - Tailwind resets img to max-width:100% + display:block */
+          /* ===== LEAFLET TILE FIX - CRITICAL ===== */
+          /* Tailwind CSS v4 preflight breaks Leaflet tiles with:
+             img { display: block; max-width: 100%; height: auto; }
+             These overrides MUST be !important and outside @layer to win. */
+
+          /* Fix tile images */
           .leaflet-container img,
           .leaflet-tile-container img,
           .leaflet-tile-pane img,
@@ -112,7 +114,7 @@ export default function RootLayout({
             position: absolute !important;
             inset: 0 !important;
           }
-          /* Fix pane stacking - Tailwind may reset z-index via * selector */
+          /* Fix pane stacking */
           .leaflet-pane {
             z-index: auto !important;
             position: absolute !important;
@@ -153,11 +155,12 @@ export default function RootLayout({
             font-size: 18px !important;
           }
         ` }} />
+
+        {/* Tile loading fix + chunk load retry */}
         <script
           dangerouslySetInnerHTML={{
             __html: `
 // MotoTrack: Force Leaflet tile images to render correctly (bypasses Tailwind v4 CSS resets)
-// This MutationObserver watches for new img elements inside .leaflet-tile-pane and forces correct styles
 (function() {
   function fixTile(el) {
     if (el.tagName === 'IMG' && el.closest && el.closest('.leaflet-tile-pane')) {
@@ -171,8 +174,7 @@ export default function RootLayout({
       el.style.visibility = 'inherit';
     }
   }
-  
-  // Fix existing tiles
+
   document.addEventListener('DOMContentLoaded', function() {
     var observer = new MutationObserver(function(mutations) {
       mutations.forEach(function(m) {
@@ -186,13 +188,13 @@ export default function RootLayout({
         });
       });
     });
-    
+
     observer.observe(document.body || document.documentElement, {
       childList: true,
       subtree: true
     });
-    
-    // Also periodically fix tiles (belt and suspenders approach)
+
+    // Periodically fix tiles
     setInterval(function() {
       var tiles = document.querySelectorAll('.leaflet-tile-pane img');
       tiles.forEach(fixTile);
@@ -210,8 +212,7 @@ export default function RootLayout({
   var MAX_RETRIES = 8;
   var RETRY_DELAY = 1500;
   var retryCount = {};
-  
-  // Intercept script errors and retry loading
+
   document.addEventListener('error', function(e) {
     var el = e.target;
     if (el && el.tagName === 'SCRIPT' && el.src) {
@@ -229,8 +230,7 @@ export default function RootLayout({
       }
     }
   }, true);
-  
-  // Intercept link stylesheet errors
+
   document.addEventListener('error', function(e) {
     var el = e.target;
     if (el && el.tagName === 'LINK' && el.rel === 'stylesheet' && el.href) {
@@ -247,13 +247,11 @@ export default function RootLayout({
       }
     }
   }, true);
-  
-  // Handle uncaught ChunkLoadError from Next.js dynamic imports
+
   window.addEventListener('unhandledrejection', function(e) {
-    if (e.reason && (e.reason.name === 'ChunkLoadError' || 
+    if (e.reason && (e.reason.name === 'ChunkLoadError' ||
         (e.reason.message && e.reason.message.indexOf('Failed to load chunk') !== -1))) {
       e.preventDefault();
-      // Auto-retry by reloading the page after delay
       setTimeout(function() { window.location.reload(); }, 3000);
     }
   });

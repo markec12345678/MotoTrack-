@@ -115,11 +115,16 @@ interface MotoMapProps {
 }
 
 const MAP_TILES: Record<string, { url: string; attribution: string; maxZoom: number }> = {
-  osm: { url: 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', attribution: '© OpenStreetMap', maxZoom: 19 },
-  dark: { url: 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', attribution: '© CartoDB', maxZoom: 20 },
+  // Use OSM direct tiles as primary - most reliable and well-cached
+  osm: { url: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png', attribution: '© OpenStreetMap contributors', maxZoom: 19 },
+  // CartoDB dark tiles - no subdomain needed, works without {s}
+  dark: { url: 'https://basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', attribution: '© CartoDB', maxZoom: 20 },
+  // Esri satellite - no subdomain, direct server
   satellite: { url: 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', attribution: '© Esri', maxZoom: 19 },
-  topo: { url: 'https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png', attribution: '© OpenTopoMap', maxZoom: 17 },
-  voyager: { url: 'https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', attribution: '© CartoDB', maxZoom: 20 },
+  // OpenTopoMap
+  topo: { url: 'https://tile.opentopomap.org/{z}/{x}/{y}.png', attribution: '© OpenTopoMap', maxZoom: 17 },
+  // CartoDB voyager - no subdomain needed
+  voyager: { url: 'https://basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', attribution: '© CartoDB', maxZoom: 20 },
 }
 
 const categoryColors: Record<string, string> = {
@@ -298,8 +303,17 @@ export default function MotoMap({
     const tileLayer = L.tileLayer(tileConfig.url, {
       attribution: tileConfig.attribution,
       maxZoom: tileConfig.maxZoom,
+      crossOrigin: false, // Don't use CORS - just load images normally
     }).addTo(map)
     tileRef.current = tileLayer
+
+    // Log tile loading events for debugging
+    tileLayer.on('tileerror', (e: L.TileErrorEvent) => {
+      console.warn('MotoTrack: Tile load error', e.tile?.src, e.error)
+    })
+    tileLayer.on('load', () => {
+      console.log('MotoTrack: Tile layer loaded successfully')
+    })
 
     // Layer groups
     const ridesLayer = L.layerGroup().addTo(map)
