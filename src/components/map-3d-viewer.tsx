@@ -200,14 +200,14 @@ export default function Map3DViewer({
       })
     }
 
-    const style: any = {
+    const mapStyleObj: any = {
       version: 8,
       sources: baseSources,
       layers: baseLayers,
     }
     // Terrain is set after map load via setTerrain() — not in the style object
     // This avoids style validation errors in some MapLibre GL versions
-    return style
+    return mapStyleObj
   }, [showTerrain])
 
   // MapLibre CSS is loaded via layout.tsx <link> tag from /maplibre-gl.css
