@@ -21,23 +21,30 @@ const nextConfig: NextConfig = {
       ],
     },
     {
-      // Allow map tile loading and external resources from any page
+      // Permissive CSP for map-heavy app — tiles come from many external providers
+      // Using 'https:' scheme allows all HTTPS resources while blocking insecure HTTP
       source: '/(.*)',
       headers: [
         {
           key: 'Content-Security-Policy',
           value: [
             "default-src 'self'",
-            "script-src 'self' 'unsafe-eval' 'unsafe-inline'",
+            // Scripts: allow self + eval (needed for MapLibre GL) + inline + Vercel analytics
+            "script-src 'self' 'unsafe-eval' 'unsafe-inline' https://vercel.live https://va.vercel-scripts.com",
+            // Styles: allow self + inline (Tailwind) + Google Fonts
             "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
+            // Images: allow ALL https sources (map tiles from any provider) + data/blob URLs
+            "img-src 'self' data: blob: https:",
+            // Connect (fetch/XHR/WebSocket): allow ALL https sources (tiles, APIs, weather, routing)
+            "connect-src 'self' https: wss:",
+            // Fonts: self + Google Fonts
             "font-src 'self' https://fonts.gstatic.com",
-            // Allow map tiles from all major providers
-            // NOTE: CSP wildcards like *.example.com do NOT match the bare domain itself.
-            // Both the bare domain AND the wildcard must be listed.
-            "img-src 'self' data: blob: https://tile.openstreetmap.org https://*.tile.openstreetmap.org https://openstreetmap.org https://*.openstreetmap.org https://basemaps.cartocdn.com https://*.basemaps.cartocdn.com https://server.arcgisonline.com https://s3.amazonaws.com https://tiles.openfreemap.org https://api.dicebear.com https://*.maplibre.org https://*.leaflet.org https://tile.opentopomap.org https://unpkg.com https://tilecache.rainviewer.com https://api.qrserver.com",
-            "connect-src 'self' https://tile.openstreetmap.org https://*.tile.openstreetmap.org https://openstreetmap.org https://*.openstreetmap.org https://basemaps.cartocdn.com https://*.basemaps.cartocdn.com https://server.arcgisonline.com https://s3.amazonaws.com https://tiles.openfreemap.org https://api.openweathermap.org https://api.dicebear.com https://nominatim.openstreetmap.org https://overpass-api.de https://www.openstreetmap.org https://tile.opentopomap.org https://router.project-osrm.org https://unpkg.com https://tilecache.rainviewer.com https://api.qrserver.com",
+            // Workers: needed by MapLibre GL for vector tile parsing
             "worker-src 'self' blob:",
+            // Frames/children: Vercel live preview
             "child-src 'self' blob:",
+            // Frame ancestors: prevent clickjacking
+            "frame-ancestors 'self'",
           ].join('; ')
         },
       ],
