@@ -23,7 +23,7 @@ import {
   Waves,
   TreePine,
   LayoutGrid,
-  Highway,
+  Route as Road,
   CheckCircle2,
   AlertTriangle,
 } from 'lucide-react'
@@ -255,7 +255,7 @@ export default function RoundTripGenerator({ onGenerate, startLat = 46.05, start
         {/* Avoid Highways Toggle */}
         <div className="flex items-center justify-between rounded-lg border border-border p-3">
           <div className="flex items-center gap-2">
-            <Highway className="h-4 w-4 text-amber-500" />
+            <Road className="h-4 w-4 text-amber-500" />
             <div>
               <span className="text-sm font-medium">Brez avtocest</span>
               <p className="text-[10px] text-muted-foreground">Izogibaj glavnim cestam</p>

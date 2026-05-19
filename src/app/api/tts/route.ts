@@ -83,7 +83,7 @@ export async function POST(request: NextRequest) {
       },
     })
   } catch (error: unknown) {
-    console.error('TTS API error:', error?.message || error)
+    console.error('TTS API error:', error instanceof Error ? error.message : String(error))
     return NextResponse.json(
       { success: false, error: 'Napaka pri generiranju govora. Poskusite znova.' },
       { status: 500 }

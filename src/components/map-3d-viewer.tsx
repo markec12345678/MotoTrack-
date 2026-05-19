@@ -247,7 +247,7 @@ export default function Map3DViewer({
           bearing: bearing,
           maxPitch: 85,
           antialias: true,
-        })
+        } as any)
 
         map.addControl(new maplibregl.NavigationControl({ visualizePitch: true }), 'top-left')
         map.addControl(new maplibregl.ScaleControl(), 'bottom-left')
@@ -465,7 +465,7 @@ export default function Map3DViewer({
 
       // Elevation labels at highest and lowest points
       if (td && td.points.length > 1) {
-        const elevMarkers = []
+        const elevMarkers: Array<{ coord: [number, number]; label: string; color: string; type: string }> = []
         if (td.maxAltIdx >= 0) {
           elevMarkers.push({
             coord: [td.points[td.maxAltIdx].lng, td.points[td.maxAltIdx].lat] as [number, number],

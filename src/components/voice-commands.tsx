@@ -332,10 +332,10 @@ export default function VoiceCommands({
 
     // Add vocabulary hints if grammars are supported
     try {
-      if (recognition.grammars && window.SpeechGrammarList) {
+      if (recognition.grammars && typeof (window as any).SpeechGrammarList === 'function') {
         // Add custom phrases as grammar hints for better recognition
         const grammar = `#JSGF V1.0; grammar commands; public <command> = ${VOCAB_HINTS.join(' | ')} ;`
-        const speechGrammarList = new window.SpeechGrammarList()
+        const speechGrammarList = new (window as any).SpeechGrammarList()
         speechGrammarList.addFromString(grammar, 1)
         recognition.grammars = speechGrammarList
       }

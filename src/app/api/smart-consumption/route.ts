@@ -155,7 +155,7 @@ export async function GET(req: NextRequest) {
       : 0
 
     // ── Calculate estimated fuel cost for given distance ──
-    let estimatedCost = null
+    let estimatedCost: number | null = null
     if (distance && distance > 0) {
       const litersNeeded = (distance / 100) * adjustedConsumption
       // Use average Slovenian fuel price (~1.55 EUR/L)

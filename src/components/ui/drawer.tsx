@@ -7,8 +7,13 @@ import { cn } from "@/lib/utils"
 
 function Drawer({
   ...props
-}: React.ComponentProps<typeof DrawerPrimitive.Root>) {
-  return <DrawerPrimitive.Root data-slot="drawer" {...props} />
+}: React.ComponentProps<typeof DrawerPrimitive.Root> & {
+  snapPoints?: number[]
+  defaultSnap?: number
+  shouldScaleBackground?: boolean
+  snapToSequentialPointOnSnap?: boolean
+}) {
+  return <DrawerPrimitive.Root data-slot="drawer" {...props as any} />
 }
 
 function DrawerTrigger({

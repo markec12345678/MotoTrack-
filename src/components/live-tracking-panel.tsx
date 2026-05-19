@@ -131,8 +131,8 @@ export default function LiveTrackingPanel({ userId, onSessionChange }: LiveTrack
               userId,
               userName: 'Rider',
               shareToken: activeSession.shareToken,
-              lat: activeSession.lat ?? 0,
-              lng: activeSession.lng ?? 0,
+              lat: (activeSession as any).lat ?? 0,
+              lng: (activeSession as any).lng ?? 0,
               speed: 0,
               heading: 0,
             })

@@ -23,7 +23,17 @@ import {
   Gift,
 } from 'lucide-react'
 import { toast } from 'sonner'
-import type { SubscriptionData } from '@/components/tabs/types'
+
+interface SubscriptionData {
+  id: string
+  userId: string
+  plan: 'free' | 'pro' | 'elite'
+  status: 'active' | 'cancelled' | 'expired'
+  expiresAt: string | null
+  createdAt: string
+  trialEndsAt?: string | null
+  cancelAtPeriodEnd?: boolean
+}
 
 interface SubscriptionPanelProps {
   userId?: string
@@ -175,7 +185,7 @@ export default function SubscriptionPanel({ userId }: SubscriptionPanelProps) {
   }
 
   const currentPlan = subscription?.plan || 'free'
-  const isTrial = subscription?.status === 'trial'
+  const isTrial = (subscription?.status as string) === 'trial'
   const trialEndsAt = subscription?.trialEndsAt ? new Date(subscription.trialEndsAt) : null
   const daysLeft = trialEndsAt ? Math.max(0, Math.ceil((trialEndsAt.getTime() - Date.now()) / (1000 * 60 * 60 * 24))) : 0
   const cancelAtPeriodEnd = subscription?.cancelAtPeriodEnd ?? false

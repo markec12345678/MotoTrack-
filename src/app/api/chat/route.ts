@@ -376,7 +376,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Add AI response to history (without search context in stored version)
-    history.push({ role: 'assistant', content: aiResponse })
+    history.push({ role: 'assistant', content: aiResponse || '' })
 
     // But we need to replace the user message in history with the original (no search context)
     // so future messages don't carry stale search context

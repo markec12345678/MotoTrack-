@@ -559,7 +559,10 @@ export default function Home() {
 
     // Acquire WakeLock to prevent screen from turning off (key for reliable tracking)
     if (settings.wakelockEnabled && 'wakeLock' in navigator) {
-      navigator.wakeLock.request('screen').catch(() => {})
+      navigator.wakeLock.request('screen').then((sentinel) => {
+        // Store sentinel for later release
+        (navigator as any).__wakeLockSentinel = sentinel
+      }).catch(() => {})
     }
 
     timerRef.current = setInterval(() => { if (!isPausedRef.current) setTrackDuration(p => p + 1) }, 1000)
@@ -745,10 +748,11 @@ export default function Home() {
     if (gpsReacquireIntervalRef.current) { clearInterval(gpsReacquireIntervalRef.current); gpsReacquireIntervalRef.current = null }
     // Clean up auto-save from localStorage
     try { localStorage.removeItem('mototrack_autosave') } catch {}
-    // Release WakeLock
-    if ('wakeLock' in navigator) {
-      try { navigator.wakeLock.release?.() } catch {}
-    }
+    // Release WakeLock sentinel (if any was acquired)
+    try {
+      const sentinel = (navigator as any).__wakeLockSentinel
+      if (sentinel) { sentinel.release?.() ; (navigator as any).__wakeLockSentinel = null }
+    } catch {}
     setTrackCurrentSpeed(0)
   }, [])
 
@@ -1285,7 +1289,7 @@ export default function Home() {
 
       {/* Group Ride Chat Bubble - visible when tracking */}
       {isTracking && !exploreFullscreen && currentRideId && (
-        <ChatBubble rideId={currentRideId} userName={userName || 'Motorist'} />
+        <ChatBubble rideId={currentRideId} userName={user?.name || 'Motorist'} />
       )}
 
       {/* Route Deviation Alert - when following a planned route */}

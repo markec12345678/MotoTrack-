@@ -14,6 +14,7 @@ interface RoadCondition {
   downvotes: number
   createdAt: string
   expiresAt: string
+  distance?: number
 }
 
 const CONDITION_TYPES: Record<string, { label: string; emoji: string; color: string }> = {
@@ -72,8 +73,8 @@ export async function GET(request: NextRequest) {
         const dLon = ((c.lng - userLng) * Math.PI) / 180
         const a = Math.sin(dLat / 2) ** 2 + Math.cos((userLat * Math.PI) / 180) * Math.cos((c.lat * Math.PI) / 180) * Math.sin(dLon / 2) ** 2
         const dist = R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a))
-        return { ...c, distance: dist }
-      }).filter(c => c.distance <= radius)
+        return { ...c, distance: dist } as RoadCondition
+      }).filter(c => c.distance! <= radius)
       result.sort((a, b) => (a.distance || 0) - (b.distance || 0))
     } else {
       // Sort by most recent

@@ -284,7 +284,7 @@ export async function GET(req: NextRequest) {
           // Try to read the page for more details
           let pageContent = ''
           try {
-            const pageData = await zai.functions.invoke('web_reader', {
+            const pageData = await zai.functions.invoke('web_reader' as any, {
               url: result.url,
             }) as { html?: string; content?: string; text?: string }
             pageContent = pageData?.html || pageData?.content || pageData?.text || ''

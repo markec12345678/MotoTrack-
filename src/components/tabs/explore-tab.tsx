@@ -84,9 +84,11 @@ interface ExploreTabProps {
   fullscreen?: boolean
   onToggleFullscreen?: (fullscreen: boolean) => void
   onLoadToPlan?: (waypoints: { lat: number; lng: number }[], name: string) => void
+  userLat?: number
+  userLng?: number
 }
 
-const ExploreTabInner = React.memo(function ExploreTabInner({ rides, routes, leaderboard, onOpenDetail, onSwitchUser, userId, fullscreen, onToggleFullscreen, onLoadToPlan }: ExploreTabProps) {
+const ExploreTabInner = React.memo(function ExploreTabInner({ rides, routes, leaderboard, onOpenDetail, onSwitchUser, userId, fullscreen, onToggleFullscreen, onLoadToPlan, userLat, userLng }: ExploreTabProps) {
   const [exploreFilter, setExploreFilter] = useState<'all' | 'rides' | 'routes'>('all')
   const [exploreCategory, setExploreCategory] = useState<string>('all')
   const [searchQuery, setSearchQuery] = useState('')

@@ -90,9 +90,9 @@ export default function MotoChat() {
       // Clean text for TTS - remove emojis and special chars
       const cleanText = text
         .replace(/[\u{1F300}-\u{1F9FF}]/gu, '')
-        .replace(/[🏗️🏍️🔍⚡🏔️🌊☀️🌧️❄️💨🛑🚗]/g, '')
+        .replace(/[🏗🏍🔍⚡🏔🌊☀🌧❄💨🛑🚗]/g, '')
         .replace(/\[.*?\]/g, '')
-        .replace(/---.*?---/gs, '')
+        .replace(/---[\s\S]*?---/g, '')
         .replace(/\n{2,}/g, '. ')
         .slice(0, 500)
 

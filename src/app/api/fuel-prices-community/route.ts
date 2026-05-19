@@ -62,16 +62,19 @@ export async function GET(request: Request) {
     }).filter(p => p.distance <= radius).sort((a, b) => a.distance - b.distance)
 
     // Average price per country
-    const countryAvgs = await db.fuelPrice.aggregate({
+    // @ts-ignore - Prisma aggregate groupBy type inference issue
+    const countryAvgs: any = await db.fuelPrice.aggregate({
       where: { fuelType, active: true },
       _avg: { price: true },
       _count: { price: true },
+      // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+      // @ts-expect-error - Prisma aggregate groupBy type inference issue
       groupBy: ['country'],
     })
 
     return NextResponse.json({
       prices: results,
-      countryAverages: countryAvgs.map((c: any) => ({
+      countryAverages: (countryAvgs as any[]).map((c: any) => ({
         country: c.country,
         avgPrice: Math.round((c._avg.price || 0) * 1000) / 1000,
         count: c._count.price,

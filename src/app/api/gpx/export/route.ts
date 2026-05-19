@@ -60,7 +60,17 @@ export async function GET(request: NextRequest) {
     } else if (routeId) {
       const route = await db.route.findUnique({
         where: { id: routeId },
-        include: { user: { select: { name: true } } },
+        select: {
+          title: true,
+          description: true,
+          distance: true,
+          category: true,
+          difficulty: true,
+          waypoints: true,
+          routeData: true,
+          shareCode: true,
+          user: { select: { name: true } },
+        },
       })
       if (!route) return NextResponse.json({ error: 'Pot ni najdena' }, { status: 404 })
       title = route.title

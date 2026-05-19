@@ -56,7 +56,7 @@ const QUICK_HAZARD_TYPES = [
 ] as const
 
 // ─── Arrow direction map based on turn type/modifier ──────────────────────
-type ArrowDirection = '↑' | '↗' | '→' | '↘' | '↓' | '↙' | '←' | '↖' | '↩'
+type ArrowDirection = '↑' | '↗' | '→' | '↘' | '↓' | '↙' | '←' | '↖' | '↩' | '🏁' | 'end'
 
 function parseNavArrow(instruction?: string, navStepType?: string): ArrowDirection {
   if (!instruction && !navStepType) return '↑'
@@ -89,7 +89,7 @@ function parseNavArrow(instruction?: string, navStepType?: string): ArrowDirecti
   if (text.includes('krožišče') || type === 'roundabout' || type === 'rotary') return '↗'
 
   // Arrive
-  if (text.includes('prispeli') || type === 'arrive') return '🏁'
+  if (text.includes('prispeli') || type === 'arrive') return 'end' as const
 
   // Default: straight
   return '↑'

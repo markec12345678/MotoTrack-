@@ -247,7 +247,7 @@ function RadarChart({ scores, labels, comparisonScores, size = 240 }: RadarChart
     const x = center + labelRadius * Math.cos(angle)
     const y = center + labelRadius * Math.sin(angle)
     // Adjust text anchor based on position
-    let textAnchor: string = 'middle'
+    let textAnchor: 'start' | 'middle' | 'end' = 'middle'
     if (Math.abs(Math.cos(angle)) > 0.3) {
       textAnchor = Math.cos(angle) > 0 ? 'start' : 'end'
     }
@@ -356,7 +356,7 @@ function RadarChart({ scores, labels, comparisonScores, size = 240 }: RadarChart
           key={label}
           x={x}
           y={y}
-          textAnchor={textAnchor}
+          textAnchor={textAnchor as any}
           dy={dy}
           fill="#a1a1aa"
           fontSize="9"

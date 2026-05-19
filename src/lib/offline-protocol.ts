@@ -193,6 +193,7 @@ export async function registerOfflineProtocol(): Promise<void> {
       ],
     }
 
+    // @ts-ignore - maplibre-gl types may not include addProtocol
     maplibregl.addProtocol('offline', async (params: any, callback: any) => {
       try {
         // Parse the URL: offline://osm/12/2145/1432

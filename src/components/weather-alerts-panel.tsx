@@ -125,7 +125,14 @@ export default function WeatherAlertsPanel({ lat, lng, isTracking }: WeatherAler
           size="sm"
           className="h-6 text-[10px] gap-1"
           disabled={loading || !lat || !lng}
-          onClick={() => { fetchAlerts(); toast.info('Preverjam vreme...') }}
+          onClick={() => {
+            setLoading(true)
+            fetch(`/api/weather-alerts?lat=${lat}&lng=${lng}&radius=100`)
+              .then(r => r.ok ? r.json() : null)
+              .then(j => { setAlerts(j?.data || []); setLoading(false) })
+              .catch(() => { setLoading(false) })
+            toast.info('Preverjam vreme...')
+          }}
         >
           {loading ? <span className="size-3 border-2 border-current border-t-transparent rounded-full animate-spin" /> : <RefreshCw className="size-3" />}
           Preveri

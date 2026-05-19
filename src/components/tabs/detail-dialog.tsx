@@ -552,7 +552,7 @@ export default function DetailDialog({
               <Download className="size-3" />
               Izvozi
             </Button>
-            {!isRide && item.trackData && (
+            {!isRide && (item as RouteData).waypoints && (
               <Button
                 variant="ghost"
                 size="sm"
@@ -1152,7 +1152,7 @@ export default function DetailDialog({
       {/* Route Simulator */}
       {showRouteSimulator && !isRide && (
         <RouteSimulator
-          points={(item as RouteData).waypoints?.map(w => ({ lat: w.lat, lng: w.lng })) || []}
+          points={(() => { try { return (JSON.parse((item as RouteData).waypoints) as {lat: number; lng: number}[]).map(w => ({ lat: w.lat, lng: w.lng })) } catch { return [] } })()}
           routeName={item.title}
           totalDistance={item.distance}
           map={null}

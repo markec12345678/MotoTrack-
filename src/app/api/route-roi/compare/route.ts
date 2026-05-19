@@ -33,7 +33,25 @@ export async function GET(request: NextRequest) {
       )
     }
 
-    const comparisons = []
+    const comparisons: Array<{
+      routeId: string
+      routeTitle: string
+      routeCategory: string | null
+      routeDistance: number
+      routeDifficulty: string | null
+      sceneryScore: number
+      twistinessScore: number
+      roadQualityScore: number
+      weatherScore: number
+      fuelEfficiencyScore: number
+      timeEfficiencyScore: number
+      overallRoi: number
+      timePerKm: number
+      fuelCost: number
+      pointsOfInterest: number
+      recommendedWeather: string
+      bestSeason: string
+    }> = [] as any
 
     for (const routeId of routeIds) {
       const route = await db.route.findUnique({ where: { id: routeId } })

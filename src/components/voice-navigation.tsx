@@ -1,7 +1,7 @@
 'use client'
 
 import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react'
-import { Navigation2, Volume2, VolumeX, X, SkipForward, Loader2, AlertTriangle, Reroute, Headphones } from 'lucide-react'
+import { Navigation2, Volume2, VolumeX, X, SkipForward, Loader2, AlertTriangle, RefreshCw, Headphones } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Progress } from '@/components/ui/progress'
 import { useBtAudio } from '@/hooks/use-bt-audio'
@@ -397,7 +397,7 @@ export default function VoiceNavigation({
               className="flex-1 text-xs gap-1 bg-amber-500 hover:bg-amber-600"
               onClick={onReroute}
             >
-              <Reroute className="size-3" />
+              <RefreshCw className="size-3" />
               Preračunaj ruto
             </Button>
           </div>

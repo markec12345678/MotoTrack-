@@ -14,7 +14,7 @@ import { Slider } from '@/components/ui/slider'
 
 interface RouteSimulatorProps {
   points: Array<{ lat: number; lng: number; alt?: number | null; timestamp?: number }>
-  map: L.Map | null
+  map?: L.Map | null
   routeName?: string
   totalDistance?: number
   autoStart?: boolean

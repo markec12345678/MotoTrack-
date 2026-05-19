@@ -239,8 +239,8 @@ export default function OBDPanel({ userId }: { userId?: string }) {
 
         return parsedReadings
       }
-    } catch (err) {
-      console.warn('Bluetooth read failed:', err)
+    } catch (err: unknown) {
+      console.warn('Bluetooth read failed:', err instanceof Error ? err.message : String(err))
     }
     return null
   }, [bluetoothServer, parseGattReadings])
@@ -338,10 +338,10 @@ export default function OBDPanel({ userId }: { userId?: string }) {
         setReadings(btReadings)
       }
     } catch (err: unknown) {
-      if (err.name === 'NotFoundError') {
+      if (err instanceof Error && err.name === 'NotFoundError') {
         toast.info('Brez izbire naprave')
       } else {
-        toast.error('Povezava ni uspela', { description: err.message })
+        toast.error('Povezava ni uspela', { description: err instanceof Error ? err.message : String(err) })
       }
     } finally {
       setIsConnecting(null)

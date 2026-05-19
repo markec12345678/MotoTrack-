@@ -23,7 +23,7 @@ import {
 // Optimized for phone mounted on handlebars or connected to car display
 // Works as PWA alternative to native CarPlay/Android Auto apps
 
-type ArrowDirection = '↑' | '↗' | '→' | '↘' | '↓' | '↙' | '←' | '↖' | '↩'
+type ArrowDirection = '↑' | '↗' | '→' | '↘' | '↓' | '↙' | '←' | '↖' | '↩' | '🏁' | 'end'
 
 function parseNavArrow(instruction?: string, navStepType?: string): ArrowDirection {
   if (!instruction && !navStepType) return '↑'
@@ -37,7 +37,7 @@ function parseNavArrow(instruction?: string, navStepType?: string): ArrowDirecti
   if (text.includes('desno') && !text.includes('rahlo')) return '→'
   if (text.includes('rahlo desno') || text.includes('slight right')) return '↗'
   if (text.includes('krožišče') || type === 'roundabout' || type === 'rotary') return '↗'
-  if (text.includes('prispeli') || type === 'arrive') return '🏁'
+  if (text.includes('prispeli') || type === 'arrive') return 'end' as const
   return '↑'
 }
 

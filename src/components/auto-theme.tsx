@@ -93,10 +93,10 @@ interface AutoThemeProps {
   lat?: number
   lng?: number
   enabled: boolean
-  onToggle: (enabled: boolean) => void
+  onToggle?: (enabled: boolean) => void
 }
 
-export function useAutoTheme({ lat = 46.0569, lng = 14.5058, enabled }: AutoThemeProps) {
+export function useAutoTheme({ lat = 46.0569, lng = 14.5058, enabled = false }: AutoThemeProps) {
   const [isDaytime, setIsDaytime] = useState(true)
   const [sunTimes, setSunTimes] = useState<SunTimes | null>(null)
   
@@ -133,7 +133,7 @@ export function AutoThemeIndicator({
   
   return (
     <button
-      onClick={() => onToggle(!enabled)}
+      onClick={() => onToggle?.(!enabled)}
       className={`flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-bold shadow-lg transition-colors ${
         isDaytime
           ? 'bg-amber-500/20 text-amber-600 dark:text-amber-400'

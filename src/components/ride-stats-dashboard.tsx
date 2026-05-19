@@ -166,7 +166,7 @@ export default function RideStatsDashboard({ rides, userId }: RideStatsDashboard
                     <YAxis tick={{ fontSize: 9 }} tickLine={false} axisLine={false} />
                     <Tooltip
                       contentStyle={{ fontSize: 10, borderRadius: 8, border: '1px solid hsl(var(--border))', background: 'hsl(var(--card))' }}
-                      formatter={(v: number) => [`${v.toFixed(0)} km`, 'Razdalja']}
+                      formatter={((v: number) => [`${v.toFixed(0)} km`, 'Razdalja']) as any}
                     />
                     <Bar dataKey="distance" fill="hsl(var(--primary))" radius={[4, 4, 0, 0]} opacity={0.8} />
                   </BarChart>
@@ -184,7 +184,7 @@ export default function RideStatsDashboard({ rides, userId }: RideStatsDashboard
                     <YAxis tick={{ fontSize: 9 }} tickLine={false} axisLine={false} />
                     <Tooltip
                       contentStyle={{ fontSize: 10, borderRadius: 8, border: '1px solid hsl(var(--border))', background: 'hsl(var(--card))' }}
-                      formatter={(v: number) => [`${v.toFixed(0)} m`, 'Višina']}
+                      formatter={((v: number) => [`${v.toFixed(0)} m`, 'Višina']) as any}
                     />
                     <Bar dataKey="elevation" fill="#22c55e" radius={[4, 4, 0, 0]} opacity={0.7} />
                   </BarChart>
@@ -202,7 +202,7 @@ export default function RideStatsDashboard({ rides, userId }: RideStatsDashboard
                     <YAxis tick={{ fontSize: 9 }} tickLine={false} axisLine={false} allowDecimals={false} />
                     <Tooltip
                       contentStyle={{ fontSize: 10, borderRadius: 8, border: '1px solid hsl(var(--border))', background: 'hsl(var(--card))' }}
-                      formatter={(v: number) => [`${v}`, 'Voženj']}
+                      formatter={((v: number) => [`${v}`, 'Voženj']) as any}
                     />
                     <Bar dataKey="count" fill="#f59e0b" radius={[4, 4, 0, 0]} opacity={0.7} />
                   </BarChart>

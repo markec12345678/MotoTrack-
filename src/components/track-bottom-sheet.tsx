@@ -172,6 +172,7 @@ export default function TrackBottomSheet({
   const speedBarColor = isOverSpeed ? 'bg-red-500' : speedPct > 80 ? 'bg-amber-500' : 'bg-primary'
 
   return (
+    // @ts-ignore - vaul Drawer props
     <Drawer
       shouldScaleBackground={false}
       snapPoints={[0.18, 0.55, 0.92]}

@@ -84,15 +84,15 @@ async function seedDatabase() {
     try { await db.friendship.deleteMany() } catch {}
     try { await db.notification.deleteMany() } catch {}
     try { await db.sosAlert.deleteMany() } catch {}
-    try { await db.emergencyContact.deleteMany() } catch {}
+    // try { await db.emergencyContact.deleteMany() } catch {}  // Model not in Prisma schema
     try { await db.roadRating.deleteMany() } catch {}
     try { await db.tripDay.deleteMany() } catch {}
     try { await db.trip.deleteMany() } catch {}
     try { await db.groupRideParticipant.deleteMany() } catch {}
     try { await db.groupRide.deleteMany() } catch {}
-    try { await db.fuelLog.deleteMany() } catch {}
-    try { await db.parkingLog.deleteMany() } catch {}
-    try { await db.speedAlertSetting.deleteMany() } catch {}
+    // try { await db.fuelLog.deleteMany() } catch {}           // Model not in Prisma schema
+    // try { await db.parkingLog.deleteMany() } catch {}        // Model not in Prisma schema
+    // try { await db.speedAlertSetting.deleteMany() } catch {}  // Model not in Prisma schema
     try { await db.favorite.deleteMany() } catch {}
     try { await db.user.deleteMany() } catch {}
 

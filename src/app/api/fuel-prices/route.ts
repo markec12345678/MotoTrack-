@@ -301,7 +301,7 @@ async function fetchLivePrices(): Promise<CachedPrices> {
       // ── Try reading top result pages ──
       for (const result of searchResults.slice(0, 3)) {
         try {
-          const pageContent = await zai.functions.invoke('web_reader', {
+          const pageContent = await zai.functions.invoke('web_reader' as any, {
             url: result.url,
           }) as WebPageContent
 

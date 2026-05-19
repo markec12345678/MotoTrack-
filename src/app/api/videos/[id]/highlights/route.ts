@@ -122,7 +122,7 @@ export async function GET(
     // If no highlights exist yet, auto-generate them
     if (highlights.length === 0) {
       const autoHighlights = autoGenerateHighlights(footage.duration, id)
-      const created = []
+      const created: any[] = []
 
       for (const h of autoHighlights) {
         const highlight = await db.videoHighlight.create({
@@ -177,7 +177,7 @@ export async function POST(
 
       // Generate fresh highlights from telemetry data
       const autoHighlights = autoGenerateHighlights(footage.duration, id)
-      const created = []
+      const created: any[] = []
 
       for (const h of autoHighlights) {
         const highlight = await db.videoHighlight.create({
