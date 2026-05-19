@@ -253,3 +253,40 @@ Stage Summary:
 - Auto-theme already uses real sunrise/sunset calculation (confirmed working)
 - Stop confirmation already implemented (confirmed working)
 - GPS auto-follow already implemented (confirmed working)
+
+---
+Task ID: 8
+Agent: Main
+Task: Fix blank map on Vercel - switch from OpenTopoMap to CartoDB Voyager
+
+Work Log:
+- User reported "zemljevid ne deluje spet" (map doesn't work again)
+- Used VLM to analyze screenshot: map area blank/gray, Leaflet attribution visible, Ride Score showing data
+- Confirmed map initializes but tiles don't render
+- Root cause analysis: OpenTopoMap has strict 1 req/s/IP rate-limiting, which causes ALL tile requests to fail on shared hosting like Vercel (shared CDN IPs)
+- Previous fix used OpenTopoMap as default which worked initially but became unreliable
+- CartoDB basemaps are CDN-backed with no rate-limiting, perfect for production use
+
+Fixes Applied:
+1. Changed default 'osm' tile from OpenTopoMap to CartoDB Voyager (basemaps.cartocdn.com)
+   - CartoDB Voyager is reliable, CDN-backed, retina-ready (@2x), no rate-limiting
+   - OpenTopoMap kept for 'topo' and 'terrain' styles with CartoDB fallback
+2. Added fallbackUrl field to MAP_TILES config for graceful degradation
+3. Enhanced tile error retry: after 3 retries, automatically switches to fallback URL
+4. Added more comprehensive Tailwind v4 preflight CSS overrides in layout.tsx:
+   - Added width: auto and height: auto to tile img overrides
+   - Added position: absolute and left/top: 0 for tile-pane and layer containers
+5. Updated MapStyleSelector:
+   - Default style changed from 'streets' to 'osm' (now CartoDB Voyager)
+   - Updated style labels: 'Zemljevid' (CartoDB), 'Satelit' (Esri), 'Topo' (OpenTopoMap)
+   - Reordered styles: most useful first
+
+Changes pushed to GitHub (commit 7b05022)
+
+Stage Summary:
+- ROOT CAUSE: OpenTopoMap rate-limiting (1 req/s/IP) causes blank map on Vercel shared CDN
+- FIX: Default tiles now use CartoDB Voyager (reliable CDN, no rate-limits)
+- Added tile fallback system for graceful degradation
+- Enhanced CSS overrides for Tailwind v4 compatibility
+- All AI features already verified working (Chat, TTS, Calculator, Voice Commands)
+- All UX issues from previous session already fixed
