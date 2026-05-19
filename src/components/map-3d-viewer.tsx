@@ -533,17 +533,11 @@ export default function Map3DViewer({
 
         if (cancelled) return
 
-        // Verify WebGL support
-        const testCanvas = document.createElement('canvas')
-        const gl = testCanvas.getContext('webgl2') || testCanvas.getContext('webgl')
-        if (!gl) {
-          setInitError('Vaš brskalnik ne podpira WebGL, ki je potreben za 3D zemljevid.')
-          setIsLoading(false)
-          return
-        }
-        // Clean up test canvas
-        const loseCtx = gl.getExtension('WEBGL_lose_context')
-        if (loseCtx) loseCtx.loseContext()
+        // NOTE: We do NOT pre-check WebGL here because:
+        // 1. Creating a test WebGL context consumes a browser context slot
+        // 2. Browsers limit simultaneous WebGL contexts (typically 8-16)
+        // 3. MapLibre GL will handle WebGL errors with proper error messages
+        // Instead, we catch the error from MapLibre itself below.
 
         // Build map style
         const styleObj = buildStyle(mapStyle)
@@ -561,19 +555,30 @@ export default function Map3DViewer({
         }
 
         // MapLibre GL v5 uses canvasContextAttributes for WebGL context options
-        // v4 and earlier used top-level antialias
-        try {
-          mapOptions.canvasContextAttributes = {
-            antialias: true,
-            powerPreference: 'high-performance',
-            contextType: 'webgl2withfallback' as any,
-          }
-        } catch {
-          // Fallback for older versions
-          mapOptions.antialias = true
+        // IMPORTANT: contextType must be undefined (or 'webgl2'/'webgl'), NOT 'webgl2withfallback'
+        // 'webgl2withfallback' is only a documentation concept — when contextType is
+        // undefined, MapLibre tries getContext('webgl2') || getContext('webgl') automatically
+        mapOptions.canvasContextAttributes = {
+          antialias: true,
+          powerPreference: 'high-performance' as WebGLPowerPreference,
+          // contextType: undefined means MapLibre will try webgl2 first, then fallback to webgl
+          // Do NOT set contextType to 'webgl2withfallback' — it's not a valid canvas context type!
         }
 
-        map = new ml.Map(mapOptions)
+        try {
+          map = new ml.Map(mapOptions)
+        } catch (mapErr: any) {
+          // Catch MapLibre GL WebGL init errors (e.g. "Failed to initialize WebGL")
+          const errMsg = mapErr?.message || String(mapErr)
+          if (errMsg.includes('WebGL') || errMsg.includes('webgl')) {
+            setInitError('Vaš brskalnik ne podpira WebGL, ki je potreben za 3D zemljevid. Poskusite osvežiti stran ali uporabite drug brskalnik.')
+          } else {
+            setInitError(`Napaka pri nalaganju 3D zemljevida: ${errMsg}`)
+          }
+          setIsLoading(false)
+          initializedRef.current = false
+          return
+        }
 
         // Add controls
         map.addControl(new ml.NavigationControl({ visualizePitch: true }), 'top-left')
