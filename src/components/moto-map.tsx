@@ -115,15 +115,15 @@ interface MotoMapProps {
 }
 
 const MAP_TILES: Record<string, { url: string; attribution: string; maxZoom: number; subdomains?: string }> = {
-  // Using /api/tiles proxy to avoid CSP/CORS issues on Vercel
-  osm: { url: '/api/tiles?provider=opentopomap&z={z}&x={x}&y={y}', attribution: '© OpenTopoMap contributors', maxZoom: 17 },
-  dark: { url: '/api/tiles?provider=carto-dark&z={z}&x={x}&y={y}&retina=1', attribution: '© CartoDB', maxZoom: 20 },
-  satellite: { url: '/api/tiles?provider=esri&z={z}&x={x}&y={y}', attribution: '© Esri', maxZoom: 19 },
-  topo: { url: '/api/tiles?provider=opentopomap&z={z}&x={x}&y={y}', attribution: '© OpenTopoMap', maxZoom: 17 },
-  voyager: { url: '/api/tiles?provider=carto-voyager&z={z}&x={x}&y={y}&retina=1', attribution: '© CartoDB', maxZoom: 20 },
-  osm_direct: { url: '/api/tiles?provider=osm&z={z}&x={x}&y={y}', attribution: '© OpenStreetMap contributors', maxZoom: 19 },
-  streets: { url: '/api/tiles?provider=opentopomap&z={z}&x={x}&y={y}', attribution: '© OpenTopoMap', maxZoom: 17 },
-  terrain: { url: '/api/tiles?provider=opentopomap&z={z}&x={x}&y={y}', attribution: '© OpenTopoMap', maxZoom: 17 },
+  // Direct CDN URLs — no proxy needed since CSP is removed from next.config.ts
+  osm: { url: 'https://tile.opentopomap.org/{z}/{x}/{y}.png', attribution: '© OpenTopoMap contributors', maxZoom: 17 },
+  dark: { url: 'https://basemaps.cartocdn.com/dark_all/{z}/{x}/{y}@2x.png', attribution: '© CartoDB', maxZoom: 20 },
+  satellite: { url: 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', attribution: '© Esri', maxZoom: 19 },
+  topo: { url: 'https://tile.opentopomap.org/{z}/{x}/{y}.png', attribution: '© OpenTopoMap', maxZoom: 17 },
+  voyager: { url: 'https://basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}@2x.png', attribution: '© CartoDB', maxZoom: 20 },
+  osm_direct: { url: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png', attribution: '© OpenStreetMap contributors', maxZoom: 19 },
+  streets: { url: 'https://tile.opentopomap.org/{z}/{x}/{y}.png', attribution: '© OpenTopoMap', maxZoom: 17 },
+  terrain: { url: 'https://tile.opentopomap.org/{z}/{x}/{y}.png', attribution: '© OpenTopoMap', maxZoom: 17 },
 }
 
 const categoryColors: Record<string, string> = {
@@ -615,7 +615,7 @@ export default function MotoMap({
     if (showTwistyRoads) {
       // Use OpenStreetMap cycle map to highlight curvy roads visually
       // Also add a custom overlay that shows route difficulty by color
-      const twistyLayer = L.tileLayer('/api/tiles?provider=opentopomap&z={z}&x={x}&y={y}', {
+      const twistyLayer = L.tileLayer('https://tile.opentopomap.org/{z}/{x}/{y}.png', {
         attribution: '© OpenTopoMap',
         maxZoom: 17,
         opacity: 0.6,
@@ -906,7 +906,7 @@ export default function MotoMap({
 
     if (showWeatherRadar) {
       // RainViewer radar overlay (free, no API key needed)
-      const weatherLayer = L.tileLayer('/api/tiles?provider=rainviewer&z={z}&x={x}&y={y}', {
+      const weatherLayer = L.tileLayer('https://tilecache.rainviewer.com/v2/radar/latest/256/{z}/{x}/{y}.png', {
         attribution: '© RainViewer',
         maxZoom: 19,
         opacity: 0.5,

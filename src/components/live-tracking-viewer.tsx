@@ -244,7 +244,7 @@ export default function LiveTrackingViewer({ shareToken: initialToken, onClose }
           zoomControl: false,
         })
 
-        L.tileLayer('/api/tiles?provider=carto-voyager&z={z}&x={x}&y={y}&retina=1', {
+        L.tileLayer('https://basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}@2x.png', {
           attribution: '&copy; CartoDB &copy; OSM',
           maxZoom: 20,
         }).addTo(map)

@@ -162,7 +162,7 @@ export default function MoviePlayer({ rideId, onClose }: MoviePlayerProps) {
       attributionControl: false,
     })
 
-    L.tileLayer('/api/tiles?provider=carto-dark&z={z}&x={x}&y={y}&retina=1', {
+    L.tileLayer('https://basemaps.cartocdn.com/dark_all/{z}/{x}/{y}@2x.png', {
       maxZoom: 19,
     }).addTo(map)
 
