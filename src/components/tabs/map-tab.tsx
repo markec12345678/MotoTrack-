@@ -476,11 +476,11 @@ export default function MapTab({ rides, routes, onOpenDetail, userId }: MapTabPr
       </div>
 
       {/* Floating search bar - Premium motorcycle app style (hidden in 3D) */}
-      <div className="absolute top-[66px] left-3 right-16 z-[1000]">
-        <div className="relative max-w-md">
-          <div className="flex items-center gap-2.5 bg-white/90 dark:bg-black/60 backdrop-blur-2xl border border-white/30 dark:border-white/[0.06] rounded-2xl shadow-xl shadow-black/[0.08] dark:shadow-black/40 px-4 py-3">
-            <div className="flex items-center justify-center size-7 rounded-xl bg-primary/10">
-              <Search className="h-3.5 w-3.5 text-primary shrink-0" />
+      <div className="absolute top-[58px] left-2 right-14 z-[1000] sm:left-3 sm:right-16">
+        <div className="relative">
+          <div className="flex items-center gap-2 bg-white/90 dark:bg-black/60 backdrop-blur-2xl border border-white/30 dark:border-white/[0.06] rounded-xl sm:rounded-2xl shadow-xl shadow-black/[0.08] dark:shadow-black/40 px-3 py-2 sm:px-4 sm:py-2.5">
+            <div className="flex items-center justify-center size-6 rounded-lg bg-primary/10 shrink-0">
+              <Search className="h-3 w-3 text-primary" />
             </div>
             <Input
               value={searchInput}
@@ -489,12 +489,12 @@ export default function MapTab({ rides, routes, onOpenDetail, userId }: MapTabPr
                 if (e.target.value) setShowSearch(true)
               }}
               onFocus={() => setShowSearch(true)}
-              placeholder="Išči vožnje in poti..."
-              className="border-0 bg-transparent shadow-none focus-visible:ring-0 px-0 py-0 h-6 text-[13px] placeholder:text-muted-foreground/50"
+              placeholder="Išči..."
+              className="border-0 bg-transparent shadow-none focus-visible:ring-0 px-0 py-0 h-5 text-xs sm:text-[13px] placeholder:text-muted-foreground/50"
             />
             {searchInput && (
               <button onClick={() => { setSearchInput(''); setSearchQuery(''); setShowSearch(false) }} className="shrink-0 p-0.5 rounded-full hover:bg-muted transition-colors">
-                <X className="h-3.5 w-3.5 text-muted-foreground" />
+                <X className="h-3 w-3 text-muted-foreground" />
               </button>
             )}
           </div>
@@ -525,7 +525,7 @@ export default function MapTab({ rides, routes, onOpenDetail, userId }: MapTabPr
       </div>
 
       {/* Right side - Premium grouped category buttons */}
-      <div className="absolute top-[66px] right-3 z-[1000] flex flex-col gap-2">
+      <div className="absolute top-[58px] right-2 z-[1000] flex flex-col gap-1.5 sm:gap-2">
         {/* LAYERS group */}
         <Popover>
           <PopoverTrigger asChild>
@@ -679,8 +679,8 @@ export default function MapTab({ rides, routes, onOpenDetail, userId }: MapTabPr
 
       {/* Ride Score Widget */}
       {showRideScore && (
-        <div className="absolute top-[120px] left-4 right-16 z-[999]">
-          <div className="max-w-xs">
+        <div className="absolute top-[100px] sm:top-[120px] left-2 right-14 z-[999] sm:left-4 sm:right-16">
+          <div className="max-w-[200px] sm:max-w-xs">
             <RideScoreCard lat={fuelCenter.lat} lng={fuelCenter.lng} />
           </div>
         </div>
@@ -688,8 +688,8 @@ export default function MapTab({ rides, routes, onOpenDetail, userId }: MapTabPr
 
       {/* LiveRIDE panel */}
       {showLiveRide && (
-        <div className="absolute top-[120px] left-4 right-16 z-[999]">
-          <div className="bg-background/95 backdrop-blur-md border border-border rounded-xl shadow-lg p-3 max-w-md">
+        <div className="absolute top-[100px] sm:top-[120px] left-2 right-14 z-[999] sm:left-4 sm:right-16">
+          <div className="bg-background/95 backdrop-blur-md border border-border rounded-xl shadow-lg p-2.5 sm:p-3 max-w-sm sm:max-w-md">
             <div className="flex items-center justify-between mb-2">
               <div className="flex items-center gap-2">
                 <Radio className="size-4 text-green-500 animate-pulse" />
@@ -726,19 +726,19 @@ export default function MapTab({ rides, routes, onOpenDetail, userId }: MapTabPr
       )}
 
       {/* Locate button & Map Style - Premium FAB buttons */}
-      <div className="absolute bottom-28 right-4 z-[1000] flex flex-col gap-2">
+      <div className="absolute bottom-24 sm:bottom-28 right-3 z-[1000] flex flex-col gap-1.5 sm:gap-2">
         <MapStyleSelector userId={userId} />
         <Button
           size="icon"
           variant="secondary"
-          className={`h-10 w-10 rounded-full shadow-lg backdrop-blur-md border transition-all ${show3D ? 'bg-emerald-500/90 text-white hover:bg-emerald-600 border-emerald-400/30' : 'bg-black/50 hover:bg-black/70 text-white border-white/10'}`}
+          className={`h-9 w-9 sm:h-10 sm:w-10 rounded-full shadow-lg backdrop-blur-md border transition-all ${show3D ? 'bg-emerald-500/90 text-white hover:bg-emerald-600 border-emerald-400/30' : 'bg-black/50 hover:bg-black/70 text-white border-white/10'}`}
           onClick={() => setShow3D(!show3D)}
           title="3D pogled"
         >
-          <Mountain className="h-[18px] w-[18px]" />
+          <Mountain className="h-4 w-4 sm:h-[18px] sm:w-[18px]" />
         </Button>
-        <Button size="icon" variant="secondary" className="h-10 w-10 rounded-full shadow-lg bg-black/50 backdrop-blur-md border border-white/10 text-white hover:bg-black/70" onClick={handleLocate}>
-          <LocateFixed className="h-[18px] w-[18px]" />
+        <Button size="icon" variant="secondary" className="h-9 w-9 sm:h-10 sm:w-10 rounded-full shadow-lg bg-black/50 backdrop-blur-md border border-white/10 text-white hover:bg-black/70" onClick={handleLocate}>
+          <LocateFixed className="h-4 w-4 sm:h-[18px] sm:w-[18px]" />
         </Button>
       </div>
 

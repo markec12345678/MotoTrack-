@@ -117,7 +117,7 @@ function LoadingSkeleton() {
       </header>
       <div className="fixed top-16 left-0 right-0 z-[1400] h-px bg-gradient-to-r from-transparent via-primary/30 to-transparent" />
 
-      <main className="flex-1 pt-20 pb-[80px] px-4 max-w-lg mx-auto w-full">
+      <main className="flex-1 pt-20 pb-[72px] sm:pb-[80px] px-4 max-w-lg mx-auto w-full">
         <div className="py-6 space-y-5">
           <Skeleton className="w-full h-52 rounded-2xl" />
           <div className="grid grid-cols-2 gap-3">
@@ -1167,7 +1167,7 @@ export default function Home() {
 
       <main className={`flex-1 relative ${activeTab === 'map' ? 'overflow-hidden' : ''}`} style={{
         paddingTop: exploreFullscreen ? '0' : activeTab === 'map' ? '0' : '64px',
-        paddingBottom: exploreFullscreen ? '0' : 'calc(72px + env(safe-area-inset-bottom, 0px))'
+        paddingBottom: exploreFullscreen ? '0' : 'calc(64px + env(safe-area-inset-bottom, 0px))'
       }}>
         <div key={activeTab} className="tab-transition">
           {activeTab === 'map' && (
@@ -1472,7 +1472,7 @@ export default function Home() {
         exploreFullscreen ? 'translate-y-full opacity-0 pointer-events-none' : ''
       }`} style={{ paddingBottom: 'env(safe-area-inset-bottom, 0px)' }}>
         <div className="nav-premium">
-          <div className="flex items-end justify-around max-w-lg mx-auto h-[72px] relative">
+          <div className="flex items-end justify-around max-w-lg mx-auto h-[64px] sm:h-[72px] relative">
             {tabs.map((tab, idx) => {
               const isActive = activeTab === tab.id
               const isCenter = tab.id === 'track'
@@ -1483,9 +1483,9 @@ export default function Home() {
                   <button
                     key={tab.id}
                     onClick={() => setActiveTab(tab.id)}
-                    className="relative flex flex-col items-center -mt-5 transition-all duration-200 active:scale-95"
+                    className={`relative flex flex-col items-center -mt-4 sm:-mt-5 transition-all duration-200 active:scale-95`}
                   >
-                    <div className={`relative flex items-center justify-center w-14 h-14 rounded-2xl transition-all duration-300 shadow-xl ${
+                    <div className={`relative flex items-center justify-center w-12 h-12 sm:w-14 sm:h-14 rounded-2xl transition-all duration-300 shadow-xl ${
                       isActive
                         ? 'bg-gradient-to-br from-primary to-orange-600 shadow-primary/40'
                         : 'bg-gradient-to-br from-muted to-muted/80 shadow-black/10 dark:shadow-black/30'
@@ -1496,7 +1496,7 @@ export default function Home() {
                       />
                       {isActive && <div className="absolute inset-0 rounded-2xl bg-gradient-to-br from-white/25 to-transparent" />}
                     </div>
-                    <span className={`text-[9px] mt-1 tracking-tight leading-none font-bold ${
+                    <span className={`text-[8px] sm:text-[9px] mt-0.5 tracking-tight leading-none font-bold ${
                       isActive ? 'text-primary' : 'text-muted-foreground/50'
                     }`}>
                       {tab.label}
@@ -1510,7 +1510,7 @@ export default function Home() {
                 <button
                   key={tab.id}
                   onClick={() => setActiveTab(tab.id)}
-                  className={`relative flex flex-col items-center justify-center gap-1 px-3 sm:px-5 pb-2 pt-3 transition-all duration-200 active:scale-90 ${
+                  className={`relative flex flex-col items-center justify-center gap-0.5 sm:gap-1 px-2 sm:px-5 pb-2 pt-2 sm:pt-3 transition-all duration-200 active:scale-90 ${
                     isActive ? '' : ''
                   }`}
                 >
@@ -1524,7 +1524,7 @@ export default function Home() {
                       strokeWidth={isActive ? 2.4 : 1.5}
                     />
                   </div>
-                  <span className={`text-[10px] sm:text-[11px] tracking-tight leading-none transition-all duration-200 ${
+                  <span className={`text-[9px] sm:text-[11px] tracking-tight leading-none transition-all duration-200 ${
                     isActive ? 'text-primary font-bold' : 'text-muted-foreground/40 font-medium'
                   }`}>
                     {tab.label}
