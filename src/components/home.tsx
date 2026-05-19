@@ -192,18 +192,36 @@ export default function Home() {
   const [deviationDismissed, setDeviationDismissed] = useState(false)
   const watchIdRef = useRef<number | null>(null)
 
+  // User location state (declared early so currentPos can use it)
+  const [userLat, setUserLat] = useState<number | undefined>()
+  const [userLng, setUserLng] = useState<number | undefined>()
+
+  // Derived current position from last track point or user GPS
+  const currentPos = useMemo<{ lat: number; lng: number } | null>(() => {
+    if (trackPoints.length > 0) {
+      const last = trackPoints[trackPoints.length - 1]
+      if (last.alt !== -9999) return { lat: last.lat, lng: last.lng }
+      // If last point is a gap marker, find the last real point
+      for (let i = trackPoints.length - 2; i >= 0; i--) {
+        if (trackPoints[i].alt !== -9999) return { lat: trackPoints[i].lat, lng: trackPoints[i].lng }
+      }
+    }
+    if (userLat != null && userLng != null) return { lat: userLat, lng: userLng }
+    return null
+  }, [trackPoints, userLat, userLng])
+
   // Route deviation detection
   const { deviation: routeDeviation, level: deviationLevel, isDeviated } = useRouteDeviation({
     plannedRoute: planWaypoints,
-    currentPosition: currentPos ? { lat: currentPos[0], lng: currentPos[1] } : null,
+    currentPosition: currentPos,
     isActive: isTracking && planWaypoints.length >= 2,
   })
 
   // Speed camera alerts
   const [cameraDismissed, setCameraDismissed] = useState(false)
   const { closestCamera } = useSpeedCameraAlert(
-    currentPos ? currentPos[0] : null,
-    currentPos ? currentPos[1] : null,
+    currentPos?.lat ?? null,
+    currentPos?.lng ?? null,
     undefined,
     trackCurrentSpeed,
     isTracking,
@@ -342,9 +360,7 @@ export default function Home() {
     if (activeTab !== 'explore') setExploreFullscreen(false)
   }, [activeTab])
 
-  // User location for recommendations
-  const [userLat, setUserLat] = useState<number | undefined>()
-  const [userLng, setUserLng] = useState<number | undefined>()
+  // User location useEffect (state declared earlier for currentPos)
   useEffect(() => {
     if (navigator.geolocation) {
       navigator.geolocation.getCurrentPosition(pos => {
