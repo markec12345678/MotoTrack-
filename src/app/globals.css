@@ -155,7 +155,17 @@ html {
 
 /* Orange glow effect - REVER style */
 .orange-glow {
-  box-shadow: 0 0 20px oklch(0.68 0.2 45 / 0.2), 0 0 40px oklch(0.68 0.2 45 / 0.08);
+  box-shadow: 0 0 20px oklch(0.68 0.2 45 / 0.25), 0 0 40px oklch(0.68 0.2 45 / 0.1);
+}
+
+/* Primary button glow - premium press */
+.primary-glow {
+  box-shadow: 0 4px 16px oklch(0.68 0.2 45 / 0.35), 0 0 0 1px oklch(0.68 0.2 45 / 0.2);
+}
+
+/* Danger glow - for speed alerts */
+.danger-glow {
+  box-shadow: 0 0 20px oklch(0.7 0.25 25 / 0.4), 0 0 40px oklch(0.7 0.25 25 / 0.15);
 }
 
 /* Tab transition animations */
@@ -249,8 +259,8 @@ html {
 
 /* Professional FAB breathing animation */
 @keyframes fabBreathe {
-  0%, 100% { box-shadow: 0 0 0 0 oklch(0.68 0.2 45 / 0.3); }
-  50% { box-shadow: 0 0 0 10px oklch(0.68 0.2 45 / 0); }
+  0%, 100% { box-shadow: 0 0 0 0 oklch(0.68 0.2 45 / 0.35), 0 4px 12px oklch(0 0 0 / 0.2); }
+  50% { box-shadow: 0 0 0 12px oklch(0.68 0.2 45 / 0), 0 4px 12px oklch(0 0 0 / 0.2); }
 }
 
 .fab-breathe {
@@ -273,11 +283,116 @@ html {
   animation: slideUp 0.3s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
+/* Speed gauge arc animation */
+@keyframes gaugeFill {
+  from {
+    stroke-dashoffset: var(--gauge-circumference);
+  }
+  to {
+    stroke-dashoffset: var(--gauge-offset);
+  }
+}
+
+.gauge-fill-animate {
+  animation: gaugeFill 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+/* Pulsing glow ring for active tracking */
+@keyframes glowPulse {
+  0%, 100% {
+    opacity: 0.4;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.8;
+    transform: scale(1.05);
+  }
+}
+
+.glow-pulse {
+  animation: glowPulse 2s ease-in-out infinite;
+}
+
+/* Stat card hover lift */
+@keyframes statLift {
+  0% { transform: translateY(0); }
+  100% { transform: translateY(-2px); }
+}
+
+.stat-hover:hover {
+  animation: statLift 0.2s ease-out forwards;
+}
+
+/* Smooth bottom sheet drag */
+.sheet-transition {
+  transition: transform 0.35s cubic-bezier(0.32, 0.72, 0, 1);
+}
+
+/* Tab content crossfade */
+@keyframes crossFade {
+  from { opacity: 0; transform: translateY(6px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.tab-transition {
+  animation: crossFade 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+/* Driving mode entrance */
+@keyframes drivingModeIn {
+  from {
+    opacity: 0;
+    transform: scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+.driving-mode-enter {
+  animation: drivingModeIn 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+/* Speed number tick animation */
+@keyframes speedTick {
+  0% { transform: scale(1); }
+  50% { transform: scale(1.02); }
+  100% { transform: scale(1); }
+}
+
+.speed-tick {
+  animation: speedTick 0.15s ease-out;
+}
+
 /* Glass morphism for dashboard panels */
 .glass-panel {
-  background: linear-gradient(to top, oklch(0.08 0.02 30 / 0.97), oklch(0.12 0.02 30 / 0.92), oklch(0.15 0.02 30 / 0.85));
-  backdrop-filter: blur(20px);
-  border-top: 1px solid oklch(1 0 0 / 0.06);
+  background: linear-gradient(to top, oklch(0.08 0.02 30 / 0.98), oklch(0.1 0.02 30 / 0.94), oklch(0.13 0.02 30 / 0.88));
+  backdrop-filter: blur(24px) saturate(1.2);
+  border-top: 1px solid oklch(1 0 0 / 0.08);
+}
+
+/* Premium glass panel - for driving mode HUD */
+.glass-panel-premium {
+  background: linear-gradient(to top, oklch(0.06 0.02 30 / 0.95), oklch(0.08 0.02 30 / 0.85), oklch(0.1 0.02 30 / 0.7));
+  backdrop-filter: blur(30px) saturate(1.4);
+  border-top: 1px solid oklch(1 0 0 / 0.1);
+  box-shadow: 0 -8px 32px oklch(0 0 0 / 0.3);
+}
+
+/* HUD glass element - for speed gauge and stats */
+.glass-hud {
+  background: oklch(0.1 0.02 30 / 0.6);
+  backdrop-filter: blur(16px) saturate(1.2);
+  border: 1px solid oklch(1 0 0 / 0.08);
+}
+
+/* Frosted bottom sheet */
+.glass-sheet {
+  background: oklch(0.12 0.02 30 / 0.96);
+  backdrop-filter: blur(32px) saturate(1.3);
+  border-top: 1px solid oklch(1 0 0 / 0.12);
+  box-shadow: 0 -4px 24px oklch(0 0 0 / 0.25);
 }
 
 /* Custom Leaflet markers */
@@ -346,4 +461,80 @@ button, nav, [role="button"] {
     min-height: 44px;
     min-width: 44px;
   }
+}
+
+/* ===== Professional Driving Mode Styles ===== */
+
+/* Speed gauge circle background */
+.speed-gauge-bg {
+  stroke: oklch(1 0 0 / 0.06);
+}
+
+/* Speed gauge progress arc */
+.speed-gauge-progress {
+  stroke-linecap: round;
+  transition: stroke-dashoffset 0.5s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+/* Speed gauge danger arc */
+.speed-gauge-danger {
+  stroke: oklch(0.7 0.25 25);
+  filter: drop-shadow(0 0 8px oklch(0.7 0.25 25 / 0.5));
+}
+
+/* Driving mode stat pill */
+.stat-pill {
+  background: oklch(1 0 0 / 0.06);
+  border: 1px solid oklch(1 0 0 / 0.08);
+  border-radius: 12px;
+  padding: 8px 12px;
+}
+
+/* Driving mode large stat */
+.stat-large {
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.02em;
+}
+
+/* Recording pulse indicator */
+@keyframes recordPulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.4; }
+}
+
+.record-pulse {
+  animation: recordPulse 1.5s ease-in-out infinite;
+}
+
+/* Bottom sheet handle bar */
+.sheet-handle {
+  width: 36px;
+  height: 4px;
+  border-radius: 2px;
+  background: oklch(1 0 0 / 0.15);
+  margin: 8px auto 4px;
+}
+
+/* Compact stat grid for driving mode */
+.stat-grid-driving {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 4px;
+}
+
+.stat-grid-driving > div {
+  text-align: center;
+  padding: 6px 2px;
+  border-radius: 10px;
+  background: oklch(1 0 0 / 0.04);
+}
+
+/* ===== Premium Navigation Bar ===== */
+
+.nav-active-dot {
+  width: 4px;
+  height: 4px;
+  border-radius: 50%;
+  background: oklch(0.68 0.2 45);
+  box-shadow: 0 0 6px oklch(0.68 0.2 45 / 0.5);
 }
