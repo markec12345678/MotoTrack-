@@ -77,6 +77,7 @@ export default function MapTab({ rides, routes, onOpenDetail, userId }: MapTabPr
   const [filterCategory, setFilterCategory] = useState('all')
   const [showFilters, setShowFilters] = useState(false)
   const [activePopover, setActivePopover] = useState<'layers' | 'safety' | 'navigation' | null>(null)
+  const [mapStyleName, setMapStyleName] = useState('osm')
 
   // Debounce search query - only update after 300ms of inactivity
   useEffect(() => {
@@ -447,6 +448,7 @@ export default function MapTab({ rides, routes, onOpenDetail, userId }: MapTabPr
         <MotoMap
         center={[46.15, 14.99]}
         zoom={8}
+        mapStyle={mapStyleName}
         rides={rides}
         routes={routes}
         pois={pois}
@@ -727,7 +729,7 @@ export default function MapTab({ rides, routes, onOpenDetail, userId }: MapTabPr
 
       {/* Locate button & Map Style - Premium FAB buttons */}
       <div className="absolute bottom-24 sm:bottom-28 right-3 z-[1000] flex flex-col gap-1.5 sm:gap-2">
-        <MapStyleSelector userId={userId} />
+        <MapStyleSelector userId={userId} onStyleChange={(config) => setMapStyleName(config.styleName)} />
         <Button
           size="icon"
           variant="secondary"

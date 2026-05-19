@@ -185,8 +185,9 @@ export default function Map3DViewer({
         break
     }
 
-    // Add hillshade for topo and satellite
-    if (styleType === 'topo' || styleType === 'satellite') {
+    // Add hillshade only for topo — for satellite, terrain 3D is enough and hillshade
+    // would overlay the satellite imagery making it look washed out/gray
+    if (styleType === 'topo') {
       baseLayers.push({
         id: 'terrain-hillshade',
         type: 'hillshade',
@@ -195,7 +196,7 @@ export default function Map3DViewer({
           'hillshade-shadow-color': '#1a0000',
           'hillshade-highlight-color': '#ffffff',
           'hillshade-accent-color': '#333333',
-          'hillshade-exaggeration': styleType === 'topo' ? 0.4 : 0.25,
+          'hillshade-exaggeration': 0.4,
         },
       })
     }

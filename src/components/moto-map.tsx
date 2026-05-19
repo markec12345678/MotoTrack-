@@ -302,7 +302,7 @@ export default function MotoMap({
     const tileLayer = L.tileLayer(tileConfig.url, {
       attribution: tileConfig.attribution,
       maxZoom: tileConfig.maxZoom,
-      crossOrigin: false,
+      crossOrigin: 'anonymous',
       // Retry failed tiles up to 3 times with exponential backoff
       maxNativeZoom: tileConfig.maxZoom,
     }).addTo(map)
@@ -402,6 +402,42 @@ export default function MotoMap({
       if (campsLayerRef.current) { campsLayerRef.current = null }
     }
   }, [])
+
+  // Switch tile layer when mapStyle changes
+  useEffect(() => {
+    const map = mapRef.current
+    const oldTile = tileRef.current
+    if (!map || !oldTile) return
+
+    const tileConfig = MAP_TILES[mapStyle] || MAP_TILES.osm
+    const newTile = L.tileLayer(tileConfig.url, {
+      attribution: tileConfig.attribution,
+      maxZoom: tileConfig.maxZoom,
+      crossOrigin: 'anonymous',
+      maxNativeZoom: tileConfig.maxZoom,
+    })
+
+    // Tile error retry for new layer
+    newTile.on('tileerror', (e: L.TileErrorEvent) => {
+      const tile = e.tile as HTMLImageElement
+      if (!tile || !tile.src) return
+      const retryCount = parseInt(tile.dataset.retry || '0', 10)
+      if (retryCount < 3) {
+        tile.dataset.retry = String(retryCount + 1)
+        const delay = 500 * (retryCount + 1)
+        setTimeout(() => {
+          if (tile.parentNode) {
+            tile.src = tile.src
+          }
+        }, delay)
+      }
+    })
+
+    // Remove old tile layer and add new one
+    map.removeLayer(oldTile)
+    newTile.addTo(map)
+    tileRef.current = newTile
+  }, [mapStyle])
 
   // Fly to location
   useEffect(() => {
