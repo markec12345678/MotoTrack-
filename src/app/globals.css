@@ -162,7 +162,7 @@ html {
 @keyframes tabFadeIn {
   from {
     opacity: 0;
-    transform: translateY(6px);
+    transform: translateY(4px);
   }
   to {
     opacity: 1;
@@ -171,7 +171,7 @@ html {
 }
 
 .tab-transition {
-  animation: tabFadeIn 0.25s ease-out;
+  animation: tabFadeIn 0.2s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 /* Bottom nav indicator animation */
@@ -228,13 +228,56 @@ html {
   background: linear-gradient(
     90deg,
     transparent 0%,
-    oklch(0.68 0.2 45 / 0.5) 20%,
+    oklch(0.68 0.2 45 / 0.4) 15%,
     oklch(0.68 0.2 45 / 1) 50%,
-    oklch(0.68 0.2 45 / 0.5) 80%,
+    oklch(0.68 0.2 45 / 0.4) 85%,
     transparent 100%
   );
-  height: 2px;
-  box-shadow: 0 0 12px oklch(0.68 0.2 45 / 0.4);
+  height: 1px;
+  box-shadow: 0 0 8px oklch(0.68 0.2 45 / 0.3);
+}
+
+/* Professional speed gauge ring */
+@keyframes speedRingPulse {
+  0%, 100% { opacity: 0.3; }
+  50% { opacity: 0.6; }
+}
+
+.speed-ring-pulse {
+  animation: speedRingPulse 2s ease-in-out infinite;
+}
+
+/* Professional FAB breathing animation */
+@keyframes fabBreathe {
+  0%, 100% { box-shadow: 0 0 0 0 oklch(0.68 0.2 45 / 0.3); }
+  50% { box-shadow: 0 0 0 10px oklch(0.68 0.2 45 / 0); }
+}
+
+.fab-breathe {
+  animation: fabBreathe 2.5s ease-in-out infinite;
+}
+
+/* Smooth slide-in from bottom */
+@keyframes slideUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.slide-up {
+  animation: slideUp 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+/* Glass morphism for dashboard panels */
+.glass-panel {
+  background: linear-gradient(to top, oklch(0.08 0.02 30 / 0.97), oklch(0.12 0.02 30 / 0.92), oklch(0.15 0.02 30 / 0.85));
+  backdrop-filter: blur(20px);
+  border-top: 1px solid oklch(1 0 0 / 0.06);
 }
 
 /* Custom Leaflet markers */

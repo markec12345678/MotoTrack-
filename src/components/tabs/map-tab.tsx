@@ -523,11 +523,11 @@ export default function MapTab({ rides, routes, onOpenDetail, userId }: MapTabPr
       </div>
 
       {/* Right side - Grouped category buttons */}
-      <div className="absolute top-4 right-4 z-[1000] flex flex-col gap-2">
+      <div className="absolute top-4 right-4 z-[1000] flex flex-col gap-1.5">
         {/* LAYERS group */}
         <Popover>
           <PopoverTrigger asChild>
-            <Button size="icon" variant="secondary" className={`h-10 w-10 rounded-full shadow-lg backdrop-blur-md border border-border ${showFilters || showTwistyRoads || showTraffic || showRoadQuality || showCamps || activePoiCount > 0 ? 'bg-primary text-primary-foreground' : 'bg-background/90 hover:bg-muted'}`} title="Plasti">
+            <Button size="icon" variant="secondary" className={`h-9 w-9 rounded-full shadow-md backdrop-blur-md border border-white/10 ${(showFilters || showTwistyRoads || showTraffic || showRoadQuality || showCamps || activePoiCount > 0) ? 'bg-primary text-primary-foreground' : 'bg-black/50 text-white hover:bg-black/70'}`} title="Plasti">
               <Layers className="h-4 w-4" />
               {(activePoiCount > 0 || showTwistyRoads || showTraffic || showRoadQuality || showCamps) && <span className="absolute -top-1 -right-1 bg-red-500 text-white text-[8px] font-bold rounded-full size-3.5 flex items-center justify-center">!</span>}
             </Button>
@@ -566,7 +566,7 @@ export default function MapTab({ rides, routes, onOpenDetail, userId }: MapTabPr
         {/* SAFETY group */}
         <Popover>
           <PopoverTrigger asChild>
-            <Button size="icon" variant="secondary" className={`h-10 w-10 rounded-full shadow-lg backdrop-blur-md border border-border ${showHazards || showWeatherRadar || showLiveRide || showHazardReport ? 'bg-red-500/90 text-white' : 'bg-background/90 hover:bg-muted'}`} title="Varnost">
+            <Button size="icon" variant="secondary" className={`h-9 w-9 rounded-full shadow-md backdrop-blur-md border border-white/10 ${showHazards || showWeatherRadar || showLiveRide || showHazardReport ? 'bg-red-500/90 text-white' : 'bg-black/50 text-white hover:bg-black/70'}`} title="Varnost">
               <Shield className="h-4 w-4" />
               {showHazards && <span className="absolute -top-1 -right-1 bg-red-500 text-white text-[8px] font-bold rounded-full size-3.5 flex items-center justify-center">!</span>}
             </Button>
@@ -596,7 +596,7 @@ export default function MapTab({ rides, routes, onOpenDetail, userId }: MapTabPr
         {/* NAVIGATION group */}
         <Popover>
           <PopoverTrigger asChild>
-            <Button size="icon" variant="secondary" className={`h-10 w-10 rounded-full shadow-lg backdrop-blur-md border border-border ${showNavigation || showFuelPanel || showParkingPanel || showFriendRides ? 'bg-amber-500/90 text-white' : 'bg-background/90 hover:bg-muted'}`} title="Navigacija">
+            <Button size="icon" variant="secondary" className={`h-9 w-9 rounded-full shadow-md backdrop-blur-md border border-white/10 ${showNavigation || showFuelPanel || showParkingPanel || showFriendRides ? 'bg-amber-500/90 text-white' : 'bg-black/50 text-white hover:bg-black/70'}`} title="Navigacija">
               <Navigation className="h-4 w-4" />
             </Button>
           </PopoverTrigger>
@@ -724,19 +724,19 @@ export default function MapTab({ rides, routes, onOpenDetail, userId }: MapTabPr
       )}
 
       {/* Locate button & Map Style */}
-      <div className="absolute bottom-28 right-4 z-[1000] flex flex-col gap-2">
+      <div className="absolute bottom-28 right-4 z-[1000] flex flex-col gap-1.5">
         <MapStyleSelector userId={userId} />
         <Button
           size="icon"
           variant="secondary"
-          className={`h-10 w-10 rounded-full shadow-lg backdrop-blur-md border ${show3D ? 'bg-emerald-500/90 text-white hover:bg-emerald-600' : 'bg-background/90 hover:bg-muted'}`}
+          className={`h-9 w-9 rounded-full shadow-md backdrop-blur-md border ${show3D ? 'bg-emerald-500/90 text-white hover:bg-emerald-600' : 'bg-black/50 hover:bg-black/70 text-white border-white/10'}`}
           onClick={() => setShow3D(!show3D)}
           title="3D pogled"
         >
-          <Mountain className="h-5 w-5" />
+          <Mountain className="h-4 w-4" />
         </Button>
-        <Button size="icon" variant="secondary" className="h-10 w-10 rounded-full shadow-lg bg-background/90 backdrop-blur-md border border-border hover:bg-muted" onClick={handleLocate}>
-          <LocateFixed className="h-5 w-5" />
+        <Button size="icon" variant="secondary" className="h-9 w-9 rounded-full shadow-md bg-black/50 backdrop-blur-md border border-white/10 text-white hover:bg-black/70" onClick={handleLocate}>
+          <LocateFixed className="h-4 w-4" />
         </Button>
       </div>
 
