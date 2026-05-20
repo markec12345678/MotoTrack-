@@ -209,17 +209,18 @@ export default function MapTab({ rides, routes, onOpenDetail, userId }: MapTabPr
       setFriendRides([])
       return
     }
+    const controller = new AbortController()
     const fetchFriendRides = async () => {
       try {
         // First fetch accepted friends
-        const friendsRes = await fetch(`/api/friends?userId=${userId}&status=accepted`)
+        const friendsRes = await fetch(`/api/friends?userId=${userId}&status=accepted`, { signal: controller.signal })
         const friendsJson = await friendsRes.json()
         const friends: FriendshipData[] = friendsJson.data || []
         if (friends.length === 0) return
 
         const friendIds = friends.map(f => f.friend.id).join(',')
         // Then fetch their rides
-        const ridesRes = await fetch(`/api/rides?friendIds=${friendIds}&limit=50`)
+        const ridesRes = await fetch(`/api/rides?friendIds=${friendIds}&limit=50`, { signal: controller.signal })
         const ridesJson = await ridesRes.json()
         const friendRidesData: RideData[] = ridesJson.data || []
 
@@ -234,21 +235,27 @@ export default function MapTab({ rides, routes, onOpenDetail, userId }: MapTabPr
           userName: r.user?.name || 'Prijatelj',
         }))
         setFriendRides(mapped)
-      } catch {
-        // ignore
+      } catch (err) {
+        if (err instanceof DOMException && err.name === 'AbortError') return
+        // ignore other errors
       }
     }
     fetchFriendRides()
+    return () => controller.abort()
   }, [showFriendRides, userId])
 
-  // Fetch hazards from DB
+  // Fetch hazards from DB (only once on mount, not on every toggle)
   const [dbHazards, setDbHazards] = useState<HazardData[]>([])
   useEffect(() => {
-    fetch('/api/hazards')
+    const controller = new AbortController()
+    fetch('/api/hazards', { signal: controller.signal })
       .then(r => r.json())
       .then(j => setDbHazards(j.data || []))
-      .catch(() => {})
-  }, [showHazards])
+      .catch(err => {
+        if (err instanceof DOMException && err.name === 'AbortError') return
+      })
+    return () => controller.abort()
+  }, [])
 
   // Fetch road ratings when toggle enabled
   useEffect(() => {
@@ -256,10 +263,14 @@ export default function MapTab({ rides, routes, onOpenDetail, userId }: MapTabPr
       setRoadRatings([])
       return
     }
-    fetch('/api/road-ratings?limit=200')
+    const controller = new AbortController()
+    fetch('/api/road-ratings?limit=200', { signal: controller.signal })
       .then(r => r.json())
       .then(j => setRoadRatings(j.data || []))
-      .catch(() => {})
+      .catch(err => {
+        if (err instanceof DOMException && err.name === 'AbortError') return
+      })
+    return () => controller.abort()
   }, [showRoadQuality])
 
   // LiveRIDE WebSocket connection

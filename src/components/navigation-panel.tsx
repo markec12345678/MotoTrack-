@@ -5,6 +5,7 @@ import { Card, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import type { NavigationRoute, NavigationStep } from '@/components/tabs/types'
+import { playBeep } from '@/lib/audio'
 import {
   Navigation,
   ChevronUp,
@@ -232,15 +233,7 @@ export default function NavigationPanel({
     const now = Date.now()
     if (now - lastAlertTimeRef.current > 5000) {
       lastAlertTimeRef.current = now
-      try {
-        const audioCtx = new (window.AudioContext || (window as any).webkitAudioContext)()
-        const oscillator = audioCtx.createOscillator()
-        oscillator.type = 'sine'
-        oscillator.frequency.setValueAtTime(800, audioCtx.currentTime)
-        oscillator.connect(audioCtx.destination)
-        oscillator.start()
-        oscillator.stop(audioCtx.currentTime + 0.15)
-      } catch { /* AudioContext not available */ }
+      playBeep(800, 0.15, 0.1)
     }
   }, [approachingAlert, isNavigating])
 

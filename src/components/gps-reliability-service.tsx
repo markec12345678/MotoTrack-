@@ -289,17 +289,14 @@ export function useGpsReliability(options: GpsReliabilityOptions): GpsReliabilit
 
         // Verify GPS is still working — request a fresh position
         if (navigator.geolocation) {
+          // Capture the last fix time BEFORE updating it, so we can detect time gaps
+          const previousFixTime = lastGpsFixTimeRef.current
           navigator.geolocation.getCurrentPosition(
             (pos) => {
-              lastGpsFixTimeRef.current = Date.now()
-              setAccuracy(pos.coords.accuracy)
-              setSignalQuality(getSignalQuality(pos.coords.accuracy))
-              setLastError(null)
-              retryAttemptRef.current = 0
-
+              const now = Date.now()
               // Show toast about time gap if GPS was silent for a while
-              if (lastGpsFixTimeRef.current > 0) {
-                const timeSinceLastFix = Date.now() - lastGpsFixTimeRef.current
+              if (previousFixTime > 0) {
+                const timeSinceLastFix = now - previousFixTime
                 if (timeSinceLastFix > 30000) {
                   const gapMin = Math.round(timeSinceLastFix / 60000)
                   const gapSec = Math.round(timeSinceLastFix / 1000)
@@ -307,6 +304,11 @@ export function useGpsReliability(options: GpsReliabilityOptions): GpsReliabilit
                   toast.info(`📡 Nazaj po ${gapText} — GPS deluje`)
                 }
               }
+              lastGpsFixTimeRef.current = now
+              setAccuracy(pos.coords.accuracy)
+              setSignalQuality(getSignalQuality(pos.coords.accuracy))
+              setLastError(null)
+              retryAttemptRef.current = 0
             },
             (err) => {
               handlePositionError(err)

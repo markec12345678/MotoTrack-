@@ -627,6 +627,7 @@ export default function TrackTab({
             <WindWarningPanel
               lat={trackPoints.length > 0 ? trackPoints[trackPoints.length - 1].lat : null}
               lng={trackPoints.length > 0 ? trackPoints[trackPoints.length - 1].lng : null}
+              altitude={elevation || null}
               isTracking={isTracking}
               heading={trackPoints.length >= 2
                 ? (() => {

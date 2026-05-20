@@ -2,11 +2,13 @@
 
 import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react'
 import { Wind, AlertTriangle, Navigation2, RefreshCw, Mountain, TrendingUp } from 'lucide-react'
+import { getAudioContext } from '@/lib/audio'
 
 // ─── Props ──────────────────────────────────────────────────────────────
 interface WindWarningPanelProps {
   lat: number | null
   lng: number | null
+  altitude?: number | null // altitude from parent GPS tracker (avoids redundant watchPosition)
   isTracking: boolean
   heading?: number // rider's direction in degrees (from compass/GPS)
   compact?: boolean // for Driving Mode
@@ -142,6 +144,7 @@ function formatUpdateTime(date: Date): string {
 export default function WindWarningPanel({
   lat,
   lng,
+  altitude,
   isTracking,
   heading = 0,
   compact = false,
@@ -155,19 +158,16 @@ export default function WindWarningPanel({
   const [bridgeWarning, setBridgeWarning] = useState(false)
   const [dangerFlash, setDangerFlash] = useState(false)
 
-  const audioCtxRef = useRef<AudioContext | null>(null)
   const hasBeepedRef = useRef(false)
   const prevWarningLevelRef = useRef<WarningLevel>('low')
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null)
   const lastAltsRef = useRef<number[]>([]) // track altitude changes for bridge detection
 
-  // ─── Play beep via Web Audio API (880Hz, single tone) ──────────────
+  // ─── Play beep via shared AudioContext ──────────────────────────────
   const playBeep = useCallback(() => {
     try {
-      if (!audioCtxRef.current) {
-        audioCtxRef.current = new AudioContext()
-      }
-      const ctx = audioCtxRef.current
+      const ctx = getAudioContext()
+      if (!ctx) return
       const oscillator = ctx.createOscillator()
       const gainNode = ctx.createGain()
 
@@ -305,31 +305,25 @@ export default function WindWarningPanel({
     return () => clearInterval(interval)
   }, [warningInfo.level])
 
-  // ─── Bridge warning from GPS altitude changes ──────────────────────
+  // ─── Bridge warning from altitude changes (passed from parent GPS tracker) ──
   useEffect(() => {
-    if (!isTracking) return
-    // Try to get altitude from GPS for bridge detection
-    const watchId = navigator.geolocation.watchPosition(
-      (pos) => {
-        if (pos.coords.altitude !== null) {
-          const alt = pos.coords.altitude
-          lastAltsRef.current = [...lastAltsRef.current.slice(-9), alt]
-          const alts = lastAltsRef.current
+    if (!isTracking || altitude == null) return
+    // Use altitude from parent (already tracked by main GPS watcher) instead of
+    // opening a redundant second watchPosition that wastes battery on mobile
+    const alt = altitude
+    lastAltsRef.current = [...lastAltsRef.current.slice(-9), alt]
+    const alts = lastAltsRef.current
 
-          // Detect rapid elevation change (> 5m in last 10 readings) AND wind > 30 km/h
-          if (alts.length >= 5 && windData && windData.windSpeed > 30) {
-            const recentChange = Math.abs(alts[alts.length - 1] - alts[0])
-            if (recentChange > 5) {
-              setBridgeWarning(true)
-            }
-          }
-        }
-      },
-      () => {},
-      { enableHighAccuracy: true, maximumAge: 5000 }
-    )
-    return () => navigator.geolocation.clearWatch(watchId)
-  }, [isTracking, windData])
+    // Detect rapid elevation change (> 5m in last 10 readings) AND wind > 30 km/h
+    if (alts.length >= 5 && windData && windData.windSpeed > 30) {
+      const recentChange = Math.abs(alts[alts.length - 1] - alts[0])
+      if (recentChange > 5) {
+        setBridgeWarning(true)
+      }
+    } else if (windData && windData.windSpeed <= 30) {
+      setBridgeWarning(false)
+    }
+  }, [isTracking, altitude, windData])
 
   // ─── Wind arrow rotation ────────────────────────────────────────────
   const windArrowRotation = useMemo(() => {

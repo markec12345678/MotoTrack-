@@ -20,6 +20,8 @@ export default function CrashDetection({
   const [countdown, setCountdown] = useState(30)
   const [cancelled, setCancelled] = useState(false)
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null)
+  const cancelTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const crashDetectedRef = useRef(false)
 
   // Listen for high acceleration via DeviceMotion
   useEffect(() => {
@@ -32,7 +34,8 @@ export default function CrashDetection({
         (acc.x || 0) ** 2 + (acc.y || 0) ** 2 + (acc.z || 0) ** 2
       )
       // 2.5g threshold
-      if (total > 2.5 * 9.81 && !crashDetected) {
+      if (total > 2.5 * 9.81 && !crashDetectedRef.current) {
+        crashDetectedRef.current = true
         setCrashDetected(true)
         setCountdown(30)
         toast.error('⚠️ Zaznan padec! SOS čez 30s...')
@@ -50,7 +53,7 @@ export default function CrashDetection({
 
     window.addEventListener('devicemotion', handleMotion)
     return () => window.removeEventListener('devicemotion', handleMotion)
-  }, [isEnabled, crashDetected])
+  }, [isEnabled]) // crashDetected removed from deps — uses ref to avoid re-registration)
 
   // Auto-send SOS when countdown reaches 0
   useEffect(() => {
@@ -78,16 +81,18 @@ export default function CrashDetection({
 
   const cancelSOS = useCallback(() => {
     if (timerRef.current) clearInterval(timerRef.current)
+    crashDetectedRef.current = false
     setCrashDetected(false)
     setCancelled(true)
     toast.success('SOS preklican - vse je v redu')
-    setTimeout(() => setCancelled(false), 3000)
+    cancelTimeoutRef.current = setTimeout(() => setCancelled(false), 3000)
   }, [])
 
   // Cleanup on unmount
   useEffect(() => {
     return () => {
       if (timerRef.current) clearInterval(timerRef.current)
+      if (cancelTimeoutRef.current) clearTimeout(cancelTimeoutRef.current)
     }
   }, [])
 

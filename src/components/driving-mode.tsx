@@ -925,6 +925,7 @@ export default function DrivingMode({
           <WindWarningPanel
             lat={currentLat ?? null}
             lng={currentLng ?? null}
+            altitude={elevation || null}
             isTracking={isTracking}
             heading={effectiveHeading ?? heading}
             compact={true}

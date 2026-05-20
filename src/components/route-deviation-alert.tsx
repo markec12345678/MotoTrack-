@@ -97,43 +97,14 @@ function minDistanceToRoute(
 
 // ─── Sound Alert ─────────────────────────────────────────────────────────────────
 
-function playDeviationSound(level: DeviationLevel) {
-  try {
-    const ctx = new AudioContext()
-    const osc = ctx.createOscillator()
-    const gain = ctx.createGain()
-    osc.connect(gain)
-    gain.connect(ctx.destination)
+import { playBeep, playDoubleBeep } from '@/lib/audio'
 
-    if (level === 'deviated') {
-      osc.frequency.value = 600
-      gain.gain.value = 0.12
-      osc.start()
-      gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.3)
-      osc.stop(ctx.currentTime + 0.3)
-    } else if (level === 'far') {
-      osc.frequency.value = 900
-      gain.gain.value = 0.15
-      osc.start()
-      gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.15)
-      osc.stop(ctx.currentTime + 0.15)
-      // Second beep
-      setTimeout(() => {
-        try {
-          const ctx2 = new AudioContext()
-          const osc2 = ctx2.createOscillator()
-          const gain2 = ctx2.createGain()
-          osc2.connect(gain2)
-          gain2.connect(ctx2.destination)
-          osc2.frequency.value = 900
-          gain2.gain.value = 0.15
-          osc2.start()
-          gain2.gain.exponentialRampToValueAtTime(0.001, ctx2.currentTime + 0.15)
-          osc2.stop(ctx2.currentTime + 0.15)
-        } catch { /* ignore */ }
-      }, 300)
-    }
-  } catch { /* Audio not available */ }
+function playDeviationSound(level: DeviationLevel) {
+  if (level === 'deviated') {
+    playBeep(600, 0.3, 0.12)
+  } else if (level === 'far') {
+    playDoubleBeep(900, 0.15, 0.15, 0.15)
+  }
 }
 
 // ─── Hook ────────────────────────────────────────────────────────────────────────

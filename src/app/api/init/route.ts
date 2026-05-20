@@ -35,7 +35,7 @@ export async function GET() {
 
     // Get first user as default (for demo purposes) WITH stats
     const firstDbUser = users[0] || null
-    let defaultUser = null
+    let defaultUser: typeof firstDbUser & { stats: { totalRides: number; totalRoutes: number; totalDistance: number; totalElevation: number; avgSpeed: number } } | null = null
     if (firstDbUser) {
       const userRides = await db.ride.findMany({
         where: { userId: firstDbUser.id },

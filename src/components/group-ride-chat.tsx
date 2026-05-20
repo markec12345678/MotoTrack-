@@ -11,6 +11,7 @@ import { Input } from '@/components/ui/input'
 import { Badge } from '@/components/ui/badge'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { toast } from 'sonner'
+import { playBeep } from '@/lib/audio'
 
 // ─── Types ─────────────────────────────────────────────────────────────────────
 
@@ -58,21 +59,7 @@ function formatTime(ts: number): string {
 }
 
 function playNotificationSound() {
-  try {
-    const ctx = new AudioContext()
-    const osc = ctx.createOscillator()
-    const gain = ctx.createGain()
-    osc.connect(gain)
-    gain.connect(ctx.destination)
-    osc.frequency.value = 800
-    osc.type = 'sine'
-    gain.gain.value = 0.1
-    osc.start()
-    gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.15)
-    osc.stop(ctx.currentTime + 0.15)
-  } catch {
-    // Audio not available
-  }
+  playBeep(800, 0.15, 0.1)
 }
 
 const STATUS_OPTIONS = [

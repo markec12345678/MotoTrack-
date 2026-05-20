@@ -82,34 +82,10 @@ function haversineMeters(lat1: number, lng1: number, lat2: number, lng2: number)
 
 // ─── Sound ──────────────────────────────────────────────────────────────────────
 
+import { playDoubleBeep } from '@/lib/audio'
+
 function playCameraAlert() {
-  try {
-    const ctx = new AudioContext()
-    const osc = ctx.createOscillator()
-    const gain = ctx.createGain()
-    osc.connect(gain)
-    gain.connect(ctx.destination)
-    osc.frequency.value = 1200
-    osc.type = 'sine'
-    gain.gain.value = 0.08
-    osc.start()
-    gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.1)
-    osc.stop(ctx.currentTime + 0.1)
-    setTimeout(() => {
-      try {
-        const ctx2 = new AudioContext()
-        const osc2 = ctx2.createOscillator()
-        const gain2 = ctx2.createGain()
-        osc2.connect(gain2)
-        gain2.connect(ctx2.destination)
-        osc2.frequency.value = 1200
-        gain2.gain.value = 0.08
-        osc2.start()
-        gain2.gain.exponentialRampToValueAtTime(0.001, ctx2.currentTime + 0.1)
-        osc2.stop(ctx2.currentTime + 0.1)
-      } catch {}
-    }, 200)
-  } catch {}
+  playDoubleBeep(1200, 0.1, 0.1, 0.08)
 }
 
 // ─── Hook: useSpeedCameraAlert ───────────────────────────────────────────────────
