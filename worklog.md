@@ -309,3 +309,29 @@ Stage Summary:
 - All 22 audit bugs now fixed or verified
 - 6 new fixes in this session: WakeLock memory leak, localStorage validation, variable shadowing, TTS race condition, SOS accessibility, aria-labels
 - Application compiles and runs correctly
+
+---
+Task ID: 23-28
+Agent: Main
+Task: Fix remaining HIGH/MEDIUM bugs from comprehensive audit
+
+Work Log:
+- Fixed GPS visibilitychange time-gap detection (BUG 23): saved previousFixTime BEFORE updating lastGpsFixTimeRef, so the "back after X min" toast now fires correctly
+- Eliminated redundant GPS watchers in WindWarningPanel (BUG 26): replaced watchPosition with altitude prop from parent (track-tab, driving-mode)
+- Created shared AudioContext singleton (src/lib/audio.ts) to fix memory leaks (BUG 25): Chrome caps at ~6 AudioContexts, each ~2-5MB
+- Updated 5 components to use shared AudioContext: speed-camera-alerts, route-deviation-alert, group-ride-chat, navigation-panel, wind-warning-panel
+- Fixed crash detection re-registration bug (BUG 27): removed crashDetected from useEffect deps, uses crashDetectedRef instead
+- Added setTimeout cleanup for cancelSOS in crash-detection.tsx
+- Added AbortController cleanup to map-tab fetches (BUG 24): hazards, friend rides, road ratings
+- Fixed hazard fetch re-running on every showHazards toggle (now fetches once on mount)
+- Fixed TypeScript error in /api/init route (defaultUser type annotation)
+- All fixes: TypeScript 0 errors, lint 0 errors (4 warnings only)
+- Pushed to GitHub (commit 46b2d31)
+
+Stage Summary:
+- All HIGH severity bugs from audit now fixed
+- AudioContext leak was the most impactful: could cause audio failures after ~6 alert sounds in a session
+- GPS redundancy fix saves battery on mobile by eliminating redundant watchPosition calls
+- Time-gap detection now works correctly when returning from background
+- Crash detection no longer briefly removes devicemotion listener on crash detect
+- Fetch cleanup prevents race conditions on rapid toggle of map layers
