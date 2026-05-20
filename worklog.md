@@ -290,3 +290,22 @@ Stage Summary:
 - Enhanced CSS overrides for Tailwind v4 compatibility
 - All AI features already verified working (Chat, TTS, Calculator, Voice Commands)
 - All UX issues from previous session already fixed
+---
+Task ID: 14
+Agent: Main
+Task: Fix remaining audit bugs - BUG 9, 14, 12, 19, 16, 18
+
+Work Log:
+- Fixed BUG 9: Removed duplicate WakeLock sentinel management from home.tsx (navigator.__wakeLockSentinel). The useWakeLock hook already handles this properly with refs.
+- Fixed BUG 14: Added validation to localStorage auto-recovery - validates array structure, max length (50000), each point has valid lat/lng/timestamp, sane coordinate ranges. Corrupted data is cleaned up.
+- Fixed BUG 12: Renamed local variable `type` to `itemType` in detail-dialog.tsx to avoid shadowing the `type` prop.
+- Fixed BUG 19: Added TTS generation counter (ttsGenerationRef) in moto-chat.tsx to prevent race conditions when clicking TTS on multiple messages rapidly.
+- Fixed BUG 16: Enabled long-press handler on SOS button even when collapsed (removed `collapsed ? undefined :` guard).
+- Fixed BUG 18: Added aria-labels on all floating buttons in map-tab.tsx (Plasti, Varnost, Navigacija) and track-tab.tsx (DRIVE, Več možnosti, CarPlay, Parkirni spomin, Mejni prehodi, SOS).
+- Lint: 0 errors, 4 warnings
+- Pushed to GitHub (commit 039b686)
+
+Stage Summary:
+- All 22 audit bugs now fixed or verified
+- 6 new fixes in this session: WakeLock memory leak, localStorage validation, variable shadowing, TTS race condition, SOS accessibility, aria-labels
+- Application compiles and runs correctly
