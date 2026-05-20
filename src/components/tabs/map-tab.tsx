@@ -546,7 +546,7 @@ export default function MapTab({ rides, routes, onOpenDetail, userId }: MapTabPr
         {/* LAYERS group */}
         <Popover>
           <PopoverTrigger asChild>
-            <Button size="icon" variant="secondary" className={`h-10 w-10 rounded-full shadow-lg backdrop-blur-md border transition-all ${(showFilters || showTwistyRoads || showTraffic || showRoadQuality || showCamps || activePoiCount > 0) ? 'bg-primary text-primary-foreground border-primary/30' : 'bg-black/50 text-white hover:bg-black/70 border-white/10'}`} title="Plasti">
+            <Button size="icon" variant="secondary" className={`h-10 w-10 rounded-full shadow-lg backdrop-blur-md border transition-all ${(showFilters || showTwistyRoads || showTraffic || showRoadQuality || showCamps || activePoiCount > 0) ? 'bg-primary text-primary-foreground border-primary/30' : 'bg-black/50 text-white hover:bg-black/70 border-white/10'}`} title="Plasti" aria-label="Plasti in filtri">
               <Layers className="h-[18px] w-[18px]" />
               {(activePoiCount > 0 || showTwistyRoads || showTraffic || showRoadQuality || showCamps) && <span className="absolute -top-1 -right-1 bg-red-500 text-white text-[8px] font-bold rounded-full size-3.5 flex items-center justify-center">!</span>}
             </Button>
@@ -585,7 +585,7 @@ export default function MapTab({ rides, routes, onOpenDetail, userId }: MapTabPr
         {/* SAFETY group */}
         <Popover>
           <PopoverTrigger asChild>
-            <Button size="icon" variant="secondary" className={`h-9 w-9 rounded-full shadow-md backdrop-blur-md border border-white/10 ${showHazards || showWeatherRadar || showLiveRide || showHazardReport ? 'bg-red-500/90 text-white' : 'bg-black/50 text-white hover:bg-black/70'}`} title="Varnost">
+            <Button size="icon" variant="secondary" className={`h-9 w-9 rounded-full shadow-md backdrop-blur-md border border-white/10 ${showHazards || showWeatherRadar || showLiveRide || showHazardReport ? 'bg-red-500/90 text-white' : 'bg-black/50 text-white hover:bg-black/70'}`} title="Varnost" aria-label="Varnost in opozorila">
               <Shield className="h-4 w-4" />
               {showHazards && <span className="absolute -top-1 -right-1 bg-red-500 text-white text-[8px] font-bold rounded-full size-3.5 flex items-center justify-center">!</span>}
             </Button>
@@ -615,7 +615,7 @@ export default function MapTab({ rides, routes, onOpenDetail, userId }: MapTabPr
         {/* NAVIGATION group */}
         <Popover>
           <PopoverTrigger asChild>
-            <Button size="icon" variant="secondary" className={`h-9 w-9 rounded-full shadow-md backdrop-blur-md border border-white/10 ${showNavigation || showFuelPanel || showParkingPanel || showFriendRides ? 'bg-amber-500/90 text-white' : 'bg-black/50 text-white hover:bg-black/70'}`} title="Navigacija">
+            <Button size="icon" variant="secondary" className={`h-9 w-9 rounded-full shadow-md backdrop-blur-md border border-white/10 ${showNavigation || showFuelPanel || showParkingPanel || showFriendRides ? 'bg-amber-500/90 text-white' : 'bg-black/50 text-white hover:bg-black/70'}`} title="Navigacija" aria-label="Navigacija in orodja">
               <Navigation className="h-4 w-4" />
             </Button>
           </PopoverTrigger>

@@ -530,6 +530,7 @@ export default function TrackTab({
                     : 'bg-white/10 backdrop-blur-sm text-white/60 hover:bg-white/20'
                 }`}
                 title="Driving Mode"
+                aria-label="Driving Mode"
               >
                 <Eye className="size-3" />
                 <span>DRIVE</span>
@@ -539,6 +540,7 @@ export default function TrackTab({
                 onClick={() => setShowFeatures(!showFeatures)}
                 className="flex items-center justify-center size-6 rounded-full bg-white/10 backdrop-blur-sm text-white/60 hover:bg-white/20 transition-colors shadow-lg"
                 title="Več možnosti"
+                aria-label="Več možnosti"
               >
                 <ChevronDown className={`size-3 transition-transform ${showFeatures ? 'rotate-180' : ''}`} />
               </button>
@@ -561,6 +563,7 @@ export default function TrackTab({
                         : 'bg-white/10 text-white/60 hover:bg-white/20'
                     }`}
                     title="CarPlay"
+                    aria-label="CarPlay način"
                   >
                     <Monitor className="size-3" />
                     <span>CAR</span>
@@ -571,6 +574,7 @@ export default function TrackTab({
                     onClick={onOpenParking}
                     className="flex items-center gap-1 px-2 py-1 rounded-full bg-blue-500/80 text-white text-[10px] font-bold hover:bg-blue-500 transition-colors active:scale-95"
                     title="Parkirni spomin"
+                    aria-label="Parkirni spomin"
                   >
                     <MapPin className="size-3" />
                     <span>🅿️</span>
@@ -581,6 +585,7 @@ export default function TrackTab({
                     onClick={onOpenBorderGuide}
                     className="flex items-center gap-1 px-2 py-1 rounded-full bg-emerald-500/80 text-white text-[10px] font-bold hover:bg-emerald-500 transition-colors active:scale-95"
                     title="Mejni prehodi"
+                    aria-label="Mejni prehodi"
                   >
                     <Globe className="size-3" />
                     <span>MEJA</span>
@@ -596,6 +601,7 @@ export default function TrackTab({
             onClick={() => setShowEmergencyPanel(true)}
             className="absolute top-3 right-3 z-[1002] flex items-center gap-1 px-3 py-1.5 rounded-full bg-red-500 text-white text-[10px] font-black shadow-lg shadow-red-500/30 hover:bg-red-600 transition-colors active:scale-95"
             title="Nujna pomoč - klicne številke"
+            aria-label="Nujna pomoč"
           >
             <ShieldAlert className="size-3.5" />
             <span>SOS</span>
