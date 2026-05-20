@@ -26,11 +26,13 @@ import { Skeleton } from '@/components/ui/skeleton'
 import { toast } from 'sonner'
 import { useTheme } from 'next-themes'
 
-
 import type { TabId, RideData, RouteData, UserData, CommentData, WeatherData, LeaderboardUser, TrackPoint } from '@/components/tabs/types'
 const HeaderDrawer = dynamic(withRetry(() => import('@/components/header-drawer')), { ssr: false, loading: () => null })
 import { haversine, formatDuration, formatDate, categoryLabel, categoryColor } from '@/components/tabs/types'
 import { useSettingsStore, useFetchSettings, useWakeLock, isInPrivacyZone, obfuscateCoordinate, type UnitSystem } from '@/hooks/use-settings'
+import { useTracking } from '@/hooks/use-tracking'
+import { usePlanRoute } from '@/hooks/use-plan-route'
+import { useAppData } from '@/hooks/use-app-data'
 
 // Retry wrapper for dynamic imports to handle ChunkLoadError
 function withRetry<T>(importFn: () => Promise<T>, retries = 3, delay = 500): () => Promise<T> {
@@ -154,164 +156,86 @@ export default function Home() {
   const { theme, setTheme } = useTheme()
   const [mounted, setMounted] = useState(false)
   useEffect(() => setMounted(true), [])
-  const [rides, setRides] = useState<RideData[]>([])
-  const [routes, setRoutes] = useState<RouteData[]>([])
-  const [user, setUser] = useState<UserData | null>(null)
-  const [allUsers, setAllUsers] = useState<Array<{ id: string; name: string; email: string; avatar: string | null; bike: string | null; bio: string | null }>>([])
-  const [loading, setLoading] = useState(true)
-  const seedChecked = useRef(false)
+
+  // ─── Domain Hooks (extracted from God Component) ──────────────
+  const { settings, privacyZones } = useSettingsStore()
+
+  // Active tab — declared early because hooks depend on it
+  const [activeTab, setActiveTab] = useState<TabId>('map')
+  
+  // App data (user, rides, routes, leaderboard)
+  const { 
+    rides, routes, user, allUsers, leaderboard, loading,
+    fetchData, switchUser, toggleLike
+  } = useAppData()
 
   // Plan route state
-  const [planWaypoints, setPlanWaypoints] = useState<{ lat: number; lng: number }[]>([])
-  const [planAvoidHighways, setPlanAvoidHighways] = useState(false)
-  const [planAvoidTolls, setPlanAvoidTolls] = useState(false)
-  const [planRoutingMode, setPlanRoutingMode] = useState<'paved' | 'twisty' | 'offroad'>('paved')
-  const [planTitle, setPlanTitle] = useState('')
-  const [planCategory, setPlanCategory] = useState('scenic')
-  const [planDistance, setPlanDistance] = useState(0)
+  const {
+    planWaypoints, setPlanWaypoints,
+    planTitle, setPlanTitle,
+    planCategory, setPlanCategory,
+    planAvoidHighways, setPlanAvoidHighways,
+    planAvoidTolls, setPlanAvoidTolls,
+    planRoutingMode, setPlanRoutingMode,
+    planDistance,
+    showPlanShare, setShowPlanShare,
+    planShareRouteId, setPlanShareRouteId,
+    planShareTitle,
+    saveRoute, sendToPhone, handleMapClick, loadTourToPlan, loadSharedRoute,
+  } = usePlanRoute({ userId: user?.id, onRouteSaved: fetchData, activeTab: activeTab })
 
-  // Track state
-  const [isTracking, setIsTracking] = useState(false)
-  const [isPaused, setIsPaused] = useState(false)
-  const [currentRideId, setCurrentRideId] = useState<string | null>(null)
-  const [trackPoints, setTrackPoints] = useState<TrackPoint[]>([])
-  const [trackDuration, setTrackDuration] = useState(0)
-  const [trackDistance, setTrackDistance] = useState(0)
-  const [trackMaxSpeed, setTrackMaxSpeed] = useState(0)
-  const [trackCurrentSpeed, setTrackCurrentSpeed] = useState(0)
-  const [trackElevation, setTrackElevation] = useState(0)
-  const [gpsAccuracy, setGpsAccuracy] = useState<number | null>(null)
+  // GPS Tracking state
+  const {
+    isTracking, isPaused, currentRideId, trackPoints,
+    trackDuration, trackDistance, trackMaxSpeed, trackCurrentSpeed,
+    trackElevation, gpsAccuracy, currentPos,
+    autoStartEnabled, autoStartCountdown,
+    startTracking, pauseTracking, resumeTracking, stopTracking, saveRide,
+    toggleAutoStart,
+  } = useTracking({ 
+    onRideSaved: () => { fetchData(); setShowParkingPrompt(true); setTimeout(() => setShowParkingPrompt(false), 8000) },
+    userId: user?.id,
+    isActiveTabTrack: activeTab === 'track',
+  })
+
+  // Fetch settings from server
+  useFetchSettings(user?.id)
+  useWakeLock(settings.wakelockEnabled, isTracking)
+
+  // ─── Remaining UI state (kept here — purely UI concerns) ───────
   const [deviationDismissed, setDeviationDismissed] = useState(false)
-  const watchIdRef = useRef<number | null>(null)
-
-  // User location state (declared early so currentPos can use it)
   const [userLat, setUserLat] = useState<number | undefined>()
   const [userLng, setUserLng] = useState<number | undefined>()
-
-  // Derived current position from last track point or user GPS
-  const currentPos = useMemo<{ lat: number; lng: number } | null>(() => {
-    if (trackPoints.length > 0) {
-      const last = trackPoints[trackPoints.length - 1]
-      if (last.alt !== -9999) return { lat: last.lat, lng: last.lng }
-      // If last point is a gap marker, find the last real point
-      for (let i = trackPoints.length - 2; i >= 0; i--) {
-        if (trackPoints[i].alt !== -9999) return { lat: trackPoints[i].lat, lng: trackPoints[i].lng }
-      }
-    }
-    if (userLat != null && userLng != null) return { lat: userLat, lng: userLng }
-    return null
-  }, [trackPoints, userLat, userLng])
-
-  // Route deviation detection
-  const { deviation: routeDeviation, level: deviationLevel, isDeviated } = useRouteDeviation({
-    plannedRoute: planWaypoints,
-    currentPosition: currentPos,
-    isActive: isTracking && planWaypoints.length >= 2,
-  })
-
-  // Speed camera alerts
   const [cameraDismissed, setCameraDismissed] = useState(false)
-  const { closestCamera } = useSpeedCameraAlert(
-    currentPos?.lat ?? null,
-    currentPos?.lng ?? null,
-    undefined,
-    trackCurrentSpeed,
-    isTracking,
-  )
-
-  const timerRef = useRef<ReturnType<typeof setInterval> | null>(null)
-  const startTimeRef = useRef<number>(0)
-  const pausedDurationRef = useRef<number>(0)
-  const isPausedRef = useRef(false)
-  const autoPauseTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
-  const autoPausedRef = useRef(false)
-
-  // Auto-start tracking state
-  const [autoStartEnabled, setAutoStartEnabled] = useState(() => {
-    if (typeof window !== 'undefined') {
-      try { return localStorage.getItem('mototrack_autoStartTracking') === 'true' } catch { return false }
-    }
-    return false
-  })
-  const [autoStartCountdown, setAutoStartCountdown] = useState<number | null>(null)
-  const autoStartWatchRef = useRef<number | null>(null)
-  const autoStartCountdownRef = useRef<ReturnType<typeof setInterval> | null>(null)
-  const autoStartSpeedAboveRef = useRef<boolean>(false)
-  const autoStartSpeedStartRef = useRef<number>(0)
-
-  // Detail dialog
   const [selectedItem, setSelectedItem] = useState<RideData | RouteData | null>(null)
   const [selectedType, setSelectedType] = useState<'ride' | 'route'>('ride')
   const [detailOpen, setDetailOpen] = useState(false)
-
-  // Feature hub (new v2 features)
   const [featureOpen, setFeatureOpen] = useState(false)
-
-  // Explore fullscreen mode
   const [exploreFullscreen, setExploreFullscreen] = useState(false)
-
-  // Global search
   const [searchOpen, setSearchOpen] = useState(false)
-
-  // Header drawer menu (mobile)
   const [headerDrawerOpen, setHeaderDrawerOpen] = useState(false)
-
-  // Night riding mode
   const [nightMode, setNightMode] = useState(false)
-
-  // CarPlay mode
   const [carplayMode, setCarplayMode] = useState(false)
-
-  // Parking spot
   const [showParkingPanel, setShowParkingPanel] = useState(false)
   const [showParkingPrompt, setShowParkingPrompt] = useState(false)
-
-  // Border guide
   const [showBorderGuide, setShowBorderGuide] = useState(false)
-
-  // Voice commands
   const [voiceEnabled, setVoiceEnabled] = useState(false)
-
-  // Twistiness heatmap
   const [showTwistiness, setShowTwistiness] = useState(false)
-
-  // Auto day/night theme
   const [autoThemeEnabled, setAutoThemeEnabled] = useState(() => {
     if (typeof window !== 'undefined') {
       try { return localStorage.getItem('mototrack_autotheme') === 'true' } catch { return false }
     }
     return false
   })
-
-  // Export panel
   const [showExport, setShowExport] = useState(false)
   const [exportRideId, setExportRideId] = useState<string | undefined>()
   const [exportRouteId, setExportRouteId] = useState<string | undefined>()
-
-  // Route simulator
   const [showSimulator, setShowSimulator] = useState(false)
-
-  // Plan share dialog (Send to Phone)
-  const [showPlanShare, setShowPlanShare] = useState(false)
-  const [planShareRouteId, setPlanShareRouteId] = useState<string | null>(null)
-  const [planShareTitle, setPlanShareTitle] = useState('')
-
-  // Comments
   const [comments, setComments] = useState<CommentData[]>([])
   const [newComment, setNewComment] = useState('')
   const [commentsLoading, setCommentsLoading] = useState(false)
-
-  // Weather
   const [weather, setWeather] = useState<WeatherData | null>(null)
   const [weatherLoading, setWeatherLoading] = useState(false)
-
-  // Leaderboard
-  const [leaderboard, setLeaderboard] = useState<LeaderboardUser[]>([])
-
-  // PWA shortcut support - read ?tab= from URL on first load
-  // Using window.location instead of useSearchParams() to avoid SSR suspension
-  // which causes hydration mismatch (server renders Suspense fallback, client renders Home)
-  const [activeTab, setActiveTab] = useState<TabId>('map')
   useEffect(() => {
     const params = new URLSearchParams(window.location.search)
     const tab = params.get('tab')
@@ -321,31 +245,9 @@ export default function Home() {
     // Handle shared route code (?route=MT3K7X)
     const routeCode = params.get('route')
     if (routeCode) {
-      fetch(`/api/routes/share?code=${encodeURIComponent(routeCode)}`)
-        .then(r => r.json())
-        .then(j => {
-          if (j.data?.waypoints) {
-            try {
-              const waypoints = typeof j.data.waypoints === 'string'
-                ? JSON.parse(j.data.waypoints)
-                : j.data.waypoints
-              if (Array.isArray(waypoints) && waypoints.length >= 2) {
-                setPlanWaypoints(waypoints.map((w: any) => ({ lat: w.lat, lng: w.lng })))
-                setPlanTitle(j.data.title || `Deljena ruta: ${routeCode}`)
-                setPlanCategory(j.data.category || 'scenic')
-                setActiveTab('plan')
-                toast.success(`🗺️ Ruta "${j.data.title || routeCode}" naložena!`)
-                // Clean URL
-                window.history.replaceState({}, '', '/')
-              }
-            } catch { /* ignore parse errors */ }
-          }
-        })
-        .catch(() => {
-          toast.error('Napaka pri nalaganju deljene rute')
-        })
+      loadSharedRoute(routeCode).then(ok => { if (ok) setActiveTab('plan') })
     }
-  }, [])
+  }, [loadSharedRoute])
 
   // Exit fullscreen when switching away from explore tab
   useEffect(() => {
@@ -386,55 +288,26 @@ export default function Home() {
     )
   }, [])
 
-  // Fetch data - use single /api/init endpoint to reduce concurrent requests
-  // This prevents memory spikes from multiple simultaneous API calls in sandbox
-  const fetchData = useCallback(async () => {
-    try {
-      // Single request for all initial data (reduces concurrent API calls from 7+ to 1)
-      const initRes = await fetch('/api/init')
-      if (initRes.ok) {
-        const j = await initRes.json()
-        const d = j.data || j
-        setRides(d.rides || [])
-        setRoutes(d.routes || [])
-        setUser(d.defaultUser || null)
-        setAllUsers(d.users || [])
-        setLeaderboard(d.leaderboard || [])
-        
-        // Seed if needed
-        if (d.needsSeed && !seedChecked.current) {
-          seedChecked.current = true
-          try {
-            await fetch('/api/seed', { method: 'POST' })
-            // Re-fetch after seeding
-            const retryRes = await fetch('/api/init')
-            if (retryRes.ok) {
-              const rj = await retryRes.json()
-              const rd = rj.data || rj
-              setRides(rd.rides || [])
-              setRoutes(rd.routes || [])
-              setUser(rd.defaultUser || null)
-              setAllUsers(rd.users || [])
-              setLeaderboard(rd.leaderboard || [])
-            }
-          } catch { /* ignore seed errors */ }
-        }
-      }
-    } catch (err) { console.error('Fetch error:', err) }
-    finally { setLoading(false) }
-  }, [])
+  // ─── Route deviation detection ────────────────────────────────
+  const { deviation: routeDeviation, level: deviationLevel, isDeviated } = useRouteDeviation({
+    plannedRoute: planWaypoints,
+    currentPosition: currentPos,
+    isActive: isTracking && planWaypoints.length >= 2,
+  })
 
-  // Fetch settings from server
-  const { settings, privacyZones } = useSettingsStore()
-  useFetchSettings(user?.id)
-  useWakeLock(settings.wakelockEnabled, isTracking)
+  // ─── Speed camera alerts ──────────────────────────────────────
+  const { closestCamera } = useSpeedCameraAlert(
+    currentPos?.lat ?? null,
+    currentPos?.lng ?? null,
+    undefined,
+    trackCurrentSpeed,
+    isTracking,
+  )
 
-  useEffect(() => { fetchData() }, [fetchData])
-
-  // Auto day/night theme - switch based on real sunrise/sunset
+  // ─── Auto day/night theme ─────────────────────────────────────
   useEffect(() => {
     if (!mounted || !autoThemeEnabled) return
-    const lat = userLat ?? 46.0569 // default: Ljubljana
+    const lat = userLat ?? 46.0569
     const lng = userLng ?? 14.5058
 
     const checkDaytime = () => {
@@ -451,580 +324,26 @@ export default function Home() {
       const cosH = (Math.cos(zenith * Math.PI / 180) - (sinDec * Math.sin(lat * Math.PI / 180))) /
                    (cosDec * Math.cos(lat * Math.PI / 180))
 
-      // Compute actual sunrise and sunset hours in UTC
       let isDaytime = true
-      if (cosH > 1) {
-        // Sun never rises (polar night)
-        isDaytime = false
-      } else if (cosH < -1) {
-        // Sun never sets (midnight sun)
-        isDaytime = true
-      } else {
-        // Normal: compute sunrise and sunset
-        const H = Math.acos(cosH) * 180 / Math.PI // hour angle in degrees
-        // sunrise = 12 - H/15 (noon - half day), sunset = 12 + H/15
+      if (cosH > 1) { isDaytime = false }
+      else if (cosH < -1) { isDaytime = true }
+      else {
+        const H = Math.acos(cosH) * 180 / Math.PI
         const sunriseLocal = ((12 - H / 15 + lngHour) % 24 + 24) % 24
         const sunsetLocal = ((12 + H / 15 + lngHour) % 24 + 24) % 24
         const currentHour = now.getHours() + now.getMinutes() / 60
-        // Daytime is between sunrise and sunset
         isDaytime = currentHour >= sunriseLocal && currentHour < sunsetLocal
       }
       setTheme(isDaytime ? 'light' : 'dark')
     }
 
     checkDaytime()
-    const interval = setInterval(checkDaytime, 60000) // check every minute
+    const interval = setInterval(checkDaytime, 60000)
     return () => clearInterval(interval)
   }, [mounted, autoThemeEnabled, userLat, userLng, setTheme])
 
-  // Recover unsaved track data from localStorage (crash recovery)
-  useEffect(() => {
-    if (!mounted) return
-    try {
-      const saved = localStorage.getItem('mototrack_autosave')
-      if (saved) {
-        const rawPoints: unknown[] = JSON.parse(saved)
-        // Validate recovered data — prevent corruption from causing crashes
-        if (!Array.isArray(rawPoints) || rawPoints.length < 2 || rawPoints.length > 50000) {
-          localStorage.removeItem('mototrack_autosave')
-          return
-        }
-        // Validate each point has required fields with sane values
-        const points: TrackPoint[] = rawPoints.filter((p: any) =>
-          typeof p.lat === 'number' && typeof p.lng === 'number' && typeof p.timestamp === 'number' &&
-          !isNaN(p.lat) && !isNaN(p.lng) && Math.abs(p.lat) <= 90 && Math.abs(p.lng) <= 180
-        ) as TrackPoint[]
-        if (points.length < 2) {
-          localStorage.removeItem('mototrack_autosave')
-          return
-        }
-        // Show recovery toast
-        const recoverData = () => {
-          setTrackPoints(points)
-          let dist = 0
-          for (let i = 1; i < points.length; i++) {
-            if (points[i].alt !== -9999 && points[i - 1].alt !== -9999) {
-              dist += haversine(points[i - 1].lat, points[i - 1].lng, points[i].lat, points[i].lng)
-            }
-          }
-          setTrackDistance(Math.round(dist * 100) / 100)
-          toast.success(`♻️ Obnovljeno ${points.length} točk (${(dist).toFixed(1)} km)`)
-          localStorage.removeItem('mototrack_autosave')
-        }
-        // Auto-recover after a brief delay
-        const timer = setTimeout(recoverData, 1500)
-        return () => clearTimeout(timer)
-      }
-    } catch {
-      // Corrupted data — clean up
-      try { localStorage.removeItem('mototrack_autosave') } catch {}
-    }
-  }, [mounted])
-
-  // Calculate plan distance
-  useEffect(() => {
-    let dist = 0
-    for (let i = 1; i < planWaypoints.length; i++) {
-      dist += haversine(planWaypoints[i - 1].lat, planWaypoints[i - 1].lng, planWaypoints[i].lat, planWaypoints[i].lng)
-    }
-    setPlanDistance(Math.round(dist * 10) / 10)
-  }, [planWaypoints])
-
-  // GPS Tracking with auto-pause support + background reliability
-  // Periodic auto-save to prevent data loss on crash/background
-  const autoSaveIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null)
-  const lastAutoSaveRef = useRef<number>(0)
-  const lastGpsFixRef = useRef<number>(0) // timestamp of last GPS fix
-  const gpsErrorCountRef = useRef<number>(0) // consecutive GPS errors
-  const lastValidPointRef = useRef<TrackPoint | null>(null) // for GPS sanity checks
-  const gpsReacquireIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null) // periodic GPS re-acquisition
-  const lastAltitudeRef = useRef<number | null>(null) // last known altitude for elevation tracking
-
-  // Handle visibility change (app going to background/foreground)
-  // Key fix: re-acquire WakeLock and GPS when app comes back to foreground
-  useEffect(() => {
-    if (!isTracking) return
-
-    const handleVisibilityChange = async () => {
-      if (document.visibilityState === 'visible') {
-        // App came back to foreground — re-acquire WakeLock
-        if (settings.wakelockEnabled && 'wakeLock' in navigator) {
-          try { await navigator.wakeLock.request('screen') } catch {}
-        }
-        // Immediately request a fresh GPS fix when returning from background
-        if (navigator.geolocation) {
-          navigator.geolocation.getCurrentPosition(
-            (pos) => {
-              const point: TrackPoint = { lat: pos.coords.latitude, lng: pos.coords.longitude, alt: pos.coords.altitude, timestamp: Date.now() }
-              // Only accept if accuracy is reasonable
-              if (pos.coords.accuracy <= 200) {
-                lastGpsFixRef.current = Date.now()
-                lastValidPointRef.current = point
-                // Update altitude tracking
-                if (pos.coords.altitude !== null) {
-                  if (lastAltitudeRef.current !== null) {
-                    const altDiff = pos.coords.altitude - lastAltitudeRef.current
-                    if (altDiff > 0) {
-                      setTrackElevation(prev => Math.round((prev + altDiff) * 10) / 10)
-                    }
-                  }
-                  lastAltitudeRef.current = pos.coords.altitude
-                }
-              }
-            },
-            () => {}, // silently ignore errors on foreground resume
-            { enableHighAccuracy: true, maximumAge: 5000, timeout: 15000 }
-          )
-        }
-        // Calculate time gap since last GPS fix and show informative toast
-        const timeSinceLastFix = Date.now() - lastGpsFixRef.current
-        if (lastGpsFixRef.current > 0 && timeSinceLastFix > 30000) {
-          const gapMinutes = Math.round(timeSinceLastFix / 60000)
-          const gapSeconds = Math.round(timeSinceLastFix / 1000)
-          const gapText = gapMinutes >= 1 ? `${gapMinutes} min` : `${gapSeconds} s`
-          toast.info(`📡 Nazaj po ${gapText} — nadaljujem sledenje`)
-        }
-      } else {
-        // Going to background — save current state immediately
-        try {
-          const currentPoints = JSON.parse(localStorage.getItem('mototrack_autosave') || '[]')
-          setTrackPoints(prev => {
-            if (prev.length > 0) {
-              try { localStorage.setItem('mototrack_autosave', JSON.stringify(prev)) } catch {}
-            }
-            return prev
-          })
-        } catch {}
-      }
-    }
-
-    document.addEventListener('visibilitychange', handleVisibilityChange)
-    return () => document.removeEventListener('visibilitychange', handleVisibilityChange)
-  }, [isTracking, settings.wakelockEnabled])
-
-  const startTracking = useCallback(() => {
-    if (!navigator.geolocation) { toast.error('Geolokacija ni na voljo'); return }
-    setIsTracking(true); setIsPaused(false); isPausedRef.current = false; autoPausedRef.current = false; setTrackPoints([]); setTrackDuration(0)
-    setTrackDistance(0); setTrackMaxSpeed(0); setTrackCurrentSpeed(0); setTrackElevation(0)
-    setGpsAccuracy(null); setCurrentRideId(`ride_${Date.now()}`)
-    startTimeRef.current = Date.now(); pausedDurationRef.current = 0
-    lastGpsFixRef.current = Date.now()
-    gpsErrorCountRef.current = 0
-    lastValidPointRef.current = null
-    lastAltitudeRef.current = null
-
-    // WakeLock is managed by useWakeLock hook — no manual request needed here
-    // The hook handles request, release, and re-acquisition on visibility change
-
-    timerRef.current = setInterval(() => { if (!isPausedRef.current) setTrackDuration(p => p + 1) }, 1000)
-
-    // Periodic GPS re-acquisition: if no GPS fix for 30 seconds while tracking,
-    // try to get a new position. This handles the case where watchPosition
-    // silently stops updating (common on Android PWAs in background)
-    gpsReacquireIntervalRef.current = setInterval(() => {
-      if (!isPausedRef.current) {
-        const timeSinceLastFix = Date.now() - lastGpsFixRef.current
-        if (timeSinceLastFix > 30000) {
-          toast.info('📡 Ponovna vzpostavitev GPS...')
-          navigator.geolocation.getCurrentPosition(
-            (pos) => {
-              if (pos.coords.accuracy <= 200) {
-                const point: TrackPoint = { lat: pos.coords.latitude, lng: pos.coords.longitude, alt: pos.coords.altitude, timestamp: Date.now() }
-                lastGpsFixRef.current = Date.now()
-                lastValidPointRef.current = point
-                gpsErrorCountRef.current = 0
-                // Update altitude tracking
-                if (pos.coords.altitude !== null) {
-                  if (lastAltitudeRef.current !== null) {
-                    const altDiff = pos.coords.altitude - lastAltitudeRef.current
-                    if (altDiff > 0) {
-                      setTrackElevation(prev => Math.round((prev + altDiff) * 10) / 10)
-                    }
-                  }
-                  lastAltitudeRef.current = pos.coords.altitude
-                }
-                // Add the re-acquired point to track
-                setTrackPoints(prev => {
-                  // Check for GPS gap — if > 30s since last point, insert gap marker
-                  const newPoints = [...prev]
-                  if (newPoints.length > 0) {
-                    const lastPoint = newPoints[newPoints.length - 1]
-                    // Don't add gap marker after existing gap markers
-                    if (lastPoint.alt !== -9999) {
-                      const gapTime = point.timestamp - lastPoint.timestamp
-                      if (gapTime > 30000) {
-                        newPoints.push({ lat: lastPoint.lat, lng: lastPoint.lng, alt: -9999, timestamp: lastPoint.timestamp + 1 })
-                      }
-                    }
-                  }
-                  newPoints.push(point)
-                  // Auto-save to localStorage
-                  if (Date.now() - lastAutoSaveRef.current > 15000) {
-                    lastAutoSaveRef.current = Date.now()
-                    try { localStorage.setItem('mototrack_autosave', JSON.stringify(newPoints)) } catch {}
-                  }
-                  return newPoints
-                })
-              }
-            },
-            () => {}, // silently ignore errors
-            { enableHighAccuracy: true, maximumAge: 5000, timeout: 15000 }
-          )
-        }
-      }
-    }, 30000)
-    watchIdRef.current = navigator.geolocation.watchPosition(
-      (pos) => {
-        const point: TrackPoint = { lat: pos.coords.latitude, lng: pos.coords.longitude, alt: pos.coords.altitude, timestamp: Date.now() }
-        
-        // GPS sanity check: reject jumps > 500m in < 2 seconds (GPS glitch)
-        if (lastValidPointRef.current) {
-          const last = lastValidPointRef.current
-          const dist = haversine(last.lat, last.lng, point.lat, point.lng)
-          const timeDiff = (point.timestamp - last.timestamp) / 1000
-          if (dist > 500 && timeDiff < 2) {
-            console.warn('[Tracking] GPS glitch: jump', dist, 'm in', timeDiff, 's — rejecting')
-            return // Reject this GPS fix
-          }
-          // Reject if accuracy is worse than 200m
-          if (pos.coords.accuracy > 200) {
-            console.warn('[Tracking] Low GPS accuracy:', pos.coords.accuracy, 'm — skipping')
-            return
-          }
-        }
-        
-        lastGpsFixRef.current = Date.now()
-        gpsErrorCountRef.current = 0 // Reset error counter on success
-        lastValidPointRef.current = point
-        setGpsAccuracy(pos.coords.accuracy)
-
-        // Elevation tracking from GPS altitude
-        // Only count positive altitude changes (climbing), not descending
-        if (pos.coords.altitude !== null) {
-          if (lastAltitudeRef.current !== null) {
-            const altDiff = pos.coords.altitude - lastAltitudeRef.current
-            if (altDiff > 0) {
-              setTrackElevation(prev => Math.round((prev + altDiff) * 10) / 10)
-            }
-          }
-          lastAltitudeRef.current = pos.coords.altitude
-        }
-
-        setTrackPoints(prev => {
-          const newPoints = [...prev]
-          // GPS gap interpolation: if > 30s since last point, insert gap marker
-          // This prevents "teleportation" lines on the map when GPS signal is lost and regained
-          if (newPoints.length > 0) {
-            const lastPoint = newPoints[newPoints.length - 1]
-            // Don't add gap marker after existing gap markers
-            if (lastPoint.alt !== -9999) {
-              const gapTime = point.timestamp - lastPoint.timestamp
-              if (gapTime > 30000) {
-                newPoints.push({ lat: lastPoint.lat, lng: lastPoint.lng, alt: -9999, timestamp: lastPoint.timestamp + 1 })
-              }
-            }
-          }
-          newPoints.push(point)
-          // Auto-save to localStorage every 15 seconds (was 30s — more frequent for reliability)
-          if (newPoints.length > 0 && Date.now() - lastAutoSaveRef.current > 15000) {
-            lastAutoSaveRef.current = Date.now()
-            try {
-              localStorage.setItem('mototrack_autosave', JSON.stringify(newPoints))
-            } catch {}
-          }
-          if (prev.length > 0 && !isPausedRef.current) {
-            // Only calculate distance for non-gap points
-            const lastNonGapPoint = [...prev].reverse().find(p => p.alt !== -9999)
-            if (lastNonGapPoint) {
-              const d = haversine(lastNonGapPoint.lat, lastNonGapPoint.lng, point.lat, point.lng)
-              setTrackDistance(dd => Math.round((dd + d) * 100) / 100)
-            }
-          }
-          return newPoints
-        })
-        if (pos.coords.speed !== null && pos.coords.speed >= 0) {
-          const kph = Math.round(pos.coords.speed * 3.6 * 10) / 10
-          setTrackCurrentSpeed(kph); setTrackMaxSpeed(max => Math.max(max, kph))
-          // Auto-pause: if speed below threshold for sustained period, auto-pause
-          if (settings.autoPauseEnabled && !isPausedRef.current && kph < settings.autoPauseSpeedThreshold) {
-            if (!autoPauseTimerRef.current) {
-              autoPauseTimerRef.current = setTimeout(() => {
-                if (isPausedRef.current) return
-                autoPausedRef.current = true
-                setIsPaused(true); isPausedRef.current = true
-                pausedDurationRef.current = Date.now()
-                toast.info('🔄 Samodejni premor (nizka hitrost)')
-              }, 5000) // 5 seconds below threshold = auto-pause
-            }
-          } else {
-            // Speed is above threshold
-            if (autoPauseTimerRef.current) { clearTimeout(autoPauseTimerRef.current); autoPauseTimerRef.current = null }
-            // Auto-resume if we auto-paused
-            if (autoPausedRef.current && isPausedRef.current && kph >= settings.autoPauseSpeedThreshold) {
-              autoPausedRef.current = false
-              setIsPaused(false); isPausedRef.current = false
-              if (pausedDurationRef.current) startTimeRef.current += Date.now() - pausedDurationRef.current
-              toast.info('▶️ Nadaljevanje snemanja')
-            }
-          }
-        }
-      },
-      (error) => {
-        // Enhanced GPS error handling with retry logic
-        gpsErrorCountRef.current++
-        const errMsg = error.code === 1 ? 'Dostop do lokacije zavrnjen'
-          : error.code === 2 ? 'Lokacija ni na voljo'
-          : error.code === 3 ? 'Časovna omejitev GPS'
-          : 'Napaka GPS'
-        
-        if (gpsErrorCountRef.current <= 3) {
-          toast.error(`📡 ${errMsg} — poskušam znova...`)
-        } else if (gpsErrorCountRef.current === 10) {
-          toast.error('📡 GPS signal izgubljen. Preverite lokacijske nastavitve.')
-        }
-        // Don't stop tracking on GPS errors — keep timer running, just skip the point
-      },
-      { enableHighAccuracy: true, maximumAge: 5000, timeout: 30000 }
-    )
-  }, [settings.autoPauseEnabled, settings.autoPauseSpeedThreshold, settings.wakelockEnabled])
-
-  const pauseTracking = useCallback(() => { setIsPaused(true); isPausedRef.current = true; pausedDurationRef.current = Date.now() }, [])
-  const resumeTracking = useCallback(() => { setIsPaused(false); isPausedRef.current = false; if (pausedDurationRef.current) startTimeRef.current += Date.now() - pausedDurationRef.current }, [])
-  const stopTracking = useCallback(() => {
-    setIsTracking(false); setIsPaused(false); isPausedRef.current = false; autoPausedRef.current = false; setCurrentRideId(null)
-    if (watchIdRef.current !== null) { navigator.geolocation.clearWatch(watchIdRef.current); watchIdRef.current = null }
-    if (timerRef.current) { clearInterval(timerRef.current); timerRef.current = null }
-    if (autoPauseTimerRef.current) { clearTimeout(autoPauseTimerRef.current); autoPauseTimerRef.current = null }
-    if (autoSaveIntervalRef.current) { clearInterval(autoSaveIntervalRef.current); autoSaveIntervalRef.current = null }
-    if (gpsReacquireIntervalRef.current) { clearInterval(gpsReacquireIntervalRef.current); gpsReacquireIntervalRef.current = null }
-    // Clean up auto-save from localStorage
-    try { localStorage.removeItem('mototrack_autosave') } catch {}
-    // WakeLock is released automatically by useWakeLock hook when isTracking becomes false
-    setTrackCurrentSpeed(0)
-  }, [])
-
-  // Toggle auto-start tracking setting
-  const toggleAutoStart = useCallback(() => {
-    setAutoStartEnabled(prev => {
-      const next = !prev
-      try { localStorage.setItem('mototrack_autoStartTracking', String(next)) } catch {}
-      if (!next) {
-        // Disable: clean up any running monitoring
-        if (autoStartWatchRef.current !== null) {
-          navigator.geolocation.clearWatch(autoStartWatchRef.current)
-          autoStartWatchRef.current = null
-        }
-        if (autoStartCountdownRef.current) {
-          clearInterval(autoStartCountdownRef.current)
-          autoStartCountdownRef.current = null
-        }
-        autoStartSpeedAboveRef.current = false
-        autoStartSpeedStartRef.current = 0
-        setAutoStartCountdown(null)
-        toast.info('⚡ Samodejni začetek izklopljen')
-      } else {
-        toast.success('⚡ Samodejni začetek vklopljen — sledenje se začne pri > 20 km/h')
-      }
-      return next
-    })
-  }, [])
-
-  // Auto-start GPS monitoring: when on "Sledi" tab, not tracking, and auto-start enabled
-  useEffect(() => {
-    if (!autoStartEnabled || activeTab !== 'track' || isTracking) {
-      // Clean up monitoring when not applicable
-      if (autoStartWatchRef.current !== null) {
-        navigator.geolocation.clearWatch(autoStartWatchRef.current)
-        autoStartWatchRef.current = null
-      }
-      if (autoStartCountdownRef.current) {
-        clearInterval(autoStartCountdownRef.current)
-        autoStartCountdownRef.current = null
-      }
-      autoStartSpeedAboveRef.current = false
-      autoStartSpeedStartRef.current = 0
-      setAutoStartCountdown(null)
-      return
-    }
-
-    if (!navigator.geolocation) return
-
-    // Start monitoring GPS for auto-start
-    autoStartWatchRef.current = navigator.geolocation.watchPosition(
-      (pos) => {
-        const speedKmh = pos.coords.speed !== null ? pos.coords.speed * 3.6 : 0
-
-        if (speedKmh > 20) {
-          if (!autoStartSpeedAboveRef.current) {
-            // Speed just crossed threshold — start timing
-            autoStartSpeedAboveRef.current = true
-            autoStartSpeedStartRef.current = Date.now()
-            setAutoStartCountdown(30)
-            toast.info('🚀 Zaznavam gibanje... sledenje se samodejno začne čez 30 sekund')
-
-            // Start countdown interval
-            if (autoStartCountdownRef.current) clearInterval(autoStartCountdownRef.current)
-            autoStartCountdownRef.current = setInterval(() => {
-              const elapsed = Math.floor((Date.now() - autoStartSpeedStartRef.current) / 1000)
-              const remaining = 30 - elapsed
-              if (remaining <= 0) {
-                // 30 seconds of sustained speed > 20 km/h — auto-start!
-                if (autoStartCountdownRef.current) clearInterval(autoStartCountdownRef.current)
-                autoStartCountdownRef.current = null
-                autoStartSpeedAboveRef.current = false
-                setAutoStartCountdown(null)
-                startTracking()
-                toast.success('🚀 Samodejni začetek sledenja!')
-              } else {
-                setAutoStartCountdown(remaining)
-              }
-            }, 1000)
-          }
-          // Speed is still above threshold — check if we should start
-          // (handled by interval above)
-        } else {
-          // Speed dropped below threshold — cancel countdown
-          if (autoStartSpeedAboveRef.current) {
-            autoStartSpeedAboveRef.current = false
-            autoStartSpeedStartRef.current = 0
-            if (autoStartCountdownRef.current) {
-              clearInterval(autoStartCountdownRef.current)
-              autoStartCountdownRef.current = null
-            }
-            setAutoStartCountdown(null)
-          }
-        }
-      },
-      () => {
-        // GPS error — silently ignore during monitoring
-      },
-      { enableHighAccuracy: true, maximumAge: 3000, timeout: 10000 }
-    )
-
-    return () => {
-      if (autoStartWatchRef.current !== null) {
-        navigator.geolocation.clearWatch(autoStartWatchRef.current)
-        autoStartWatchRef.current = null
-      }
-      if (autoStartCountdownRef.current) {
-        clearInterval(autoStartCountdownRef.current)
-        autoStartCountdownRef.current = null
-      }
-      autoStartSpeedAboveRef.current = false
-      autoStartSpeedStartRef.current = 0
-    }
-  }, [autoStartEnabled, activeTab, isTracking, startTracking])
-
-  const saveRide = useCallback(async () => {
-    if (trackPoints.length < 2) { toast.error('Premalo podatkov'); return }
-    try {
-      // Apply privacy: obfuscate start/end if hideStartEnd enabled or in privacy zone
-      let startLat = trackPoints[0].lat
-      let startLng = trackPoints[0].lng
-      let endLat = trackPoints[trackPoints.length - 1].lat
-      let endLng = trackPoints[trackPoints.length - 1].lng
-
-      if (settings.hideStartEnd) {
-        // Obfuscate start/end by small random offset
-        startLat += (Math.random() - 0.5) * 0.005
-        startLng += (Math.random() - 0.5) * 0.005
-        endLat += (Math.random() - 0.5) * 0.005
-        endLng += (Math.random() - 0.5) * 0.005
-      }
-
-      // Check privacy zones for start/end
-      const startObf = obfuscateCoordinate(startLat, startLng, privacyZones)
-      if (startObf) { startLat = startObf.lat; startLng = startObf.lng }
-      const endObf = obfuscateCoordinate(endLat, endLng, privacyZones)
-      if (endObf) { endLat = endObf.lat; endLng = endObf.lng }
-
-      // Filter out track points inside privacy zones from the track data
-      let filteredPoints = trackPoints
-      if (privacyZones.length > 0) {
-        filteredPoints = trackPoints.map(p => {
-          if (isInPrivacyZone(p.lat, p.lng, privacyZones)) {
-            const obf = obfuscateCoordinate(p.lat, p.lng, privacyZones)
-            return obf ? { ...p, lat: obf.lat, lng: obf.lng } : p
-          }
-          return p
-        })
-      }
-
-      // Filter out GPS gap points (alt: -9999) before saving — these are interpolation markers
-      const nonGapPoints = filteredPoints.filter(p => p.alt !== -9999)
-      const trackData = JSON.stringify(nonGapPoints.map(p => [p.lat, p.lng, p.alt, p.timestamp]))
-      const res = await fetch('/api/rides', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ title: `Vožnja ${new Date().toLocaleDateString('sl-SI')}`, distance: trackDistance, duration: trackDuration, avgSpeed: trackDuration > 0 ? Math.round((trackDistance / (trackDuration / 3600)) * 10) / 10 : 0, maxSpeed: trackMaxSpeed, elevation: Math.round(trackElevation), trackData, startLat, startLng, endLat, endLng, isPublic: true }) })
-      if (res.ok) { toast.success('Vožnja shranjena!'); setTrackPoints([]); setTrackDuration(0); setTrackDistance(0); setTrackMaxSpeed(0); setTrackElevation(0); fetchData(); setShowParkingPrompt(true); setTimeout(() => setShowParkingPrompt(false), 8000); if (user?.id) fetch('/api/achievements', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ userId: user.id }) }).then(r => r.json()).then(j => { if (j.data?.newlyEarned?.length > 0) j.data.newlyEarned.forEach((a: { title: string; icon: string }) => toast.success(`🏆 Nov dosežek: ${a.icon} ${a.title}!`)) }).catch(() => {}) }
-      else toast.error('Napaka pri shranjevanju')
-    } catch { toast.error('Napaka pri shranjevanju') }
-  }, [trackPoints, trackDistance, trackDuration, trackMaxSpeed, trackElevation, fetchData, settings.hideStartEnd, privacyZones])
-
-  const saveRoute = useCallback(async () => {
-    if (planWaypoints.length < 2) { toast.error('Dodajte vsaj dve točki'); return }
-    try {
-      const routeData = JSON.stringify(planWaypoints.map(w => [w.lat, w.lng]))
-      const res = await fetch('/api/routes', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ title: planTitle || `Pot ${new Date().toLocaleDateString('sl-SI')}`, description: '', distance: planDistance, waypoints: JSON.stringify(planWaypoints), routeData, category: planCategory, difficulty: 'medium', isPublic: true }) })
-      if (res.ok) {
-        const j = await res.json()
-        toast.success('Pot shranjena!'); setPlanWaypoints([]); setPlanTitle(''); setPlanDistance(0); fetchData();
-        if (user?.id) fetch('/api/achievements', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ userId: user.id }) }).then(r => r.json()).then(j => { if (j.data?.newlyEarned?.length > 0) j.data.newlyEarned.forEach((a: { title: string; icon: string }) => toast.success(`🏆 Nov dosežek: ${a.icon} ${a.title}!`)) }).catch(() => {})
-        return j.data?.id || null
-      }
-      else toast.error('Napaka pri shranjevanju')
-    } catch { toast.error('Napaka pri shranjevanju') }
-    return null
-  }, [planWaypoints, planTitle, planDistance, planCategory, fetchData])
-
-  // Send to Phone: save route and open QR share dialog
-  const sendToPhone = useCallback(async () => {
-    if (planWaypoints.length < 2) { toast.error('Dodajte vsaj dve točki'); return }
-    try {
-      const routeData = JSON.stringify(planWaypoints.map(w => [w.lat, w.lng]))
-      const title = planTitle || `Pot ${new Date().toLocaleDateString('sl-SI')}`
-      const res = await fetch('/api/routes', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ title, description: '', distance: planDistance, waypoints: JSON.stringify(planWaypoints), routeData, category: planCategory, difficulty: 'medium', isPublic: true }) })
-      if (res.ok) {
-        const j = await res.json()
-        const routeId = j.data?.id
-        if (routeId) {
-          setPlanShareRouteId(routeId)
-          setPlanShareTitle(title)
-          setShowPlanShare(true)
-        }
-        fetchData()
-        if (user?.id) fetch('/api/achievements', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ userId: user.id }) }).then(r => r.json()).then(j => { if (j.data?.newlyEarned?.length > 0) j.data.newlyEarned.forEach((a: { title: string; icon: string }) => toast.success(`🏆 Nov dosežek: ${a.icon} ${a.title}!`)) }).catch(() => {})
-      } else {
-        toast.error('Napaka pri shranjevanju')
-      }
-    } catch {
-      toast.error('Napaka pri pošiljanju na telefon')
-    }
-  }, [planWaypoints, planTitle, planDistance, planCategory, fetchData, user?.id])
-
-  // Load a tour's waypoints into the Plan tab for navigation
-  const loadTourToPlan = useCallback((waypoints: { lat: number; lng: number }[], name: string) => {
-    setPlanWaypoints(waypoints)
-    setPlanTitle(name)
-    setPlanCategory('scenic')
-    setActiveTab('plan')
-  }, [])
-
-  useEffect(() => {
-    return () => { if (watchIdRef.current !== null) navigator.geolocation.clearWatch(watchIdRef.current); if (timerRef.current) clearInterval(timerRef.current) }
-  }, [])
-
-  const handleMapClick = useCallback((lat: number, lng: number) => {
-    if (activeTab === 'plan') {
-      setPlanWaypoints(prev => {
-        const maxWP = planRoutingMode === 'offroad' ? 100 : 25
-        if (prev.length >= maxWP) {
-          toast.error(`Največ ${maxWP} točk${maxWP === 25 ? '' : ''} za ${planRoutingMode === 'offroad' ? 'terensko' : 'ta način'} načrtovanje`)
-          return prev
-        }
-        return [...prev, { lat, lng }]
-      })
-    }
-  }, [activeTab, planRoutingMode])
-
+  // ─── Detail dialog ────────────────────────────────────────────
+  // eslint-disable-next-line react-hooks/preserve-manual-memoization
   const openDetail = useCallback(async (item: RideData | RouteData, type: 'ride' | 'route') => {
     setSelectedItem(item); setSelectedType(type); setDetailOpen(true)
     setComments([]); setNewComment(''); setCommentsLoading(true)
@@ -1035,20 +354,6 @@ export default function Home() {
     setWeatherLoading(true)
     fetch(`/api/weather?lat=${lat}&lng=${lng}`).then(r => r.json()).then(j => { setWeather(j.data || null); setWeatherLoading(false) }).catch(() => setWeatherLoading(false))
   }, [])
-
-  const toggleLike = useCallback(async (routeId: string) => {
-    if (!user) return
-    try {
-      const res = await fetch(`/api/routes/${routeId}/like`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ userId: user.id }) })
-      if (res.ok) {
-        const j = await res.json()
-        setRoutes(prev => prev.map(r => r.id === routeId ? { ...r, likes: j.data.likes, userLiked: j.data.userLiked } : r))
-        if (selectedItem && selectedType === 'route' && selectedItem.id === routeId) {
-          setSelectedItem(prev => prev ? { ...prev, likes: j.data.likes, userLiked: j.data.userLiked } : prev)
-        }
-      }
-    } catch { toast.error('Napaka') }
-  }, [user, selectedItem, selectedType])
 
   const postComment = useCallback(async () => {
     if (!newComment.trim() || !user || !selectedItem) return
@@ -1063,18 +368,6 @@ export default function Home() {
       } else toast.error('Napaka pri dodajanju komentarja')
     } catch { toast.error('Napaka') }
   }, [newComment, user, selectedItem, selectedType])
-
-  const switchUser = useCallback(async (userId: string) => {
-    try {
-      const res = await fetch(`/api/users/${userId}`)
-      if (res.ok) {
-        const j = await res.json()
-        const userData = j.data || j
-        setUser(userData)
-        toast.success(`Preklopljen na ${userData.name || 'uporabnika'}`)
-      }
-    } catch { toast.error('Napaka pri preklopu') }
-  }, [])
 
   // Prevent hydration mismatch: show skeleton until client-mounted
   // This ensures SSR and client render identical HTML on first paint
