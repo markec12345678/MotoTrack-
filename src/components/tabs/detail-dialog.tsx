@@ -363,8 +363,8 @@ export default function DetailDialog({
   // Check if item is favorited
   useEffect(() => {
     if (!user) { setIsFavorite(false); return }
-    const type = isRide ? 'ride' : 'route'
-    fetch(`/api/favorites?userId=${user.id}&type=${type}`)
+    const itemType = isRide ? 'ride' : 'route'
+    fetch(`/api/favorites?userId=${user.id}&type=${itemType}`)
       .then(r => r.json())
       .then(j => {
         const favs: Array<{ rideId: string | null; routeId: string | null }> = j.data || []
@@ -598,11 +598,11 @@ export default function DetailDialog({
               className="h-7 gap-1 text-xs text-muted-foreground hover:text-foreground"
               onClick={async () => {
                 try {
-                  const type = isRide ? 'ride' : 'route'
+                  const itemType = isRide ? 'ride' : 'route'
                   const res = await fetch('/api/share', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ type, id: item.id, userId: user?.id, platform: 'clipboard' }),
+                    body: JSON.stringify({ type: itemType, id: item.id, userId: user?.id, platform: 'clipboard' }),
                   })
                   if (res.ok) {
                     const j = await res.json()

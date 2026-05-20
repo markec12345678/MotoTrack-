@@ -37,6 +37,7 @@ export default function MotoChat() {
   const [input, setInput] = useState('')
   const [loading, setLoading] = useState(false)
   const [playingAudio, setPlayingAudio] = useState<string | null>(null)
+  const ttsGenerationRef = useRef(0)
   const [sessionId] = useState(() => `chat-${Date.now()}`)
   const scrollRef = useRef<HTMLDivElement>(null)
   const inputRef = useRef<HTMLInputElement>(null)
@@ -84,6 +85,8 @@ export default function MotoChat() {
       URL.revokeObjectURL(audioRef.current.src)
     }
 
+    // Generation counter to prevent TTS race conditions with rapid clicks
+    const generation = ++ttsGenerationRef.current
     setPlayingAudio(messageId)
 
     try {
@@ -102,27 +105,31 @@ export default function MotoChat() {
         body: JSON.stringify({ text: cleanText, speed: 1.0, voice: 'tongtong' }),
       })
 
+      // If another TTS was triggered while we waited, discard this result
+      if (ttsGenerationRef.current !== generation) return
+
       if (res.ok) {
         const audioBlob = await res.blob()
+        if (ttsGenerationRef.current !== generation) return
         const audioUrl = URL.createObjectURL(audioBlob)
         const audio = new Audio(audioUrl)
         audioRef.current = audio
         audio.onended = () => {
-          setPlayingAudio(null)
+          if (ttsGenerationRef.current === generation) setPlayingAudio(null)
           URL.revokeObjectURL(audioUrl)
           audioRef.current = null
         }
         audio.onerror = () => {
-          setPlayingAudio(null)
+          if (ttsGenerationRef.current === generation) setPlayingAudio(null)
           toast.error('Napaka pri predvajanju')
         }
         audio.play()
       } else {
-        setPlayingAudio(null)
+        if (ttsGenerationRef.current === generation) setPlayingAudio(null)
         toast.error('Napaka pri generiranju govora')
       }
     } catch {
-      setPlayingAudio(null)
+      if (ttsGenerationRef.current === generation) setPlayingAudio(null)
       toast.error('Napaka pri povezavi')
     }
   }, [playingAudio])

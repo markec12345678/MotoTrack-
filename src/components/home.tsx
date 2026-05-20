@@ -483,25 +483,42 @@ export default function Home() {
     try {
       const saved = localStorage.getItem('mototrack_autosave')
       if (saved) {
-        const points: TrackPoint[] = JSON.parse(saved)
-        if (points.length >= 2) {
-          // Show recovery toast
-          const recoverData = () => {
-            setTrackPoints(points)
-            let dist = 0
-            for (let i = 1; i < points.length; i++) {
+        const rawPoints: unknown[] = JSON.parse(saved)
+        // Validate recovered data — prevent corruption from causing crashes
+        if (!Array.isArray(rawPoints) || rawPoints.length < 2 || rawPoints.length > 50000) {
+          localStorage.removeItem('mototrack_autosave')
+          return
+        }
+        // Validate each point has required fields with sane values
+        const points: TrackPoint[] = rawPoints.filter((p: any) =>
+          typeof p.lat === 'number' && typeof p.lng === 'number' && typeof p.timestamp === 'number' &&
+          !isNaN(p.lat) && !isNaN(p.lng) && Math.abs(p.lat) <= 90 && Math.abs(p.lng) <= 180
+        ) as TrackPoint[]
+        if (points.length < 2) {
+          localStorage.removeItem('mototrack_autosave')
+          return
+        }
+        // Show recovery toast
+        const recoverData = () => {
+          setTrackPoints(points)
+          let dist = 0
+          for (let i = 1; i < points.length; i++) {
+            if (points[i].alt !== -9999 && points[i - 1].alt !== -9999) {
               dist += haversine(points[i - 1].lat, points[i - 1].lng, points[i].lat, points[i].lng)
             }
-            setTrackDistance(Math.round(dist * 100) / 100)
-            toast.success(`♻️ Obnovljeno ${points.length} točk (${(dist).toFixed(1)} km)`)
-            localStorage.removeItem('mototrack_autosave')
           }
-          // Auto-recover after a brief delay
-          const timer = setTimeout(recoverData, 1500)
-          return () => clearTimeout(timer)
+          setTrackDistance(Math.round(dist * 100) / 100)
+          toast.success(`♻️ Obnovljeno ${points.length} točk (${(dist).toFixed(1)} km)`)
+          localStorage.removeItem('mototrack_autosave')
         }
+        // Auto-recover after a brief delay
+        const timer = setTimeout(recoverData, 1500)
+        return () => clearTimeout(timer)
       }
-    } catch {}
+    } catch {
+      // Corrupted data — clean up
+      try { localStorage.removeItem('mototrack_autosave') } catch {}
+    }
   }, [mounted])
 
   // Calculate plan distance
@@ -596,13 +613,8 @@ export default function Home() {
     lastValidPointRef.current = null
     lastAltitudeRef.current = null
 
-    // Acquire WakeLock to prevent screen from turning off (key for reliable tracking)
-    if (settings.wakelockEnabled && 'wakeLock' in navigator) {
-      navigator.wakeLock.request('screen').then((sentinel) => {
-        // Store sentinel for later release
-        (navigator as any).__wakeLockSentinel = sentinel
-      }).catch(() => {})
-    }
+    // WakeLock is managed by useWakeLock hook — no manual request needed here
+    // The hook handles request, release, and re-acquisition on visibility change
 
     timerRef.current = setInterval(() => { if (!isPausedRef.current) setTrackDuration(p => p + 1) }, 1000)
 
@@ -787,11 +799,7 @@ export default function Home() {
     if (gpsReacquireIntervalRef.current) { clearInterval(gpsReacquireIntervalRef.current); gpsReacquireIntervalRef.current = null }
     // Clean up auto-save from localStorage
     try { localStorage.removeItem('mototrack_autosave') } catch {}
-    // Release WakeLock sentinel (if any was acquired)
-    try {
-      const sentinel = (navigator as any).__wakeLockSentinel
-      if (sentinel) { sentinel.release?.() ; (navigator as any).__wakeLockSentinel = null }
-    } catch {}
+    // WakeLock is released automatically by useWakeLock hook when isTracking becomes false
     setTrackCurrentSpeed(0)
   }, [])
 

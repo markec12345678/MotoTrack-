@@ -198,9 +198,9 @@ export default function SosButton({ userId }: SosButtonProps) {
               setConfirmOpen(true)
             }
           }}
-          onPointerDown={collapsed ? undefined : handlePointerDown}
-          onPointerUp={collapsed ? undefined : handlePointerUp}
-          onPointerLeave={collapsed ? undefined : handlePointerLeave}
+          onPointerDown={handlePointerDown}
+          onPointerUp={handlePointerUp}
+          onPointerLeave={handlePointerLeave}
           className={`fixed left-4 z-[1600] rounded-full shadow-lg transition-all flex items-center justify-center font-bold text-white select-none ${
             collapsed
               ? 'bottom-24 size-10 bg-red-500/80 hover:bg-red-500'
